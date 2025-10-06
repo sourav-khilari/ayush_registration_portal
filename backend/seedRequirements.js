@@ -1,6 +1,7 @@
 require("dotenv").config();
 const mongoose = require("mongoose");
 const DocumentRequirement = require("./src/models/DocumentRequirement");
+const DocumentTemplate = require("./src/models/DocumentTemplate");
 
 async function seed() {
   await mongoose.connect(process.env.MONGO_URI);
@@ -134,6 +135,22 @@ async function seed() {
     application_type: "clinic",
     requirements: homoeopathyClinic(),
   });
+
+  // Seed document templates (reference rules for OCR validation)
+  await DocumentTemplate.deleteMany({});
+  await DocumentTemplate.insertMany([
+    {
+      doc_category: "founder_id",
+      variant: "aadhaar",
+      fields: [
+        { name: "name", required: true },
+        { name: "document_number", required: true, pattern: "^\\\d{12}$" },
+        { name: "dob", required: false, pattern: "^\\\d{2}[-/]\\\d{2}[-/]\\\d{4}$" },
+        { name: "address", required: false },
+        { name: "father_name", required: false },
+      ],
+    },
+  ]);
 
   console.log("Seed complete");
   mongoose.connection.close();

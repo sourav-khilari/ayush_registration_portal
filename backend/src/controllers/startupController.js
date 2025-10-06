@@ -62,10 +62,44 @@ async function deleteStartup(req, res) {
   res.json({ message: "Deleted" });
 }
 
+// List all startups for verified govt officials or admins
+async function listStartupsForOfficials(req, res) {
+  try {
+    const isAdmin = req.user.role === "admin";
+    const isGov = req.user.role === "gov_official" && req.user.role_verified === true;
+    if (!isAdmin && !isGov) {
+      return res.status(403).json({ message: "Forbidden: only verified officials/admin" });
+    }
+
+    const { status, q } = req.query;
+    const filter = {};
+    if (status) filter.status = status;
+    if (q) {
+      filter.$or = [
+        { name: new RegExp(q, "i") },
+        { founder_name: new RegExp(q, "i") },
+        { email: new RegExp(q, "i") },
+        { phone_number: new RegExp(q, "i") },
+      ];
+    }
+
+    const items = await Startup
+      .find(filter)
+      .sort({ createdAt: -1 })
+      .select("name founder_name email phone_number startup_type status createdAt")
+      .lean();
+
+    return res.json({ items });
+  } catch (err) {
+    return res.status(500).json({ message: "Failed to list startups", error: err.message });
+  }
+}
+
 module.exports = {
   createStartup,
   getMyStartups,
   getStartupById,
   updateStartup,
   deleteStartup,
+  listStartupsForOfficials,
 };

@@ -4,6 +4,9 @@ const startupCommon = [
 	{ doc_category: "founder_id", note: "Aadhaar/Passport of promoter", extract_fields: [
 		{ name: "name", label: "Name" },
 		{ name: "document_number", label: "ID No" },
+		{ name: "dob", label: "Date of Birth" },
+		{ name: "address", label: "Address" },
+		{ name: "father_name", label: "Father's Name" },
 	]},
 	{ doc_category: "founder_pan", note: "PAN of promoter", extract_fields: [
 		{ name: "pan", label: "PAN" },

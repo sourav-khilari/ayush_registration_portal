@@ -2,6 +2,7 @@
 const path = require("path");
 const Document = require("../models/Document");
 const DocumentRequirement = require("../models/DocumentRequirement");
+const DocumentTemplate = require("../models/DocumentTemplate");
 const Application = require("../models/Application");
 const { uploadToLocal, resolveFileUrlToPath, saveBase64Image } = require("../utils/storage");
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
@@ -72,7 +73,52 @@ async function uploadDocumentHandler(req, res) {
           }
         }
         if (data.extracted_fields && typeof data.extracted_fields === "object") {
-          doc.extracted_fields = data.extracted_fields;
+          // Dynamic important fields per document type via external template API
+          const raw = data.extracted_fields || {};
+          const declaredCategory = String(doc.doc_category_declared || "").toLowerCase();
+          const clientVariant = String(req.body.doc_variant || "").toLowerCase();
+          const detectedVariant = String(data.detected_category || "").toLowerCase();
+          const variant = clientVariant || detectedVariant || "";
+
+          const getVal = (rec) => (rec && typeof rec === "object" && rec.value !== undefined ? rec.value : rec);
+
+          let fieldsSpec = null;
+          const baseUrl = process.env.DOC_TEMPLATE_API_URL;
+          const apiKey = process.env.DOC_TEMPLATE_API_KEY;
+          if (baseUrl) {
+            try {
+              const url = `${baseUrl}?doc_category=${encodeURIComponent(declaredCategory)}${variant ? `&variant=${encodeURIComponent(variant)}` : ""}`;
+              const r = await fetch(url, {
+                method: "GET",
+                headers: {
+                  "Content-Type": "application/json",
+                  ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+                },
+              });
+              if (r.ok) {
+                const payload = await r.json();
+                if (payload && Array.isArray(payload.fields)) {
+                  fieldsSpec = payload.fields;
+                }
+              }
+            } catch (_) {}
+          }
+
+          if (Array.isArray(fieldsSpec) && fieldsSpec.length) {
+            // Keep only important fields defined by the template
+            const out = {};
+            for (const f of fieldsSpec) {
+              const rec = raw[f.name];
+              const val = getVal(rec);
+              if (val !== undefined && val !== null && String(val).trim() !== "") {
+                out[f.name] = rec && typeof rec === "object" ? { ...rec, value: val } : { value: val };
+              }
+            }
+            doc.extracted_fields = out;
+          } else {
+            // No template available: store OCR fields as-is
+            doc.extracted_fields = raw;
+          }
         }
 
         // Save page images if OCR returns them (as base64 data URLs or raw base64)

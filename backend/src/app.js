@@ -31,6 +31,7 @@ app.use(
   "Application",
   "Document",
   "DocumentRequirement",
+  "DocumentTemplate",
   "Product",
   "Investment",
   "Investor",
