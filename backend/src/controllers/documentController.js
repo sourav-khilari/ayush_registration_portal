@@ -4,7 +4,7 @@ const Document = require("../models/Document");
 const DocumentRequirement = require("../models/DocumentRequirement");
 const DocumentTemplate = require("../models/DocumentTemplate");
 const Application = require("../models/Application");
-const { uploadToLocal, resolveFileUrlToPath, saveBase64Image } = require("../utils/storage");
+const { uploadToLocal, resolveFileUrlToPath, saveBase64Image, processDocumentForImages } = require("../utils/storage");
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
 async function uploadDocumentHandler(req, res) {
@@ -29,6 +29,18 @@ async function uploadDocumentHandler(req, res) {
     // save file locally (for now)
     const fileUrl = await uploadToLocal(file.path, file.originalname);
 
+    // Process document for page images (PDF to images or direct image handling)
+    let pageImages = [];
+    let pageCount = 0;
+    try {
+      // Use stored file's absolute path (tmp file is deleted by uploadToLocal)
+      const storedAbsPath = resolveFileUrlToPath(fileUrl);
+      pageImages = await processDocumentForImages(storedAbsPath, file.originalname);
+      pageCount = pageImages.length;
+    } catch (error) {
+      console.error('Page image processing failed:', error);
+    }
+
     const doc = await Document.create({
       application_id: application_id || null,
       startup_id: startup_id || null,
@@ -40,6 +52,8 @@ async function uploadDocumentHandler(req, res) {
       filename: file.originalname,
       file_size: file.size,
       ocr_status: "pending", // still keep status, but not processing yet
+      page_images: pageImages,
+      page_count: pageCount,
     });
 
     if (application_id) {
@@ -121,29 +135,7 @@ async function uploadDocumentHandler(req, res) {
           }
         }
 
-        // Save page images if OCR returns them (as base64 data URLs or raw base64)
-        // Supports keys: page_images | pages | images
-        const pageImages = Array.isArray(data.page_images)
-          ? data.page_images
-          : Array.isArray(data.pages)
-          ? data.pages
-          : Array.isArray(data.images)
-          ? data.images
-          : [];
-        if (pageImages.length > 0) {
-          const saved = [];
-          for (let i = 0; i < pageImages.length; i++) {
-            const img = pageImages[i];
-            try {
-              const url = await saveBase64Image(img, `${path.parse(file.originalname).name}-p${i + 1}.png`);
-              saved.push({ url, page: i + 1 });
-            } catch (_) {}
-          }
-          if (saved.length) {
-            doc.page_images = saved;
-            doc.page_count = saved.length;
-          }
-        }
+        // OCR API will not generate images; keep page images generated during upload only
 
         // If OCR includes structured application fields, merge into the related Application
         if (doc.application_id && data.application_fields && typeof data.application_fields === "object") {

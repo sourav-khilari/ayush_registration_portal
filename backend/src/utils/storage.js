@@ -1,5 +1,7 @@
 const path = require("path");
 const fs = require("fs").promises;
+const pdf = require("pdf-poppler");
+const sharp = require("sharp");
 
 const uploadDir = process.env.UPLOAD_DIR || "public/uploads";
 
@@ -72,3 +74,86 @@ async function saveBase64Image(base64Input, suggestedName = "image.png") {
 }
 
 module.exports.saveBase64Image = saveBase64Image;
+
+// Convert PDF to images and save them
+async function convertPdfToImages(pdfPath, outputDir, baseName) {
+  try {
+    await ensureUploadDir(outputDir);
+    
+    const options = {
+      format: 'png',
+      out_dir: outputDir,
+      out_prefix: baseName,
+      page: null // Convert all pages
+    };
+    
+    const result = await pdf.convert(pdfPath, options);
+    return result;
+  } catch (error) {
+    console.error('PDF conversion error:', error);
+    throw error;
+  }
+}
+
+// Process uploaded file and generate page images
+async function processDocumentForImages(filePath, originalName) {
+  const fileExt = path.extname(originalName).toLowerCase();
+  const baseName = path.parse(originalName).name;
+  const dateDir = new Date().toISOString().slice(0, 10);
+  const outputDir = path.join(uploadDir, dateDir, 'pages');
+  
+  let pageImages = [];
+  
+  if (fileExt === '.pdf') {
+    // Convert PDF to images
+    try {
+      const result = await convertPdfToImages(filePath, outputDir, baseName);
+      
+      // Get all generated image files
+      const files = await fs.readdir(outputDir);
+      const imageFiles = files
+        .filter(file => file.startsWith(baseName) && file.endsWith('.png'))
+        .sort();
+      
+      for (let i = 0; i < imageFiles.length; i++) {
+        const imagePath = path.join(outputDir, imageFiles[i]);
+        // Build public URL under /uploads/... similar to uploadToLocal
+        const parts = imagePath.split(path.sep);
+        const uploadsIndex = parts.lastIndexOf("uploads");
+        const publicPath = "/" + parts.slice(uploadsIndex).join("/");
+        pageImages.push({
+          url: publicPath.replace(/\\/g, "/"),
+          page: i + 1,
+          filename: imageFiles[i]
+        });
+      }
+    } catch (error) {
+      console.error('PDF to images conversion failed:', error);
+    }
+  } else if (['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'].includes(fileExt)) {
+    // Handle direct image uploads
+    try {
+      await ensureUploadDir(outputDir);
+      
+      // Normalize/convert to PNG using sharp for consistency
+      const imagePath = path.join(outputDir, `${baseName}-page-1.png`);
+      await sharp(filePath).png().toFile(imagePath);
+      
+      const parts = imagePath.split(path.sep);
+      const uploadsIndex = parts.lastIndexOf("uploads");
+      const publicPath = "/" + parts.slice(uploadsIndex).join("/");
+      pageImages.push({
+        url: publicPath.replace(/\\/g, "/"),
+        page: 1,
+        filename: `${baseName}-page-1.png`
+      });
+    } catch (error) {
+      console.error('Image processing failed:', error);
+    }
+  }
+  
+  return pageImages;
+}
+
+module.exports.convertPdfToImages = convertPdfToImages;
+module.exports.processDocumentForImages = processDocumentForImages;
