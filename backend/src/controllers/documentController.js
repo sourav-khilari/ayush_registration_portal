@@ -6,24 +6,41 @@ import Document from "../models/Document.js";
 import DocumentRequirement from "../models/DocumentRequirement.js";
 import DocumentTemplate from "../models/DocumentTemplate.js";
 import Application from "../models/Application.js";
-import { uploadToLocal, resolveFileUrlToPath, saveBase64Image, processDocumentForImages } from "../utils/storage.js";
+import {
+  uploadToLocal,
+  resolveFileUrlToPath,
+  saveBase64Image,
+  processDocumentForImages,
+} from "../utils/storage.js";
 import fetch from "node-fetch";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Temporary manual verification support
-const MANUAL_DOCS_DIR = process.env.MANUAL_DOCS_DIR || path.join(__dirname, "..", "..", (process.env.MANUAL_DOCS_FALLBACK_DIR || "manual_docs"));
+const MANUAL_DOCS_DIR =
+  process.env.MANUAL_DOCS_DIR ||
+  path.join(
+    __dirname,
+    "..",
+    "..",
+    process.env.MANUAL_DOCS_FALLBACK_DIR || "manual_docs"
+  );
 // Fallback whitelist of known basenames (without extension)
-const FALLBACK_ALLOWED_BASENAMES = (process.env.MANUAL_DOCS_WHITELIST || "Arnab_Ghosh_Aadhar,Arnab_Ghosh_Pan").split(",").map(s => s.trim()).filter(Boolean);
+const FALLBACK_ALLOWED_BASENAMES = (
+  process.env.MANUAL_DOCS_WHITELIST || "Arnab_Ghosh_Aadhar,Arnab_Ghosh_Pan"
+)
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
 
 function listManualDocBasenamesSafe() {
   try {
     if (!MANUAL_DOCS_DIR) return [];
     const items = fs.readdirSync(MANUAL_DOCS_DIR, { withFileTypes: true });
     return items
-      .filter(d => d.isFile())
-      .map(d => path.parse(d.name).name)
+      .filter((d) => d.isFile())
+      .map((d) => path.parse(d.name).name)
       .filter(Boolean);
   } catch (_) {
     return [];
@@ -58,7 +75,11 @@ async function uploadDocumentHandler(req, res) {
     }
 
     // save file locally (for now)
-    const fileUrl = await uploadToLocal(file.path, file.originalname);
+    const fileUrl = await uploadToLocal(
+      file.path,
+      file.originalname,
+      req.user.name || req.user.username
+    );
 
     // Process document for page images (PDF to images or direct image handling)
     let pageImages = [];
@@ -66,10 +87,17 @@ async function uploadDocumentHandler(req, res) {
     try {
       // Use stored file's absolute path (tmp file is deleted by uploadToLocal)
       const storedAbsPath = resolveFileUrlToPath(fileUrl);
-      pageImages = await processDocumentForImages(storedAbsPath, file.originalname);
+      pageImages = await processDocumentForImages(
+        storedAbsPath,
+        file.originalname,
+        (req.user.name || req.user.username || "unknown")
+          .replace(/\s+/g, "_")
+          .toLowerCase()
+      );
+
       pageCount = pageImages.length;
     } catch (error) {
-      console.error('Page image processing failed:', error);
+      console.error("Page image processing failed:", error);
     }
 
     const doc = await Document.create({
@@ -90,14 +118,20 @@ async function uploadDocumentHandler(req, res) {
     // Temporary filename-based verification
     try {
       const uploadedBase = normalizeNameForMatch(file.originalname || "");
-      const manualBasenames = listManualDocBasenamesSafe().map(normalizeNameForMatch);
-      const allowedSet = new Set([...manualBasenames, ...FALLBACK_ALLOWED_BASENAMES.map(normalizeNameForMatch)]);
+      const manualBasenames = listManualDocBasenamesSafe().map(
+        normalizeNameForMatch
+      );
+      const allowedSet = new Set([
+        ...manualBasenames,
+        ...FALLBACK_ALLOWED_BASENAMES.map(normalizeNameForMatch),
+      ]);
       if (uploadedBase && allowedSet.has(uploadedBase)) {
         doc.verified_status = "verified";
         await doc.save();
       } else {
         doc.verified_status = "rejected";
-        doc.rejection_reason = "Filename did not match any manually stored document";
+        doc.rejection_reason =
+          "Filename did not match any manually stored document";
         await doc.save();
       }
     } catch (_) {}
@@ -117,8 +151,16 @@ async function uploadDocumentHandler(req, res) {
         const absPath = resolveFileUrlToPath(fileUrl);
         const resp = await fetch(process.env.OCR_API_URL, {
           method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: process.env.OCR_API_KEY ? `Bearer ${process.env.OCR_API_KEY}` : undefined },
-          body: JSON.stringify({ file_path: absPath, category: doc_category_declared }),
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: process.env.OCR_API_KEY
+              ? `Bearer ${process.env.OCR_API_KEY}`
+              : undefined,
+          },
+          body: JSON.stringify({
+            file_path: absPath,
+            category: doc_category_declared,
+          }),
         });
         if (!resp.ok) throw new Error(`OCR HTTP ${resp.status}`);
         const data = await resp.json();
@@ -132,15 +174,27 @@ async function uploadDocumentHandler(req, res) {
             doc.category_confidence = data.category_confidence;
           }
         }
-        if (data.extracted_fields && typeof data.extracted_fields === "object") {
+        if (
+          data.extracted_fields &&
+          typeof data.extracted_fields === "object"
+        ) {
           // Dynamic important fields per document type via external template API
           const raw = data.extracted_fields || {};
-          const declaredCategory = String(doc.doc_category_declared || "").toLowerCase();
-          const clientVariant = String(req.body.doc_variant || "").toLowerCase();
-          const detectedVariant = String(data.detected_category || "").toLowerCase();
+          const declaredCategory = String(
+            doc.doc_category_declared || ""
+          ).toLowerCase();
+          const clientVariant = String(
+            req.body.doc_variant || ""
+          ).toLowerCase();
+          const detectedVariant = String(
+            data.detected_category || ""
+          ).toLowerCase();
           const variant = clientVariant || detectedVariant || "";
 
-          const getVal = (rec) => (rec && typeof rec === "object" && rec.value !== undefined ? rec.value : rec);
+          const getVal = (rec) =>
+            rec && typeof rec === "object" && rec.value !== undefined
+              ? rec.value
+              : rec;
 
           let fieldsSpec = null;
           const baseUrl = process.env.DOC_TEMPLATE_API_URL;
@@ -170,8 +224,15 @@ async function uploadDocumentHandler(req, res) {
             for (const f of fieldsSpec) {
               const rec = raw[f.name];
               const val = getVal(rec);
-              if (val !== undefined && val !== null && String(val).trim() !== "") {
-                out[f.name] = rec && typeof rec === "object" ? { ...rec, value: val } : { value: val };
+              if (
+                val !== undefined &&
+                val !== null &&
+                String(val).trim() !== ""
+              ) {
+                out[f.name] =
+                  rec && typeof rec === "object"
+                    ? { ...rec, value: val }
+                    : { value: val };
               }
             }
             doc.extracted_fields = out;
@@ -184,12 +245,22 @@ async function uploadDocumentHandler(req, res) {
         // OCR API will not generate images; keep page images generated during upload only
 
         // If OCR includes structured application fields, merge into the related Application
-        if (doc.application_id && data.application_fields && typeof data.application_fields === "object") {
+        if (
+          doc.application_id &&
+          data.application_fields &&
+          typeof data.application_fields === "object"
+        ) {
           try {
             const app = await Application.findById(doc.application_id);
             if (app) {
-              const existing = app.application_data && typeof app.application_data === "object" ? app.application_data : {};
-              app.application_data = { ...existing, ...data.application_fields };
+              const existing =
+                app.application_data && typeof app.application_data === "object"
+                  ? app.application_data
+                  : {};
+              app.application_data = {
+                ...existing,
+                ...data.application_fields,
+              };
               await app.save();
             }
           } catch (_) {}
@@ -232,10 +303,11 @@ async function listDocuments(req, res) {
     if (startup_id) filter.startup_id = startup_id;
     if (application_id) filter.application_id = application_id;
 
-    const docs = await Document
-      .find(filter)
+    const docs = await Document.find(filter)
       .sort({ createdAt: -1 })
-      .select("filename fileUrl file_size doc_category_declared doc_category_detected category_confidence ocr_status ocr_text ocr_language extracted_fields verified_status page_images page_count createdAt updatedAt")
+      .select(
+        "filename fileUrl file_size doc_category_declared doc_category_detected category_confidence ocr_status ocr_text ocr_language extracted_fields verified_status page_images page_count createdAt updatedAt"
+      )
       .lean();
 
     res.json({ documents: docs });
@@ -311,8 +383,17 @@ async function setDocumentVerification(req, res) {
     await doc.save();
     res.json({ message: "Verification updated", document: doc });
   } catch (err) {
-    res.status(500).json({ message: "Verification update failed", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Verification update failed", error: err.message });
   }
 }
 
-export { uploadDocumentHandler, getDocument, listDocuments, reassignDocument, getRequirements, setDocumentVerification };
+export {
+  uploadDocumentHandler,
+  getDocument,
+  listDocuments,
+  reassignDocument,
+  getRequirements,
+  setDocumentVerification,
+};

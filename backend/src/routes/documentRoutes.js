@@ -21,13 +21,21 @@ router.get("/:id", auth, getDocument);
 router.post("/:id/reassign", auth, reassignDocument);
 // Only verified gov_officials or admins can verify
 import requireRole from "../middleware/requireRole.js";
-router.post("/:id/verify", auth, (req, res, next) => {
-  const isAdmin = req.user.role === "admin";
-  const isGov = req.user.role === "gov_official" && req.user.role_verified === true;
-  if (!isAdmin && !isGov) {
-    return res.status(403).json({ message: "Forbidden: only verified officials/admin" });
-  }
-  next();
-}, setDocumentVerification);
+router.post(
+  "/:id/verify",
+  auth,
+  (req, res, next) => {
+    const isAdmin = req.user.role === "admin";
+    const isGov =
+      req.user.role === "gov_official" && req.user.role_verified === true;
+    if (!isAdmin && !isGov) {
+      return res
+        .status(403)
+        .json({ message: "Forbidden: only verified officials/admin" });
+    }
+    next();
+  },
+  setDocumentVerification
+);
 
 export default router;

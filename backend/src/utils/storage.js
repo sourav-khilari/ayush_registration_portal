@@ -1,3 +1,4 @@
+// src/utils/storage.js
 import path from "path";
 import fs from "fs/promises";
 import pdf from "pdf-poppler";
@@ -5,14 +6,18 @@ import sharp from "sharp";
 
 const uploadDir = process.env.UPLOAD_DIR || "public/uploads";
 
+// Ensure a folder exists
 async function ensureUploadDir(dir) {
   await fs.mkdir(dir, { recursive: true });
 }
 
-async function uploadToLocal(tmpPath, filename) {
+// Upload file → /uploads/<username>/<date>/<filename>
+export async function uploadToLocal(tmpPath, filename, username = "general") {
+  const safeUser = username.replace(/[^a-z0-9_-]+/gi, "_").toLowerCase();
   const dateDir = new Date().toISOString().slice(0, 10);
-  const destDir = path.join(uploadDir, dateDir);
+  const destDir = path.join(uploadDir, safeUser, dateDir);
   await ensureUploadDir(destDir);
+
   const destFilename = `${Date.now()}-${filename.replace(/\s+/g, "_")}`;
   const destPath = path.join(destDir, destFilename);
   await fs.copyFile(tmpPath, destPath);
@@ -20,139 +25,104 @@ async function uploadToLocal(tmpPath, filename) {
     await fs.unlink(tmpPath);
   } catch (e) {}
 
-  // Return a URL path that matches `app.use('/uploads', express.static(...))`
-  // If uploadDir is 'public/uploads', return `/uploads/<date>/<file>`
+  // Generate /uploads/<username>/<date>/<file>
   const parts = destPath.split(path.sep);
-  // find index of 'uploads' in path
   const uploadsIndex = parts.lastIndexOf("uploads");
   const publicPath = "/" + parts.slice(uploadsIndex).join("/");
   return publicPath.replace(/\\/g, "/");
 }
 
-// Export functions will be added at the end
-
-// Resolve a stored public fileUrl (e.g., /uploads/2025-09-15/123-file.pdf)
-// to an absolute filesystem path based on UPLOAD_DIR.
-function resolveFileUrlToPath(fileUrl) {
+// Resolve a /uploads/... URL → filesystem path
+export function resolveFileUrlToPath(fileUrl) {
   if (!fileUrl) return null;
   const normalized = fileUrl.replace(/\\/g, "/");
   const idx = normalized.indexOf("/uploads/");
   if (idx === -1) return null;
   const relative = normalized.slice(idx + "/uploads/".length);
-  const absolute = path.join(uploadDir, relative);
-  return absolute;
+  return path.join(uploadDir, relative);
 }
 
-// Export will be added at the end
-
-// Save a base64 image (data URL or raw base64) into uploads and return public URL
-async function saveBase64Image(base64Input, suggestedName = "image.png") {
+// Save a base64 image inside user's folder
+export async function saveBase64Image(
+  base64Input,
+  suggestedName = "image.png",
+  username = "unknown"
+) {
   const dateDir = new Date().toISOString().slice(0, 10);
-  const destDir = path.join(uploadDir, dateDir);
+  const destDir = path.join(uploadDir, username, dateDir);
   await ensureUploadDir(destDir);
 
   let mime = "image/png";
   let base64 = base64Input;
-  const dataUrlMatch = /^data:(.+);base64,(.*)$/.exec(base64Input);
-  if (dataUrlMatch) {
-    mime = dataUrlMatch[1] || mime;
-    base64 = dataUrlMatch[2] || "";
+  const match = /^data:(.+);base64,(.*)$/.exec(base64Input);
+  if (match) {
+    mime = match[1] || mime;
+    base64 = match[2] || "";
   }
 
-  const extFromMime = mime.split("/")[1] || "png";
+  const ext = mime.split("/")[1] || "png";
   const safeName = `${Date.now()}-${suggestedName.replace(/\s+/g, "_")}`;
-  const filename = safeName.includes(".") ? safeName : `${safeName}.${extFromMime}`;
+  const filename = safeName.includes(".") ? safeName : `${safeName}.${ext}`;
   const destPath = path.join(destDir, filename);
 
-  const buffer = Buffer.from(base64, "base64");
-  await fs.writeFile(destPath, buffer);
-
-  const parts = destPath.split(path.sep);
-  const uploadsIndex = parts.lastIndexOf("uploads");
-  const publicPath = "/" + parts.slice(uploadsIndex).join("/");
-  return publicPath.replace(/\\/g, "/");
+  await fs.writeFile(destPath, Buffer.from(base64, "base64"));
+  return `/uploads/${username}/${dateDir}/${filename}`.replace(/\\/g, "/");
 }
 
-// Export will be added at the end
-
-// Convert PDF to images and save them
-async function convertPdfToImages(pdfPath, outputDir, baseName) {
+// Convert PDF to PNG pages
+export async function convertPdfToImages(pdfPath, outputDir, baseName) {
   try {
     await ensureUploadDir(outputDir);
-    
     const options = {
-      format: 'png',
+      format: "png",
       out_dir: outputDir,
       out_prefix: baseName,
-      page: null // Convert all pages
+      page: null,
     };
-    
-    const result = await pdf.convert(pdfPath, options);
-    return result;
-  } catch (error) {
-    console.error('PDF conversion error:', error);
-    throw error;
+    await pdf.convert(pdfPath, options);
+  } catch (err) {
+    console.error("PDF conversion error:", err);
+    throw err;
   }
 }
 
-// Process uploaded file and generate page images
-async function processDocumentForImages(filePath, originalName) {
+// Convert a PDF or image to consistent page images and store inside user folder
+export async function processDocumentForImages(
+  filePath,
+  originalName,
+  username = "unknown"
+) {
   const fileExt = path.extname(originalName).toLowerCase();
   const baseName = path.parse(originalName).name;
   const dateDir = new Date().toISOString().slice(0, 10);
-  const outputDir = path.join(uploadDir, dateDir, 'pages');
-  
-  let pageImages = [];
-  
-  if (fileExt === '.pdf') {
-    // Convert PDF to images
-    try {
-      const result = await convertPdfToImages(filePath, outputDir, baseName);
-      
-      // Get all generated image files
-      const files = await fs.readdir(outputDir);
-      const imageFiles = files
-        .filter(file => file.startsWith(baseName) && file.endsWith('.png'))
-        .sort();
-      
-      for (let i = 0; i < imageFiles.length; i++) {
-        const imagePath = path.join(outputDir, imageFiles[i]);
-        // Build public URL under /uploads/... similar to uploadToLocal
-        const parts = imagePath.split(path.sep);
-        const uploadsIndex = parts.lastIndexOf("uploads");
-        const publicPath = "/" + parts.slice(uploadsIndex).join("/");
-        pageImages.push({
-          url: publicPath.replace(/\\/g, "/"),
-          page: i + 1,
-          filename: imageFiles[i]
-        });
-      }
-    } catch (error) {
-      console.error('PDF to images conversion failed:', error);
-    }
-  } else if (['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'].includes(fileExt)) {
-    // Handle direct image uploads
-    try {
-      await ensureUploadDir(outputDir);
-      
-      // Normalize/convert to PNG using sharp for consistency
-      const imagePath = path.join(outputDir, `${baseName}-page-1.png`);
-      await sharp(filePath).png().toFile(imagePath);
-      
-      const parts = imagePath.split(path.sep);
-      const uploadsIndex = parts.lastIndexOf("uploads");
-      const publicPath = "/" + parts.slice(uploadsIndex).join("/");
+  const outputDir = path.join(uploadDir, username, dateDir, "pages");
+  await ensureUploadDir(outputDir);
+
+  const pageImages = [];
+
+  if (fileExt === ".pdf") {
+    await convertPdfToImages(filePath, outputDir, baseName);
+    const files = await fs.readdir(outputDir);
+    const imageFiles = files
+      .filter((f) => f.startsWith(baseName) && f.endsWith(".png"))
+      .sort();
+
+    imageFiles.forEach((file, i) => {
       pageImages.push({
-        url: publicPath.replace(/\\/g, "/"),
-        page: 1,
-        filename: `${baseName}-page-1.png`
+        url: `/uploads/${username}/${dateDir}/pages/${file}`,
+        page: i + 1,
+        filename: file,
       });
-    } catch (error) {
-      console.error('Image processing failed:', error);
-    }
+    });
+  } else if ([".jpg", ".jpeg", ".png", ".bmp", ".webp"].includes(fileExt)) {
+    const dest = path.join(outputDir, `${baseName}-page-1.png`);
+    await sharp(filePath).png().toFile(dest);
+    pageImages.push({
+      url: `/uploads/${username}/${dateDir}/pages/${baseName}-page-1.png`,
+      page: 1,
+      filename: `${baseName}-page-1.png`,
+    });
   }
-  
+
   return pageImages;
 }
-
-export { uploadToLocal, resolveFileUrlToPath, saveBase64Image, convertPdfToImages, processDocumentForImages };
