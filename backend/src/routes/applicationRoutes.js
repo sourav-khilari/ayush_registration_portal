@@ -1,13 +1,14 @@
 // src/routes/applicationRoutes.js
-const express = require("express");
-const router = express.Router();
-const auth = require("../middleware/authMiddleware");
-const {
+import express from "express";
+import auth from "../middleware/authMiddleware.js";
+import {
   createApplication,
   submitApplication,
   getApplication,
   listApplicationsForOfficials,
-} = require("../controllers/applicationController");
+} from "../controllers/applicationController.js";
+
+const router = express.Router();
 
 router.post("/", auth, createApplication);
 router.post("/:id/submit", auth, submitApplication);
@@ -23,4 +24,4 @@ router.get("/", auth, (req, res, next) => {
   next();
 }, listApplicationsForOfficials);
 
-module.exports = router;
+export default router;

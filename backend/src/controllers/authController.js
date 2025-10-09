@@ -1,7 +1,7 @@
 // src/controllers/authController.js
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const User = require("../models/User");
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import User from "../models/User.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "changeit";
 const JWT_EXPIRES = "7d";
@@ -72,4 +72,4 @@ async function login(req, res) {
   }
 }
 
-module.exports = { register, login };
+export { register, login };

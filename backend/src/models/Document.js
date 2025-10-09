@@ -1,5 +1,5 @@
 // src/models/Document.js
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const DocumentVersionSchema = new mongoose.Schema(
   {
@@ -92,5 +92,5 @@ DocumentSchema.index({ application_id: 1 });
 DocumentSchema.index({ startup_id: 1 });
 DocumentSchema.index({ doc_category_declared: 1 });
 
-module.exports =
+export default
   mongoose.models.Document || mongoose.model("Document", DocumentSchema);

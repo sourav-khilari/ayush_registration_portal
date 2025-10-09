@@ -30,6 +30,6 @@ function siddhaClinic() {
 	];
 }
 
-module.exports = { siddhaManufacturingOwn, siddhaLoanLicense, siddhaClinic };
+export { siddhaManufacturingOwn, siddhaLoanLicense, siddhaClinic };
 
 

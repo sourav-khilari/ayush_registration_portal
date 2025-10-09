@@ -1,5 +1,5 @@
 // src/middleware/requireRole.js
-module.exports = function requireRole(roles = []) {
+export default function requireRole(roles = []) {
   return (req, res, next) => {
     if (!req.user) return res.status(401).json({ message: "Unauthorized" });
     if (typeof roles === "string") roles = [roles];
@@ -8,4 +8,4 @@ module.exports = function requireRole(roles = []) {
     }
     next();
   };
-};
+}

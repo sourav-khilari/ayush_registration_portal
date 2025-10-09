@@ -30,6 +30,6 @@ function homoeopathyClinic() {
 	];
 }
 
-module.exports = { homoeopathyManufacturingOwn, homoeopathyLoanLicense, homoeopathyClinic };
+export { homoeopathyManufacturingOwn, homoeopathyLoanLicense, homoeopathyClinic };
 
 

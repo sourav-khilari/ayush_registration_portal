@@ -1,5 +1,5 @@
 // src/models/User.js
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const UserSchema = new mongoose.Schema(
   {
@@ -45,4 +45,4 @@ const UserSchema = new mongoose.Schema(
 
 UserSchema.index({ name: "text", email: "text" });
 
-module.exports = mongoose.models.User || mongoose.model("User", UserSchema);
+export default mongoose.models.User || mongoose.model("User", UserSchema);

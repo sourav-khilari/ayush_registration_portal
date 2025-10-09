@@ -1,5 +1,5 @@
 // src/controllers/startupController.js
-const Startup = require("../models/Startup");
+import Startup from "../models/Startup.js";
 
 async function createStartup(req, res) {
   try {
@@ -95,7 +95,7 @@ async function listStartupsForOfficials(req, res) {
   }
 }
 
-module.exports = {
+export {
   createStartup,
   getMyStartups,
   getStartupById,

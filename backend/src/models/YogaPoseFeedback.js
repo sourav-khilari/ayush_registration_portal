@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const YogaPoseFeedbackSchema = new mongoose.Schema(
   {
@@ -19,6 +19,6 @@ const YogaPoseFeedbackSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports =
+export default
   mongoose.models.YogaPoseFeedback ||
   mongoose.model("YogaPoseFeedback", YogaPoseFeedbackSchema);

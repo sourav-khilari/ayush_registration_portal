@@ -31,6 +31,6 @@ function unaniClinic() {
 	];
 }
 
-module.exports = { unaniManufacturingOwn, unaniLoanLicense, unaniClinic };
+export { unaniManufacturingOwn, unaniLoanLicense, unaniClinic };
 
 

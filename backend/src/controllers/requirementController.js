@@ -1,5 +1,5 @@
-const DocumentRequirement = require("../models/DocumentRequirement");
-const { startupCommon } = require("../seeds/requirements/common");
+import DocumentRequirement from "../models/DocumentRequirement.js";
+import { startupCommon } from "../seeds/requirements/common.js";
 
 // Fetch all required documents for a given sector and application type
 async function getRequirementsBySector(req, res) {
@@ -30,8 +30,6 @@ async function getRequirementsBySector(req, res) {
   }
 }
 
-module.exports = { getRequirementsBySector };
-
 // Return only the common requirements for the given sector/application_type
 async function getCommonRequirements(req, res) {
   try {
@@ -53,4 +51,4 @@ async function getCommonRequirements(req, res) {
   }
 }
 
-module.exports.getCommonRequirements = getCommonRequirements;
+export { getRequirementsBySector, getCommonRequirements };

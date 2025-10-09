@@ -1,5 +1,5 @@
 // src/models/Barcode.js
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const BarcodeSchema = new mongoose.Schema(
   {
@@ -27,5 +27,5 @@ const BarcodeSchema = new mongoose.Schema(
 BarcodeSchema.index({ product_id: 1 });
 BarcodeSchema.index({ jti: 1 }, { unique: true });
 
-module.exports =
+export default
   mongoose.models.Barcode || mongoose.model("Barcode", BarcodeSchema);

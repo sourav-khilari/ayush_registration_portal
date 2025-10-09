@@ -1,17 +1,18 @@
 // src/routes/userRoutes.js
-const express = require("express");
-const router = express.Router();
-const {
+import express from "express";
+import {
   registerUser,
   loginUser,
   getProfile,
   updateProfile,
   uploadVerificationDoc,
   verifyGovOfficial,
-} = require("../controllers/userController");
-const authMiddleware = require("../middleware/authMiddleware");
-const requireRole = require("../middleware/requireRole");
-const multer = require("multer");
+} from "../controllers/userController.js";
+import authMiddleware from "../middleware/authMiddleware.js";
+import requireRole from "../middleware/requireRole.js";
+import multer from "multer";
+
+const router = express.Router();
 const upload = multer({ dest: "tmp/" });
 
 // Public Routes
@@ -24,4 +25,4 @@ router.put("/profile", authMiddleware, updateProfile);
 router.post("/profile/verification-doc", authMiddleware, upload.single("file"), uploadVerificationDoc);
 router.post("/:user_id/verify-gov", authMiddleware, requireRole("admin"), verifyGovOfficial);
 
-module.exports = router;
+export default router;

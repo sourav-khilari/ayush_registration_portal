@@ -35,6 +35,6 @@ function ayurvedaClinic() {
 	];
 }
 
-module.exports = { ayurvedaManufacturingOwn, ayurvedaLoanLicense, ayurvedaClinic };
+export { ayurvedaManufacturingOwn, ayurvedaLoanLicense, ayurvedaClinic };
 
 

@@ -1,5 +1,5 @@
 // src/models/Startup.js
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const StartupSchema = new mongoose.Schema(
   {
@@ -33,5 +33,5 @@ const StartupSchema = new mongoose.Schema(
 
 StartupSchema.index({ user_id: 1, status: 1 });
 
-module.exports =
+export default
   mongoose.models.Startup || mongoose.model("Startup", StartupSchema);

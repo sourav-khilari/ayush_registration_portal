@@ -1,5 +1,5 @@
 // src/models/GovernmentOfficial.js
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const GovOfficialSchema = new mongoose.Schema(
   {
@@ -24,6 +24,6 @@ const GovOfficialSchema = new mongoose.Schema(
 
 GovOfficialSchema.index({ user_id: 1 });
 
-module.exports =
+export default
   mongoose.models.GovernmentOfficial ||
   mongoose.model("GovernmentOfficial", GovOfficialSchema);

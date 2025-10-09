@@ -1,12 +1,16 @@
 // src/controllers/documentController.js
-const path = require("path");
-const fs = require("fs");
-const Document = require("../models/Document");
-const DocumentRequirement = require("../models/DocumentRequirement");
-const DocumentTemplate = require("../models/DocumentTemplate");
-const Application = require("../models/Application");
-const { uploadToLocal, resolveFileUrlToPath, saveBase64Image, processDocumentForImages } = require("../utils/storage");
-const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
+import Document from "../models/Document.js";
+import DocumentRequirement from "../models/DocumentRequirement.js";
+import DocumentTemplate from "../models/DocumentTemplate.js";
+import Application from "../models/Application.js";
+import { uploadToLocal, resolveFileUrlToPath, saveBase64Image, processDocumentForImages } from "../utils/storage.js";
+import fetch from "node-fetch";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Temporary manual verification support
 const MANUAL_DOCS_DIR = process.env.MANUAL_DOCS_DIR || path.join(__dirname, "..", "..", (process.env.MANUAL_DOCS_FALLBACK_DIR || "manual_docs"));
@@ -311,4 +315,4 @@ async function setDocumentVerification(req, res) {
   }
 }
 
-module.exports = { uploadDocumentHandler, getDocument, listDocuments, reassignDocument, getRequirements, setDocumentVerification };
+export { uploadDocumentHandler, getDocument, listDocuments, reassignDocument, getRequirements, setDocumentVerification };

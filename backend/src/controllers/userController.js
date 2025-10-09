@@ -1,9 +1,9 @@
 // src/controllers/userController.js
-const User = require("../models/User");
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
-const Document = require("../models/Document");
-const { uploadToLocal } = require("../utils/storage");
+import User from "../models/User.js";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
+import Document from "../models/Document.js";
+import { uploadToLocal } from "../utils/storage.js";
 
 // Register a new user
 async function registerUser(req, res) {
@@ -147,4 +147,4 @@ async function verifyGovOfficial(req, res) {
   }
 }
 
-module.exports = { registerUser, loginUser, getProfile, updateProfile, uploadVerificationDoc, verifyGovOfficial };
+export { registerUser, loginUser, getProfile, updateProfile, uploadVerificationDoc, verifyGovOfficial };

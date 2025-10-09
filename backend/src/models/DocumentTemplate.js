@@ -1,5 +1,5 @@
 // src/models/DocumentTemplate.js
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const TemplateFieldSchema = new mongoose.Schema(
   {
@@ -26,7 +26,7 @@ const DocumentTemplateSchema = new mongoose.Schema(
 
 DocumentTemplateSchema.index({ doc_category: 1, variant: 1 }, { unique: true });
 
-module.exports =
+export default
   mongoose.models.DocumentTemplate ||
   mongoose.model("DocumentTemplate", DocumentTemplateSchema);
 

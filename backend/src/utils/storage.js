@@ -1,7 +1,7 @@
-const path = require("path");
-const fs = require("fs").promises;
-const pdf = require("pdf-poppler");
-const sharp = require("sharp");
+import path from "path";
+import fs from "fs/promises";
+import pdf from "pdf-poppler";
+import sharp from "sharp";
 
 const uploadDir = process.env.UPLOAD_DIR || "public/uploads";
 
@@ -29,7 +29,7 @@ async function uploadToLocal(tmpPath, filename) {
   return publicPath.replace(/\\/g, "/");
 }
 
-module.exports = { uploadToLocal };
+// Export functions will be added at the end
 
 // Resolve a stored public fileUrl (e.g., /uploads/2025-09-15/123-file.pdf)
 // to an absolute filesystem path based on UPLOAD_DIR.
@@ -43,7 +43,7 @@ function resolveFileUrlToPath(fileUrl) {
   return absolute;
 }
 
-module.exports.resolveFileUrlToPath = resolveFileUrlToPath;
+// Export will be added at the end
 
 // Save a base64 image (data URL or raw base64) into uploads and return public URL
 async function saveBase64Image(base64Input, suggestedName = "image.png") {
@@ -73,7 +73,7 @@ async function saveBase64Image(base64Input, suggestedName = "image.png") {
   return publicPath.replace(/\\/g, "/");
 }
 
-module.exports.saveBase64Image = saveBase64Image;
+// Export will be added at the end
 
 // Convert PDF to images and save them
 async function convertPdfToImages(pdfPath, outputDir, baseName) {
@@ -155,5 +155,4 @@ async function processDocumentForImages(filePath, originalName) {
   return pageImages;
 }
 
-module.exports.convertPdfToImages = convertPdfToImages;
-module.exports.processDocumentForImages = processDocumentForImages;
+export { uploadToLocal, resolveFileUrlToPath, saveBase64Image, convertPdfToImages, processDocumentForImages };

@@ -1,5 +1,5 @@
 // src/models/Application.js
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const ReviewHistorySchema = new mongoose.Schema(
   {
@@ -118,6 +118,6 @@ ApplicationSchema.methods.checkRequiredDocuments = async function (opts = {}) {
   return { complete: missing.length === 0, missing, details };
 };
 
-module.exports =
+export default
   mongoose.models.Application ||
   mongoose.model("Application", ApplicationSchema);

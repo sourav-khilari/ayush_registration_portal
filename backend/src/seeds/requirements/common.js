@@ -27,6 +27,6 @@ function getStartupRegistration(sector) {
 	];
 }
 
-module.exports = { startupCommon, getStartupRegistration };
+export { startupCommon, getStartupRegistration };
 
 

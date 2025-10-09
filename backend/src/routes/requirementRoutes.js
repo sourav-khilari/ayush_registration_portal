@@ -1,12 +1,13 @@
-const express = require("express");
-const router = express.Router();
-const {
+import express from "express";
+import {
   getRequirementsBySector,
   getCommonRequirements,
-} = require("../controllers/requirementController");
+} from "../controllers/requirementController.js";
+
+const router = express.Router();
 
 // Example: GET /api/requirements/ayurveda/startup_registration
 router.get("/:sector/:application_type", getRequirementsBySector);
 router.get("/:sector/:application_type/common", getCommonRequirements);
 
-module.exports = router;
+export default router;

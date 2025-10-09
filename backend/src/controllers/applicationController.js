@@ -1,8 +1,8 @@
 // src/controllers/applicationController.js
-const Application = require("../models/Application");
-const Startup = require("../models/Startup"); // <- needed to check ownership
-const DocumentRequirement = require("../models/DocumentRequirement");
-const User = require("../models/User");
+import Application from "../models/Application.js";
+import Startup from "../models/Startup.js"; // <- needed to check ownership
+import DocumentRequirement from "../models/DocumentRequirement.js";
+import User from "../models/User.js";
 
 async function createApplication(req, res) {
   try {
@@ -136,4 +136,4 @@ async function listApplicationsForOfficials(req, res) {
   }
 }
 
-module.exports = { createApplication, submitApplication, getApplication, listApplicationsForOfficials };
+export { createApplication, submitApplication, getApplication, listApplicationsForOfficials };

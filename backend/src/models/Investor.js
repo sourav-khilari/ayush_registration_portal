@@ -1,5 +1,5 @@
 // src/models/Investor.js
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const InvestorSchema = new mongoose.Schema(
   {
@@ -20,5 +20,5 @@ const InvestorSchema = new mongoose.Schema(
 
 InvestorSchema.index({ user_id: 1 });
 
-module.exports =
+export default
   mongoose.models.Investor || mongoose.model("Investor", InvestorSchema);

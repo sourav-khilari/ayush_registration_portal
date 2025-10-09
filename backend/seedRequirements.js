@@ -1,7 +1,7 @@
-require("dotenv").config();
-const mongoose = require("mongoose");
-const DocumentRequirement = require("./src/models/DocumentRequirement");
-const DocumentTemplate = require("./src/models/DocumentTemplate");
+import "dotenv/config";
+import mongoose from "mongoose";
+import DocumentRequirement from "./src/models/DocumentRequirement.js";
+import DocumentTemplate from "./src/models/DocumentTemplate.js";
 
 async function seed() {
   await mongoose.connect(process.env.MONGO_URI);
@@ -26,12 +26,12 @@ async function seed() {
     console.warn("Could not create compound index:", e.message);
   }
 
-  const { getStartupRegistration } = require("./src/seeds/requirements/common");
-  const { ayurvedaManufacturingOwn, ayurvedaLoanLicense, ayurvedaClinic } = require("./src/seeds/requirements/ayurveda");
-  const { yogaClinic, yogaTrainingCenter } = require("./src/seeds/requirements/yoga");
-  const { unaniManufacturingOwn, unaniLoanLicense, unaniClinic } = require("./src/seeds/requirements/unani");
-  const { siddhaManufacturingOwn, siddhaLoanLicense, siddhaClinic } = require("./src/seeds/requirements/siddha");
-  const { homoeopathyManufacturingOwn, homoeopathyLoanLicense, homoeopathyClinic } = require("./src/seeds/requirements/homoeopathy");
+  const { getStartupRegistration } = await import("./src/seeds/requirements/common.js");
+  const { ayurvedaManufacturingOwn, ayurvedaLoanLicense, ayurvedaClinic } = await import("./src/seeds/requirements/ayurveda.js");
+  const { yogaClinic, yogaTrainingCenter } = await import("./src/seeds/requirements/yoga.js");
+  const { unaniManufacturingOwn, unaniLoanLicense, unaniClinic } = await import("./src/seeds/requirements/unani.js");
+  const { siddhaManufacturingOwn, siddhaLoanLicense, siddhaClinic } = await import("./src/seeds/requirements/siddha.js");
+  const { homoeopathyManufacturingOwn, homoeopathyLoanLicense, homoeopathyClinic } = await import("./src/seeds/requirements/homoeopathy.js");
 
   // Ayurveda manufacturing (own unit)
   await DocumentRequirement.create({
@@ -41,7 +41,7 @@ async function seed() {
   });
 
   // Startup Registration (generic across sectors)
-  const startupCommon = require("./src/seeds/requirements/common").startupCommon;
+  const { startupCommon } = await import("./src/seeds/requirements/common.js");
 
   for (const sector of ["ayurveda", "yoga", "unani", "siddha", "homoeopathy"]) {
     await DocumentRequirement.create({

@@ -1,5 +1,5 @@
 // src/models/DocumentRequirement.js
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const RequirementItem = new mongoose.Schema(
   {
@@ -39,6 +39,6 @@ DocumentRequirementSchema.index(
   { unique: true }
 );
 
-module.exports =
+export default
   mongoose.models.DocumentRequirement ||
   mongoose.model("DocumentRequirement", DocumentRequirementSchema);

@@ -20,6 +20,6 @@ function yogaTrainingCenter() {
 	];
 }
 
-module.exports = { yogaClinic, yogaTrainingCenter };
+export { yogaClinic, yogaTrainingCenter };
 
 

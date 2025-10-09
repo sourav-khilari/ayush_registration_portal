@@ -1,7 +1,7 @@
 // server.js
-require("dotenv").config();
-const mongoose = require("mongoose");
-const app = require("./src/app");
+import "dotenv/config";
+import mongoose from "mongoose";
+import createApp from "./src/app.js";
 
 const PORT = process.env.PORT || 5002;
 const MONGO_URI = process.env.MONGO_URI;
@@ -13,8 +13,9 @@ if (!MONGO_URI) {
 
 mongoose
   .connect(MONGO_URI)
-  .then(() => {
+  .then(async () => {
     console.log("✅ MongoDB Connected");
+    const app = await createApp();
     app.listen(PORT, () => {
       console.log(`🚀 Server running on http://localhost:${PORT}`);
     });
