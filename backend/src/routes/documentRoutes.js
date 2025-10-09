@@ -7,12 +7,14 @@ const upload = multer({ dest: "tmp/" });
 const {
   uploadDocumentHandler,
   getDocument,
+  listDocuments,
   reassignDocument,
   getRequirements,
   setDocumentVerification,
 } = require("../controllers/documentController");
 
 router.get("/requirements/list", auth, getRequirements);
+router.get("/list", auth, listDocuments);
 router.post("/upload", auth, upload.single("file"), uploadDocumentHandler);
 router.get("/:id", auth, getDocument);
 router.post("/:id/reassign", auth, reassignDocument);

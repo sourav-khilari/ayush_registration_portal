@@ -42,7 +42,7 @@ function StartupOwnerProfile() {
       setLoading(true)
       const [startupRes, docsRes] = await Promise.all([
         StartupAPI.mine(),
-        DocumentAPI.requirements()
+        DocumentAPI.list()
       ])
       
       const firstStartup = Array.isArray(startupRes?.startups) ? startupRes.startups[0] : null
@@ -68,6 +68,20 @@ function StartupOwnerProfile() {
       setLoading(false)
     }
   }
+
+  // Poll documents while any OCR is processing
+  useEffect(() => {
+    if (!documents || documents.length === 0) return
+    const hasProcessing = documents.some(d => d.ocr_status === 'processing' || d.ocr_status === 'pending')
+    if (!hasProcessing) return
+    const id = setInterval(async () => {
+      try {
+        const updated = await DocumentAPI.list()
+        setDocuments(Array.isArray(updated?.documents) ? updated.documents : [])
+      } catch (_) {}
+    }, 4000)
+    return () => clearInterval(id)
+  }, [documents])
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -423,17 +437,23 @@ function StartupOwnerProfile() {
                           <div>
                             <p className="font-medium text-gray-900">{doc.filename || `Document ${index + 1}`}</p>
                             <p className="text-sm text-gray-500">
-                              Uploaded: {new Date(doc.uploadedAt || Date.now()).toLocaleDateString()}
+                              Uploaded: {new Date(doc.createdAt || Date.now()).toLocaleDateString()}
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
                           <span className={`px-2 py-1 rounded text-xs font-medium ${
-                            doc.status === 'verified' ? 'bg-green-100 text-green-800' :
-                            doc.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-gray-100 text-gray-800'
+                            doc.ocr_status === 'done' ? 'bg-green-100 text-green-800' :
+                            doc.ocr_status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
+                            doc.ocr_status === 'failed' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'
                           }`}>
-                            {doc.status || 'Pending'}
+                            OCR: {doc.ocr_status || 'pending'}
+                          </span>
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${
+                            doc.verified_status === 'verified' ? 'bg-green-100 text-green-800' :
+                            doc.verified_status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            Verify: {doc.verified_status || 'pending'}
                           </span>
                           <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
                             <FaEye />
@@ -443,6 +463,28 @@ function StartupOwnerProfile() {
                           </button>
                         </div>
                       </div>
+                      {doc.rejection_reason && (
+                        <p className="mt-2 text-sm text-red-600">{doc.rejection_reason}</p>
+                      )}
+                      {doc.ocr_text && (
+                        <div className="mt-3 p-3 bg-gray-50 rounded border border-gray-200">
+                          <p className="text-xs uppercase text-gray-500 mb-1">Extracted Text</p>
+                          <pre className="whitespace-pre-wrap text-sm text-gray-800">{doc.ocr_text}</pre>
+                        </div>
+                      )}
+                      {doc.extracted_fields && Object.keys(doc.extracted_fields || {}).length > 0 && (
+                        <div className="mt-3 p-3 bg-white rounded border border-gray-200">
+                          <p className="text-xs uppercase text-gray-500 mb-2">Extracted Fields</p>
+                          <div className="grid md:grid-cols-2 gap-2">
+                            {Object.entries(doc.extracted_fields).map(([k, v]) => (
+                              <div key={k} className="text-sm">
+                                <span className="text-gray-600 mr-2">{k}:</span>
+                                <span className="text-gray-900 font-medium">{(v && typeof v === 'object' && v.value !== undefined) ? String(v.value) : String(v)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

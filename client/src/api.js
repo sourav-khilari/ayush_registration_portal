@@ -6,10 +6,17 @@ function getToken() {
 }
 
 export async function apiRequest(path, options = {}) {
+  // const headers = new Headers(options.headers || {});
+  // headers.set("Content-Type", options.body instanceof FormData ? undefined : "application/json");
+  // const token = getToken();
+  // if (token) headers.set("Authorization", `Bearer ${token}`);
   const headers = new Headers(options.headers || {});
-  headers.set("Content-Type", options.body instanceof FormData ? undefined : "application/json");
-  const token = getToken();
-  if (token) headers.set("Authorization", `Bearer ${token}`);
+if (!(options.body instanceof FormData)) {
+  headers.set("Content-Type", "application/json");
+}
+// then set Authorization if token exists
+const token = getToken();
+if (token) headers.set("Authorization", `Bearer ${token}`);
 
   const resp = await fetch(`${API_BASE}${path}`, {
     ...options,
@@ -44,6 +51,13 @@ export const StartupAPI = {
 
 export const DocumentAPI = {
   requirements: (sector, applicationType) => apiRequest(`/documents/requirements/list?sector=${encodeURIComponent(sector || '')}&application_type=${encodeURIComponent(applicationType || '')}`, { method: "GET" }),
+  list: (opts = {}) => {
+    const qs = new URLSearchParams();
+    if (opts.startup_id) qs.set('startup_id', opts.startup_id);
+    if (opts.application_id) qs.set('application_id', opts.application_id);
+    const suffix = qs.toString() ? `?${qs.toString()}` : '';
+    return apiRequest(`/documents/list${suffix}`, { method: "GET" });
+  },
   upload: (file, opts = {}) => {
     const form = new FormData();
     form.append("file", file);
