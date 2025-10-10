@@ -10,6 +10,6 @@ logs/
 *.log
 
 # Uploads or temporary files
-uploads/
-public/uploads/
+
+
 
