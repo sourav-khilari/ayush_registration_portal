@@ -59,7 +59,7 @@ async function uploadDocumentHandler(req, res) {
     const { fileUrl, username } = await uploadToLocal(
       file.path,
       file.originalname,
-      req.user.name || req.user.username
+      req?.user?.email || req.user.name || req.user.username
     );
 
     // Process document for page images (PDF to images or direct image handling)
