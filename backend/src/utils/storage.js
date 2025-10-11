@@ -20,7 +20,7 @@ export async function uploadToLocal(tmpPath, filename, username = "general") {
 
   await ensureUploadDir(destDir);
 
-  const destFilename = `${Date.now()}-${filename.replace(/\s+/g, "_")}`;
+  const destFilename = `${Date.now()}${filename.replace(/\s+/g, "_")}`;
   const destPath = path.join(destDir, destFilename);
 
   await fs.copyFile(tmpPath, destPath);
@@ -35,7 +35,9 @@ export async function uploadToLocal(tmpPath, filename, username = "general") {
   const parts = destPath.split(path.sep);
   const uploadsIndex = parts.lastIndexOf("uploads");
   const publicPath = "/" + parts.slice(uploadsIndex).join("/");
-  return publicPath.replace(/\\/g, "/");
+  return {fileUrl:publicPath.replace(/\\/g, "/"),
+    username:safeUserDir
+  };
 }
 
 // Resolve a /uploads/... URL → filesystem path
@@ -101,7 +103,7 @@ export async function processDocumentForImages(
   const fileExt = path.extname(originalName).toLowerCase();
   const baseName = path.parse(originalName).name;
   const dateDir = new Date().toISOString().slice(0, 10);
-  const outputDir = path.join(uploadDir, username, dateDir, "pages");
+  const outputDir = path.join(uploadDir, username, "pages");
   await ensureUploadDir(outputDir);
 
   const pageImages = [];

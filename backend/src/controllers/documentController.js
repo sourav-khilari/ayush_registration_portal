@@ -75,7 +75,7 @@ async function uploadDocumentHandler(req, res) {
     }
 
     // save file locally (for now)
-    const fileUrl = await uploadToLocal(
+    const {fileUrl,username }= await uploadToLocal(
       file.path,
       file.originalname,
       req.user.name || req.user.username
@@ -90,7 +90,7 @@ async function uploadDocumentHandler(req, res) {
       pageImages = await processDocumentForImages(
         storedAbsPath,
         file.originalname,
-        (req.user.name || req.user.username || "unknown")
+        (username||req.user.name || req.user.username || "unknown")
           .replace(/\s+/g, "_")
           .toLowerCase()
       );
