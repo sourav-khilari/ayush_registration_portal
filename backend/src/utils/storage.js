@@ -13,19 +13,21 @@ async function ensureUploadDir(dir) {
 
 // Upload file → /uploads/<username>/<date>/<filename>
 export async function uploadToLocal(tmpPath, filename, username = "general") {
+  // sanitize username for safe folder naming
   const safeUser = username.replace(/[^a-z0-9_-]+/gi, "_").toLowerCase();
-  const dateDir = new Date().toISOString().slice(0, 10);
-  const destDir = path.join(uploadDir, safeUser, dateDir);
+  const destDir = path.join(uploadDir, safeUser);
+
   await ensureUploadDir(destDir);
 
   const destFilename = `${Date.now()}-${filename.replace(/\s+/g, "_")}`;
   const destPath = path.join(destDir, destFilename);
+
   await fs.copyFile(tmpPath, destPath);
   try {
-    await fs.unlink(tmpPath);
+    await fs.unlink(tmpPath); // delete temp file
   } catch (e) {}
 
-  // Generate /uploads/<username>/<date>/<file>
+  // Generate /uploads/<username>/<file>
   const parts = destPath.split(path.sep);
   const uploadsIndex = parts.lastIndexOf("uploads");
   const publicPath = "/" + parts.slice(uploadsIndex).join("/");
