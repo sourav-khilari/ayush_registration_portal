@@ -15,7 +15,8 @@ async function ensureUploadDir(dir) {
 export async function uploadToLocal(tmpPath, filename, username = "general") {
   // sanitize username for safe folder naming
   const safeUser = username.replace(/[^a-z0-9_-]+/gi, "_").toLowerCase();
-  const destDir = path.join(uploadDir, safeUser);
+  const safeUserDir = `${safeUser}-${Date.now()}`;
+  const destDir = path.join(uploadDir, safeUserDir);
 
   await ensureUploadDir(destDir);
 
@@ -25,7 +26,10 @@ export async function uploadToLocal(tmpPath, filename, username = "general") {
   await fs.copyFile(tmpPath, destPath);
   try {
     await fs.unlink(tmpPath); // delete temp file
-  } catch (e) {}
+  } catch (e) {
+    console.warn("Failed to delete temp file:", e);
+
+  }
 
   // Generate /uploads/<username>/<file>
   const parts = destPath.split(path.sep);
