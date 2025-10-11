@@ -10,6 +10,7 @@ import {
   getRequirements,
   setDocumentVerification,
 } from "../controllers/documentController.js";
+import { AuthorizationError } from "../middleware/errorHandler.js";
 
 const router = express.Router();
 const upload = multer({ dest: "tmp/" });
@@ -29,9 +30,7 @@ router.post(
     const isGov =
       req.user.role === "gov_official" && req.user.role_verified === true;
     if (!isAdmin && !isGov) {
-      return res
-        .status(403)
-        .json({ message: "Forbidden: only verified officials/admin" });
+      throw new AuthorizationError("Only verified officials and admins can verify documents");
     }
     next();
   },

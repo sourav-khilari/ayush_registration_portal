@@ -4,6 +4,7 @@ import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 import "dotenv/config";
+import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -77,6 +78,15 @@ async function createApp() {
       message: "Server & DB connected, models loaded 🚀",
     });
   });
+
+  // -------------------
+  // Error Handling Middleware
+  // -------------------
+  // Handle 404 for undefined routes
+  app.use(notFoundHandler);
+  
+  // Global error handler (must be last)
+  app.use(errorHandler);
 
   return app;
 }

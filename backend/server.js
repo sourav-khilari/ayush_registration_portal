@@ -2,9 +2,14 @@
 import "dotenv/config";
 import mongoose from "mongoose";
 import createApp from "./src/app.js";
+import { handleUnhandledRejection, handleUncaughtException } from "./src/middleware/errorHandler.js";
 
 const PORT = process.env.PORT || 5002;
 const MONGO_URI = process.env.MONGO_URI;
+
+// Handle uncaught exceptions and unhandled rejections
+handleUncaughtException();
+handleUnhandledRejection();
 
 if (!MONGO_URI) {
   console.error("MONGO_URI missing in .env");

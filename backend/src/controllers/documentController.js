@@ -13,69 +13,50 @@ import {
   processDocumentForImages,
 } from "../utils/storage.js";
 import fetch from "node-fetch";
+import { 
+  asyncHandler, 
+  ValidationError, 
+  NotFoundError, 
+  AppError 
+} from "../middleware/errorHandler.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Temporary manual verification support
-const MANUAL_DOCS_DIR =
-  process.env.MANUAL_DOCS_DIR ||
-  path.join(
-    __dirname,
-    "..",
-    "..",
-    process.env.MANUAL_DOCS_FALLBACK_DIR || "manual_docs"
-  );
-// Fallback whitelist of known basenames (without extension)
-const FALLBACK_ALLOWED_BASENAMES = (
-  process.env.MANUAL_DOCS_WHITELIST || "Arnab_Ghosh_Aadhar,Arnab_Ghosh_Pan"
-)
-  .split(",")
-  .map((s) => s.trim())
-  .filter(Boolean);
-
-function listManualDocBasenamesSafe() {
-  try {
-    if (!MANUAL_DOCS_DIR) return [];
-    const items = fs.readdirSync(MANUAL_DOCS_DIR, { withFileTypes: true });
-    return items
-      .filter((d) => d.isFile())
-      .map((d) => path.parse(d.name).name)
-      .filter(Boolean);
-  } catch (_) {
-    return [];
-  }
-}
-
-function normalizeNameForMatch(name) {
-  return String(name || "")
-    .toLowerCase()
-    .replace(/\.[a-z0-9]+$/i, "") // strip extension if present
-    .replace(/[^a-z0-9]+/g, "_") // collapse non-alnum to underscore
-    .replace(/^_+|_+$/g, ""); // trim underscores
-}
 
 async function uploadDocumentHandler(req, res) {
+  const file = req.file;
+  if (!file) {
+    throw new ValidationError("File is required");
+  }
+
+  const {
+    application_id,
+    startup_id,
+    doc_category_declared,
+    document_name,
+    description,
+  } = req.body;
+
+  if (!doc_category_declared) {
+    throw new ValidationError("doc_category_declared is required");
+  }
+
+  // Validate file size (e.g., 10MB limit)
+  const maxFileSize = 10 * 1024 * 1024; // 10MB
+  if (file.size > maxFileSize) {
+    throw new ValidationError("File size exceeds 10MB limit");
+  }
+
+  // Validate file type
+  const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+  if (!allowedTypes.includes(file.mimetype)) {
+    throw new ValidationError("Only PDF, JPEG, and PNG files are allowed");
+  }
+
   try {
-    const file = req.file;
-    if (!file) return res.status(400).json({ message: "File required" });
-
-    const {
-      application_id,
-      startup_id,
-      doc_category_declared,
-      document_name,
-      description,
-    } = req.body;
-
-    if (!doc_category_declared) {
-      return res
-        .status(400)
-        .json({ message: "doc_category_declared is required" });
-    }
-
     // save file locally (for now)
-    const {fileUrl,username }= await uploadToLocal(
+    const { fileUrl, username } = await uploadToLocal(
       file.path,
       file.originalname,
       req.user.name || req.user.username
@@ -90,7 +71,7 @@ async function uploadDocumentHandler(req, res) {
       pageImages = await processDocumentForImages(
         storedAbsPath,
         file.originalname,
-        (username||req.user.name || req.user.username || "unknown")
+        (username || req.user.name || req.user.username || "unknown")
           .replace(/\s+/g, "_")
           .toLowerCase()
       );
@@ -98,6 +79,7 @@ async function uploadDocumentHandler(req, res) {
       pageCount = pageImages.length;
     } catch (error) {
       console.error("Page image processing failed:", error);
+      // Don't throw error for image processing failure, just log it
     }
 
     const doc = await Document.create({
@@ -114,27 +96,6 @@ async function uploadDocumentHandler(req, res) {
       page_images: pageImages,
       page_count: pageCount,
     });
-
-    // Temporary filename-based verification
-    try {
-      const uploadedBase = normalizeNameForMatch(file.originalname || "");
-      const manualBasenames = listManualDocBasenamesSafe().map(
-        normalizeNameForMatch
-      );
-      const allowedSet = new Set([
-        ...manualBasenames,
-        ...FALLBACK_ALLOWED_BASENAMES.map(normalizeNameForMatch),
-      ]);
-      if (uploadedBase && allowedSet.has(uploadedBase)) {
-        doc.verified_status = "verified";
-        await doc.save();
-      } else {
-        doc.verified_status = "rejected";
-        doc.rejection_reason =
-          "Filename did not match any manually stored document";
-        await doc.save();
-      }
-    } catch (_) {}
 
     if (application_id) {
       await Application.findByIdAndUpdate(application_id, {
@@ -162,7 +123,11 @@ async function uploadDocumentHandler(req, res) {
             category: doc_category_declared,
           }),
         });
-        if (!resp.ok) throw new Error(`OCR HTTP ${resp.status}`);
+        
+        if (!resp.ok) {
+          throw new AppError(`OCR API returned ${resp.status}`, 502);
+        }
+        
         const data = await resp.json();
 
         // Persist OCR outputs if present
@@ -215,7 +180,9 @@ async function uploadDocumentHandler(req, res) {
                   fieldsSpec = payload.fields;
                 }
               }
-            } catch (_) {}
+            } catch (error) {
+              console.error("Template API error:", error);
+            }
           }
 
           if (Array.isArray(fieldsSpec) && fieldsSpec.length) {
@@ -263,7 +230,9 @@ async function uploadDocumentHandler(req, res) {
               };
               await app.save();
             }
-          } catch (_) {}
+          } catch (error) {
+            console.error("Application update error:", error);
+          }
         }
         doc.ocr_status = "done";
         await doc.save();
@@ -272,128 +241,145 @@ async function uploadDocumentHandler(req, res) {
         try {
           doc.ocr_status = "failed";
           await doc.save();
-        } catch (_) {}
+        } catch (saveErr) {
+          console.error("Failed to save OCR status:", saveErr);
+        }
       }
     }
 
-    res.status(201).json({ message: "Uploaded", document: doc });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Upload failed", error: err.message });
+    res.status(201).json({ 
+      success: true,
+      message: "Document uploaded successfully", 
+      document: doc 
+    });
+  } catch (error) {
+    // If it's already an AppError, re-throw it
+    if (error instanceof AppError) {
+      throw error;
+    }
+    // Otherwise, wrap it in a generic error
+    throw new AppError("Document upload failed", 500);
   }
 }
 
 async function getDocument(req, res) {
-  try {
-    const doc = await Document.findById(req.params.id);
-    if (!doc) return res.status(404).json({ message: "Not found" });
-    res.json(doc);
-  } catch (err) {
-    res
-      .status(500)
-      .json({ message: "Error fetching document", error: err.message });
+  const doc = await Document.findById(req.params.id);
+  if (!doc) {
+    throw new NotFoundError("Document");
   }
+  res.json(doc);
 }
 
 // List documents uploaded by the current user, optionally filtered by startup/application
 async function listDocuments(req, res) {
-  try {
-    const { startup_id, application_id } = req.query;
-    const filter = { uploaded_by: req.user._id };
-    if (startup_id) filter.startup_id = startup_id;
-    if (application_id) filter.application_id = application_id;
+  const { startup_id, application_id } = req.query;
+  const filter = { uploaded_by: req.user._id };
+  if (startup_id) filter.startup_id = startup_id;
+  if (application_id) filter.application_id = application_id;
 
-    const docs = await Document.find(filter)
-      .sort({ createdAt: -1 })
-      .select(
-        "filename fileUrl file_size doc_category_declared doc_category_detected category_confidence ocr_status ocr_text ocr_language extracted_fields verified_status page_images page_count createdAt updatedAt"
-      )
-      .lean();
+  const docs = await Document.find(filter)
+    .sort({ createdAt: -1 })
+    .select(
+      "filename fileUrl file_size doc_category_declared doc_category_detected category_confidence ocr_status ocr_text ocr_language extracted_fields verified_status page_images page_count createdAt updatedAt"
+    )
+    .lean();
 
-    res.json({ documents: docs });
-  } catch (err) {
-    res
-      .status(500)
-      .json({ message: "Error listing documents", error: err.message });
-  }
+  res.json({ 
+    success: true,
+    documents: docs 
+  });
 }
 
 async function reassignDocument(req, res) {
-  try {
-    const doc = await Document.findById(req.params.id);
-    if (!doc) return res.status(404).json({ message: "Not found" });
-
-    const { new_category } = req.body;
-    const old = doc.doc_category_declared;
-
-    doc.doc_category_declared = new_category;
-    doc.mismatch_flag =
-      doc.doc_category_detected &&
-      doc.doc_category_detected !== new_category &&
-      doc.category_confidence >= 0.75;
-
-    await doc.save();
-
-    res.json({ message: "Reassigned", document: doc, old });
-  } catch (err) {
-    res.status(500).json({ message: "Reassign failed", error: err.message });
+  const { new_category } = req.body;
+  
+  if (!new_category) {
+    throw new ValidationError("new_category is required");
   }
+
+  const doc = await Document.findById(req.params.id);
+  if (!doc) {
+    throw new NotFoundError("Document");
+  }
+
+  const old = doc.doc_category_declared;
+  doc.doc_category_declared = new_category;
+  doc.mismatch_flag =
+    doc.doc_category_detected &&
+    doc.doc_category_detected !== new_category &&
+    doc.category_confidence >= 0.75;
+
+  await doc.save();
+
+  res.json({ 
+    success: true,
+    message: "Document category reassigned successfully", 
+    document: doc, 
+    old 
+  });
 }
 
 async function getRequirements(req, res) {
-  try {
-    const { sector, application_type } = req.query;
-    if (!sector || !application_type) {
-      return res
-        .status(400)
-        .json({ message: "sector and application_type are required" });
-    }
-
-    const reqDoc = await DocumentRequirement.findOne({
-      sector: String(sector).toLowerCase(),
-      application_type: String(application_type).toLowerCase(),
-    }).lean();
-
-    if (!reqDoc) {
-      return res.status(404).json({ message: "No requirement defined" });
-    }
-
-    return res.json(reqDoc);
-  } catch (err) {
-    console.error("getRequirements error:", err);
-    return res
-      .status(500)
-      .json({ message: "Failed to fetch requirements", error: err.message });
+  const { sector, application_type } = req.query;
+  
+  if (!sector || !application_type) {
+    throw new ValidationError("sector and application_type are required");
   }
+
+  const reqDoc = await DocumentRequirement.findOne({
+    sector: String(sector).toLowerCase(),
+    application_type: String(application_type).toLowerCase(),
+  }).lean();
+
+  if (!reqDoc) {
+    throw new NotFoundError("Document requirements");
+  }
+
+  res.json({
+    success: true,
+    requirements: reqDoc
+  });
 }
 
 // For officials to verify/reject a document
 async function setDocumentVerification(req, res) {
-  try {
-    const doc = await Document.findById(req.params.id);
-    if (!doc) return res.status(404).json({ message: "Not found" });
-    const { status, reason } = req.body; // status: 'verified' | 'rejected'
-    if (!status || !["verified", "rejected"].includes(status)) {
-      return res.status(400).json({ message: "Invalid status" });
-    }
-    doc.verified_status = status;
-    doc.rejection_reason = status === "rejected" ? reason || "" : undefined;
-    doc.verified_by = req.user._id;
-    doc.verified_at = new Date();
-    await doc.save();
-    res.json({ message: "Verification updated", document: doc });
-  } catch (err) {
-    res
-      .status(500)
-      .json({ message: "Verification update failed", error: err.message });
+  const { status, reason } = req.body;
+  
+  if (!status || !["verified", "rejected"].includes(status)) {
+    throw new ValidationError("Invalid status. Must be 'verified' or 'rejected'");
   }
+
+  const doc = await Document.findById(req.params.id);
+  if (!doc) {
+    throw new NotFoundError("Document");
+  }
+
+  doc.verified_status = status;
+  doc.rejection_reason = status === "rejected" ? reason || "" : undefined;
+  doc.verified_by = req.user._id;
+  doc.verified_at = new Date();
+  await doc.save();
+  
+  res.json({ 
+    success: true,
+    message: "Document verification updated successfully", 
+    document: doc 
+  });
 }
 
+// Wrap functions with asyncHandler
+const uploadDocumentHandlerAsync = asyncHandler(uploadDocumentHandler);
+const getDocumentAsync = asyncHandler(getDocument);
+const listDocumentsAsync = asyncHandler(listDocuments);
+const reassignDocumentAsync = asyncHandler(reassignDocument);
+const getRequirementsAsync = asyncHandler(getRequirements);
+const setDocumentVerificationAsync = asyncHandler(setDocumentVerification);
+
 export {
-  uploadDocumentHandler,
-  getDocument,
-  listDocuments,
-  reassignDocument,
-  getRequirements,
-  setDocumentVerification,
+  uploadDocumentHandlerAsync as uploadDocumentHandler,
+  getDocumentAsync as getDocument,
+  listDocumentsAsync as listDocuments,
+  reassignDocumentAsync as reassignDocument,
+  getRequirementsAsync as getRequirements,
+  setDocumentVerificationAsync as setDocumentVerification
 };
