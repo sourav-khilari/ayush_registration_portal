@@ -6,41 +6,33 @@ import sharp from "sharp";
 
 const uploadDir = process.env.UPLOAD_DIR || "public/uploads";
 
-// Ensure a folder exists
+// ✅ Ensure folder exists
 async function ensureUploadDir(dir) {
   await fs.mkdir(dir, { recursive: true });
 }
 
-// Upload file → /uploads/<username>/<date>/<filename>
+// ✅ Upload file → /uploads/<username>/<filename>
 export async function uploadToLocal(tmpPath, filename, username = "general") {
-  // sanitize username for safe folder naming
   const safeUser = username.replace(/[^a-z0-9_-]+/gi, "_").toLowerCase();
-  const safeUserDir = `${safeUser}-${Date.now()}`;
-  const destDir = path.join(uploadDir, safeUserDir);
+  const userDir = path.join(uploadDir, safeUser);
+  await ensureUploadDir(userDir);
 
-  await ensureUploadDir(destDir);
-
-  const destFilename = `${Date.now()}${filename.replace(/\s+/g, "_")}`;
-  const destPath = path.join(destDir, destFilename);
+  const destFilename = `${Date.now()}-${filename.replace(/\s+/g, "_")}`;
+  const destPath = path.join(userDir, destFilename);
 
   await fs.copyFile(tmpPath, destPath);
   try {
-    await fs.unlink(tmpPath); // delete temp file
+    await fs.unlink(tmpPath);
   } catch (e) {
-    console.warn("Failed to delete temp file:", e);
-
+    console.warn("Temp file delete failed:", e);
   }
 
-  // Generate /uploads/<username>/<file>
-  const parts = destPath.split(path.sep);
-  const uploadsIndex = parts.lastIndexOf("uploads");
-  const publicPath = "/" + parts.slice(uploadsIndex).join("/");
-  return {fileUrl:publicPath.replace(/\\/g, "/"),
-    username:safeUserDir
-  };
+  // public URL: /uploads/<username>/<file>
+  const publicPath = `/uploads/${safeUser}/${destFilename}`.replace(/\\/g, "/");
+  return { fileUrl: publicPath, username: safeUser };
 }
 
-// Resolve a /uploads/... URL → filesystem path
+// ✅ Resolve a /uploads/... URL → absolute path
 export function resolveFileUrlToPath(fileUrl) {
   if (!fileUrl) return null;
   const normalized = fileUrl.replace(/\\/g, "/");
@@ -50,15 +42,15 @@ export function resolveFileUrlToPath(fileUrl) {
   return path.join(uploadDir, relative);
 }
 
-// Save a base64 image inside user's folder
+// ✅ Save base64 image inside user’s folder
 export async function saveBase64Image(
   base64Input,
   suggestedName = "image.png",
   username = "unknown"
 ) {
-  const dateDir = new Date().toISOString().slice(0, 10);
-  const destDir = path.join(uploadDir, username, dateDir);
-  await ensureUploadDir(destDir);
+  const safeUser = username.replace(/[^a-z0-9_-]+/gi, "_").toLowerCase();
+  const userDir = path.join(uploadDir, safeUser);
+  await ensureUploadDir(userDir);
 
   let mime = "image/png";
   let base64 = base64Input;
@@ -69,15 +61,14 @@ export async function saveBase64Image(
   }
 
   const ext = mime.split("/")[1] || "png";
-  const safeName = `${Date.now()}-${suggestedName.replace(/\s+/g, "_")}`;
-  const filename = safeName.includes(".") ? safeName : `${safeName}.${ext}`;
-  const destPath = path.join(destDir, filename);
+  const filename = `${Date.now()}-${suggestedName.replace(/\s+/g, "_")}.${ext}`;
+  const destPath = path.join(userDir, filename);
 
   await fs.writeFile(destPath, Buffer.from(base64, "base64"));
-  return `/uploads/${username}/${dateDir}/${filename}`.replace(/\\/g, "/");
+  return `/uploads/${safeUser}/${filename}`.replace(/\\/g, "/");
 }
 
-// Convert PDF to PNG pages
+// ✅ Convert PDF → PNG images
 export async function convertPdfToImages(pdfPath, outputDir, baseName) {
   try {
     await ensureUploadDir(outputDir);
@@ -94,7 +85,7 @@ export async function convertPdfToImages(pdfPath, outputDir, baseName) {
   }
 }
 
-// Convert a PDF or image to consistent page images and store inside user folder
+// ✅ Convert a PDF/image → page images inside user folder
 export async function processDocumentForImages(
   filePath,
   originalName,
@@ -102,8 +93,8 @@ export async function processDocumentForImages(
 ) {
   const fileExt = path.extname(originalName).toLowerCase();
   const baseName = path.parse(originalName).name;
-  const dateDir = new Date().toISOString().slice(0, 10);
-  const outputDir = path.join(uploadDir, username, "pages");
+  const safeUser = username.replace(/[^a-z0-9_-]+/gi, "_").toLowerCase();
+  const outputDir = path.join(uploadDir, safeUser, "pages");
   await ensureUploadDir(outputDir);
 
   const pageImages = [];
@@ -117,7 +108,7 @@ export async function processDocumentForImages(
 
     imageFiles.forEach((file, i) => {
       pageImages.push({
-        url: `/uploads/${username}/${dateDir}/pages/${file}`,
+        url: `/uploads/${safeUser}/pages/${file}`,
         page: i + 1,
         filename: file,
       });
@@ -126,7 +117,7 @@ export async function processDocumentForImages(
     const dest = path.join(outputDir, `${baseName}-page-1.png`);
     await sharp(filePath).png().toFile(dest);
     pageImages.push({
-      url: `/uploads/${username}/${dateDir}/pages/${baseName}-page-1.png`,
+      url: `/uploads/${safeUser}/pages/${baseName}-page-1.png`,
       page: 1,
       filename: `${baseName}-page-1.png`,
     });
