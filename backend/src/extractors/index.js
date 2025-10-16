@@ -4,9 +4,9 @@ import { extractPANData } from "./panExtractor.js"; // ✅ must import PAN extra
 
 export function getExtractor(docType) {
   switch (docType?.toUpperCase()) {
-    case "FOUNDER_ID":
+    case "AADHAR":
       return extractAadhaarFields;
-    case "FOUNDER_PAN":
+    case "PAN":
       return extractPANData;
     default:
       return null;
