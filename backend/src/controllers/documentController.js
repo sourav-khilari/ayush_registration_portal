@@ -159,6 +159,15 @@ async function handleUploadDocument(req, res) {
 
       console.log(`📡 Sending verification request to: ${verifyUrl}`);
 
+      const extractedPayload = {
+        aadhaar_last4: extractedData.aadhaar_last4,
+        name: extractedData.name,
+        dob: extractedData.dob,
+        ocr_confidence: extractedData.ocr_confidence,
+      };
+
+      console.log("📦 Sending extracted payload:", extractedPayload);
+
       const verifyResp = await fetch(verifyUrl, {
         method: "POST",
         headers: {
@@ -169,7 +178,7 @@ async function handleUploadDocument(req, res) {
           request_id: `req-${doc._id}`,
           submitted_by: req.user.email || "unknown",
           doc_type: docType,
-          extracted: extractedData,
+          extracted: extractedPayload,
         }),
       });
 
