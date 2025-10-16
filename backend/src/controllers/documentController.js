@@ -1,6 +1,7 @@
-// src/controllers/documentController.js
 import path from "path";
 import fs from "fs";
+import axios from "axios";
+import FormData from "form-data";
 import { fileURLToPath } from "url";
 import Document from "../models/Document.js";
 import DocumentRequirement from "../models/DocumentRequirement.js";
@@ -17,6 +18,7 @@ import {
   NotFoundError,
   AppError,
 } from "../middleware/errorHandler.js";
+import { getExtractor } from "../extractors/index.js"; // 👈 extractor router
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -42,14 +44,14 @@ async function handleUploadDocument(req, res) {
     throw new ValidationError("Only PDF, JPEG, and PNG files are allowed");
 
   try {
-    // Save file inside /uploads/<useremail>/
+    // Step 1: Save the file locally
     const { fileUrl, username } = await uploadToLocal(
       file.path,
       file.originalname,
       req?.user?.email || req.user.name || req.user.username
     );
 
-    // Convert pages (PDF → images)
+    // Step 2: Convert to page images (for OCR)
     let pageImages = [];
     try {
       const storedAbsPath = resolveFileUrlToPath(fileUrl);
@@ -62,7 +64,7 @@ async function handleUploadDocument(req, res) {
       console.error("Page image processing failed:", err);
     }
 
-    // Create DB record
+    // Step 3: Save initial document entry
     const doc = await Document.create({
       application_id: application_id || null,
       startup_id: startup_id || null,
@@ -84,51 +86,74 @@ async function handleUploadDocument(req, res) {
       });
     }
 
-    // ---------------------- OCR & Verification ---------------------- //
+    // ---------------------- OCR + Extraction ---------------------- //
     try {
       doc.ocr_status = "processing";
       await doc.save();
 
       const ocrResults = [];
+      let allText = [];
 
       for (const img of pageImages) {
-        const imageName = path.basename(img.url);
-        console.log(`🔍 Sending OCR for: ${imageName}`);
+        const absPath = path.join(
+          process.cwd(),
+          "public",
+          img.url.replace(/^\/uploads\//, "uploads/")
+        );
 
-        const resp = await fetch(process.env.OCR_API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            file_name: imageName,
-            category: doc_category_declared,
-          }),
-        });
-
-        if (!resp.ok) {
-          console.warn(`⚠️ OCR failed for ${imageName}`);
+        if (!fs.existsSync(absPath)) {
+          console.warn(`⚠️ Image not found: ${absPath}`);
           continue;
         }
 
-        const data = await resp.json();
-        ocrResults.push({ image: imageName, result: data });
+        const form = new FormData();
+        form.append("image", fs.createReadStream(absPath));
+
+        console.log(`🔍 Sending OCR for: ${absPath}`);
+
+        const response = await axios.post(process.env.OCR_API_URL, form, {
+          headers: form.getHeaders(),
+        });
+
+        console.log("✅ OCR Response:", response.data);
+
+        const textArray = Array.isArray(response.data.text)
+          ? response.data.text
+          : [String(response.data.text)];
+
+        ocrResults.push({
+          image: path.basename(absPath),
+          result: { text: textArray },
+        });
+
+        allText.push(...textArray);
       }
 
       doc.ocr_status = "done";
       doc.ocr_results = ocrResults;
 
-      // Merge all extracted fields
-      const combinedExtracted = {};
-      for (const r of ocrResults) {
-        if (r.result?.extracted_fields) {
-          Object.assign(combinedExtracted, r.result.extracted_fields);
-        }
+      // ---------------------- Extract Key Fields ---------------------- //
+      const extractorFn = getExtractor(doc_category_declared);
+      let extractedData = {};
+
+      if (extractorFn) {
+        extractedData = extractorFn(allText);
+        console.log(
+          `🧩 Extracted fields for ${doc_category_declared}:`,
+          extractedData
+        );
+      } else {
+        extractedData = { text: allText.join(" "), ocr_confidence: 0.8 };
+        console.log(`⚠️ No extractor found for ${doc_category_declared}`);
       }
 
-      if (Object.keys(combinedExtracted).length > 0) {
-        doc.extracted_fields = combinedExtracted;
+      // ✅ Wrap extracted fields properly to prevent Mongoose errors
+      doc.extracted_fields = {};
+      for (const [key, value] of Object.entries(extractedData)) {
+        doc.extracted_fields[key] = { value };
       }
 
-      // ---------------------- Verification with doc-ver-service ---------------------- //
+      // ---------------------- Verification Service ---------------------- //
       const docType = doc_category_declared.toUpperCase();
       const verifyUrl = `${process.env.DOC_VER_API_BASE}/${docType.toLowerCase()}`;
 
@@ -136,12 +161,15 @@ async function handleUploadDocument(req, res) {
 
       const verifyResp = await fetch(verifyUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.DOC_VER_API_KEY,
+        },
         body: JSON.stringify({
           request_id: `req-${doc._id}`,
           submitted_by: req.user.email || "unknown",
           doc_type: docType,
-          extracted: combinedExtracted,
+          extracted: extractedData,
         }),
       });
 
@@ -150,6 +178,7 @@ async function handleUploadDocument(req, res) {
         doc.verified_status =
           verifyData?.verified === true ? "verified" : "rejected";
         doc.verification_response = verifyData;
+        console.log("✅ Verification response:", verifyData);
       } else {
         console.warn("❌ Verification service failed:", verifyResp.status);
         doc.verified_status = "pending";
