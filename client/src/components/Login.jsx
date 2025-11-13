@@ -23,6 +23,7 @@ export default function Login() {
         navigate('/user/dashboard');
       }
     } catch (err) {
+      console.log(err);
       setError(err.message || "Login failed");
     } finally {
       setLoading(false);

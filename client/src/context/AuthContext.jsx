@@ -15,7 +15,7 @@ export function AuthProvider({ children }) {
       try {
         const profile = await AuthAPI.profile();
         if (!mounted) return;
-        setUser(profile);
+        setUser(profile.user);
       } catch (e) {
         localStorage.removeItem("token");
         setToken(null);
@@ -33,7 +33,7 @@ export function AuthProvider({ children }) {
     const newToken = res.token;
     localStorage.setItem("token", newToken);
     setToken(newToken);
-    setUser(res.user || null);
+    setUser(res.user.user || null);
     return res;
   }
 

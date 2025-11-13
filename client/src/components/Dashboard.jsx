@@ -22,6 +22,7 @@ function Dashboard() {
 
   useEffect(() => {
     if (user) {
+      //console.log('User data in Dashboard:', user.user.name);
       setUserProfile({ name: user.name, email: user.email, role: user.role })
       setProfileComplete(true)
     }
