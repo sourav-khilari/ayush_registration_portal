@@ -15,7 +15,7 @@ const startupCommon = [
     ],
   },
   { doc_category: "address_proof", note: "Verifies location / identity", required: true },
-  { doc_category: "business_pitch", note: "AYUSH must understand your startup", required: true },
+  { doc_category: "business_pitch", note: "AYUSH must understand your startup", required: false },
   {
     doc_category: "prototype_or_mvp",
     note: "Prototype images/videos/docs",
