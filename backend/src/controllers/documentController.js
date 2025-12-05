@@ -1,7 +1,4 @@
 import path from "path";
-import fs from "fs";
-import axios from "axios";
-import FormData from "form-data";
 import { fileURLToPath } from "url";
 import Document from "../models/Document.js";
 import DocumentRequirement from "../models/DocumentRequirement.js";
@@ -18,7 +15,7 @@ import {
   NotFoundError,
   AppError,
 } from "../middleware/errorHandler.js";
-import { getExtractor } from "../extractors/index.js"; // 👈 extractor router
+import { processOCRAndExtract } from "../utils/ocrProcessor.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -91,61 +88,21 @@ async function handleUploadDocument(req, res) {
       doc.ocr_status = "processing";
       await doc.save();
 
-      const ocrResults = [];
-      let allText = [];
+      // Use the OCR processing utility
+      const { ocrResults, extractedData } = await processOCRAndExtract(
+        pageImages,
+        doc_category_declared
+      );
 
-      for (const img of pageImages) {
-        const absPath = path.join(
-          process.cwd(),
-          "public",
-          img.url.replace(/^\/uploads\//, "uploads/")
-        );
-
-        if (!fs.existsSync(absPath)) {
-          console.warn(`⚠️ Image not found: ${absPath}`);
-          continue;
-        }
-
-        const form = new FormData();
-        form.append("image", fs.createReadStream(absPath));
-
-        console.log(`🔍 Sending OCR for: ${absPath}`);
-
-        const response = await axios.post(process.env.OCR_API_URL, form, {
-          headers: form.getHeaders(),
-        });
-
-        console.log("✅ OCR Response:", response.data);
-
-        const textArray = Array.isArray(response.data.text)
-          ? response.data.text
-          : [String(response.data.text)];
-
-        ocrResults.push({
-          image: path.basename(absPath),
-          result: { text: textArray },
-        });
-
-        allText.push(...textArray);
-      }
-
-      doc.ocr_status = "done";
-      doc.ocr_results = ocrResults;
-
-      // ---------------------- Extract Key Fields ---------------------- //
-      const extractorFn = getExtractor(doc_category_declared);
-      let extractedData = {};
-
-      if (extractorFn) {
-        extractedData = extractorFn(allText);
-        console.log(
-          `🧩 Extracted fields for ${doc_category_declared}:`,
-          extractedData
-        );
+      // Set OCR status based on results
+      if (extractedData.ocr_failed || ocrResults.length === 0) {
+        doc.ocr_status = "failed";
+        console.warn(`⚠️ OCR failed for document ${doc._id}`);
       } else {
-        extractedData = { text: allText.join(" "), ocr_confidence: 0.8 };
-        console.log(`⚠️ No extractor found for ${doc_category_declared}`);
+        doc.ocr_status = "done";
       }
+      
+      doc.ocr_results = ocrResults;
 
       // ✅ Wrap extracted fields properly to prevent Mongoose errors
       doc.extracted_fields = {};
@@ -154,42 +111,172 @@ async function handleUploadDocument(req, res) {
       }
 
       // ---------------------- Verification Service ---------------------- //
-      const docType = doc_category_declared.toUpperCase();
-      const verifyUrl = `${process.env.DOC_VER_API_BASE}/${docType.toLowerCase()}`;
-
-      console.log(`📡 Sending verification request to: ${verifyUrl}`);
-
-      const extractedPayload = {
-        aadhaar_last4: extractedData.aadhaar_last4,
-        name: extractedData.name,
-        dob: extractedData.dob,
-        ocr_confidence: extractedData.ocr_confidence,
+      // Map document categories to verification API doc types
+      const verificationTypeMap = {
+        "aadhar": "aadhaar",
+        "aadhaar": "aadhaar",
+        "pan": "pan",
+        "founder_pan": "pan",
+        "company_registration": "incorporation",
+        "address_proof": "utility-bill",
       };
 
-      console.log("📦 Sending extracted payload:", extractedPayload);
+      const normalizedDocType = doc_category_declared.toLowerCase().trim();
+      let verifyDocType = null;
+      let extractedPayload = null;
 
-      const verifyResp = await fetch(verifyUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": process.env.DOC_VER_API_KEY,
-        },
-        body: JSON.stringify({
-          request_id: `req-${doc._id}`,
-          submitted_by: req.user.email || "unknown",
-          doc_type: docType,
-          extracted: extractedPayload,
-        }),
-      });
+      // Handle founder_id separately (can be Aadhaar or Passport)
+      if (normalizedDocType === "founder_id") {
+        if (extractedData.aadhaar_last4) {
+          verifyDocType = "aadhaar";
+          extractedPayload = {
+            aadhaar_last4: extractedData.aadhaar_last4,
+            name: extractedData.name,
+            dob: extractedData.dob,
+            ocr_confidence: extractedData.ocr_confidence || 0.8,
+          };
+        } else if (extractedData.passport_no_masked) {
+          verifyDocType = "passport";
+          extractedPayload = {
+            passport_no_masked: extractedData.passport_no_masked,
+            name: extractedData.name,
+            dob: extractedData.dob,
+            ocr_confidence: extractedData.ocr_confidence || 0.8,
+          };
+        } else {
+          console.log(`ℹ️ Founder ID document type not determined, skipping verification`);
+          doc.verified_status = "pending";
+          await doc.save();
+          return;
+        }
+      } else if (verificationTypeMap[normalizedDocType]) {
+        verifyDocType = verificationTypeMap[normalizedDocType];
+        
+        // Build payload based on document type
+        if (verifyDocType === "aadhaar") {
+          extractedPayload = {
+            aadhaar_last4: extractedData.aadhaar_last4 || extractedData.document_number?.slice(-4),
+            name: extractedData.name,
+            dob: extractedData.dob,
+            ocr_confidence: extractedData.ocr_confidence || 0.8,
+          };
+        } else if (verifyDocType === "pan") {
+          extractedPayload = {
+            pan: extractedData.pan_number || extractedData.pan,
+            name: extractedData.name,
+            dob: extractedData.dob,
+            ocr_confidence: extractedData.ocr_confidence || 0.8,
+          };
+        } else if (verifyDocType === "incorporation") {
+          extractedPayload = {
+            reg_no: extractedData.reg_no,
+            entity_name: extractedData.entity_name,
+            date_of_incorporation: extractedData.date_of_incorporation,
+            ocr_confidence: extractedData.ocr_confidence || 0.8,
+          };
+        } else if (verifyDocType === "utility-bill") {
+          // Validate required fields for utility bill
+          if (!extractedData.billing_date) {
+            console.log(`⚠️ Missing required field 'billing_date' for utility bill, skipping verification`);
+            doc.verified_status = "pending";
+            await doc.save();
+            return;
+          }
+          extractedPayload = {
+            consumer_name: extractedData.consumer_name,
+            consumer_account_no_masked: extractedData.consumer_account_no_masked,
+            address: extractedData.address,
+            billing_date: extractedData.billing_date,
+            bill_type: extractedData.bill_type,
+            ocr_confidence: extractedData.ocr_confidence || 0.8,
+          };
+        } else if (verifyDocType === "incorporation") {
+          // Validate required fields for incorporation
+          if (!extractedData.reg_no) {
+            console.log(`⚠️ Missing required field 'reg_no' for incorporation, skipping verification`);
+            doc.verified_status = "pending";
+            await doc.save();
+            return;
+          }
+          extractedPayload = {
+            reg_no: extractedData.reg_no,
+            entity_name: extractedData.entity_name,
+            date_of_incorporation: extractedData.date_of_incorporation,
+            ocr_confidence: extractedData.ocr_confidence || 0.8,
+          };
+        }
+      }
 
-      if (verifyResp.ok) {
-        const verifyData = await verifyResp.json();
-        doc.verified_status =
-          verifyData?.verified === true ? "verified" : "rejected";
-        doc.verification_response = verifyData;
-        console.log("✅ Verification response:", verifyData);
+      // Only attempt verification if we have a valid doc type and payload with required fields
+      if (verifyDocType && extractedPayload) {
+        // Additional validation: check for undefined/null required fields
+        const hasUndefinedFields = Object.values(extractedPayload).some(
+          (val) => val === undefined || val === null
+        );
+        
+        if (hasUndefinedFields && (verifyDocType === "pan" || verifyDocType === "aadhaar")) {
+          // For PAN and Aadhaar, if key fields are missing, skip verification
+          const requiredFields = verifyDocType === "pan" 
+            ? ["pan", "name"] 
+            : ["aadhaar_last4", "name"];
+          const missingFields = requiredFields.filter(
+            (field) => !extractedPayload[field]
+          );
+          
+          if (missingFields.length > 0) {
+            console.log(`⚠️ Missing required fields [${missingFields.join(", ")}] for ${verifyDocType}, skipping verification`);
+            doc.verified_status = "pending";
+            await doc.save();
+            return;
+          }
+        }
+        const verifyUrl = `${process.env.DOC_VER_API_BASE}/${verifyDocType}`;
+        console.log(`📡 Sending verification request to: ${verifyUrl}`);
+
+        console.log("📦 Sending extracted payload:", extractedPayload);
+
+        try {
+          // Map to API doc_type format
+          const docTypeMap = {
+            "aadhaar": "AADHAAR",
+            "pan": "PAN",
+            "incorporation": "INCORP",
+            "utility-bill": "UTILITY",
+            "passport": "PASSPORT",
+          };
+          const apiDocType = docTypeMap[verifyDocType] || verifyDocType.toUpperCase();
+
+          const verifyResp = await fetch(verifyUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-api-key": process.env.DOC_VER_API_KEY,
+            },
+            body: JSON.stringify({
+              request_id: `req-${doc._id}`,
+              submitted_by: req.user.email || "unknown",
+              doc_type: apiDocType,
+              extracted: extractedPayload,
+            }),
+          });
+
+          if (verifyResp.ok) {
+            const verifyData = await verifyResp.json();
+            doc.verified_status =
+              verifyData?.verified === true ? "verified" : "rejected";
+            doc.verification_response = verifyData;
+            console.log("✅ Verification response:", verifyData);
+          } else {
+            const errorText = await verifyResp.text();
+            console.warn(`❌ Verification service failed (${verifyResp.status}):`, errorText);
+            doc.verified_status = "pending";
+          }
+        } catch (verifyError) {
+          console.warn("❌ Verification request failed:", verifyError.message);
+          doc.verified_status = "pending";
+        }
       } else {
-        console.warn("❌ Verification service failed:", verifyResp.status);
+        console.log(`ℹ️ Verification not supported for document type: ${doc_category_declared}`);
         doc.verified_status = "pending";
       }
 

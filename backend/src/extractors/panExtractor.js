@@ -22,10 +22,11 @@ export function extractPANData(ocrTextArray) {
   const dobMatch = fullText.match(/\d{2}\/\d{2}\/\d{4}/);
 
   return {
-    pan_number: panNumber,
-    name: cleanName,
+    pan: panNumber, // API expects "pan" not "pan_number"
+    pan_number: panNumber, // Keep for backward compatibility
+    name: cleanName !== "Unknown" ? cleanName : null,
     canonical_name: canonicalName,
-    dob: dobMatch ? dobMatch[0].split("/").reverse().join("-") : "Unknown",
+    dob: dobMatch ? dobMatch[0].split("/").reverse().join("-") : null,
     ocr_confidence: 0.9,
   };
 }
