@@ -53,7 +53,7 @@ const DocumentSchema = new mongoose.Schema(
       enum: ["pending", "processing", "done", "failed"],
       default: "pending",
     },
-    ocr_text: { type: String },
+    ocr_text: { type: Object, required: false },
     ocr_language: { type: String },
 
     extracted_fields: { type: Map, of: ExtractFieldSchema },

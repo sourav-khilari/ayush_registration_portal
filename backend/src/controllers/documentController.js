@@ -102,7 +102,8 @@ async function handleUploadDocument(req, res) {
         doc.ocr_status = "done";
       }
       
-      doc.ocr_results = ocrResults;
+      doc.ocr_text = extractedData
+      //ocrResults;
 
       // ✅ Wrap extracted fields properly to prevent Mongoose errors
       doc.extracted_fields = {};
@@ -263,7 +264,7 @@ async function handleUploadDocument(req, res) {
           if (verifyResp.ok) {
             const verifyData = await verifyResp.json();
             doc.verified_status =
-              verifyData?.verified === true ? "verified" : "rejected";
+              verifyData?.status === "VERIFIED" ? "verified" : "rejected";
             doc.verification_response = verifyData;
             console.log("✅ Verification response:", verifyData);
           } else {
