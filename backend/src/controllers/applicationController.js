@@ -136,4 +136,102 @@ async function listApplicationsForOfficials(req, res) {
   }
 }
 
-export { createApplication, submitApplication, getApplication, listApplicationsForOfficials };
+// Get applications for startup owner
+async function getMyApplications(req, res) {
+  try {
+    // Get all startups owned by the user
+    const startups = await Startup.find({ user_id: req.user._id }).select("_id").lean();
+    const startupIds = startups.map(s => s._id);
+
+    if (startupIds.length === 0) {
+      return res.json({ applications: [] });
+    }
+
+    const { status, sector, application_type } = req.query;
+    const filter = { startup_id: { $in: startupIds } };
+    
+    if (status) filter.status = status;
+    if (sector) filter.sector = sector;
+    if (application_type) filter.application_type = application_type;
+
+    const applications = await Application
+      .find(filter)
+      .sort({ createdAt: -1 })
+      .populate({
+        path: "documents",
+        select: "doc_category_declared verified_status ocr_status document_name fileUrl rejection_reason verified_at createdAt"
+      })
+      .populate({
+        path: "startup_id",
+        select: "name founder_name email"
+      })
+      .populate({
+        path: "assigned_official",
+        select: "name email"
+      })
+      .lean();
+
+    return res.json({ success: true, applications });
+  } catch (err) {
+    console.error("getMyApplications error:", err);
+    return res.status(500).json({ message: "Failed to fetch applications", error: err.message });
+  }
+}
+
+// Get single application with full details for startup owner
+async function getMyApplication(req, res) {
+  try {
+    const app = await Application.findById(req.params.id)
+      .populate({
+        path: "documents",
+        select: "doc_category_declared doc_category_detected verified_status ocr_status document_name fileUrl filename file_size rejection_reason verified_at verified_by createdAt updatedAt extracted_fields"
+      })
+      .populate({
+        path: "startup_id",
+        select: "name founder_name email phone_number"
+      })
+      .populate({
+        path: "assigned_official",
+        select: "name email"
+      })
+      .populate({
+        path: "review_history.by",
+        select: "name email role"
+      })
+      .lean();
+
+    if (!app) {
+      return res.status(404).json({ message: "Application not found" });
+    }
+
+    // Verify ownership
+    const startup = await Startup.findById(app.startup_id).select("user_id").lean();
+    if (!startup || String(startup.user_id) !== String(req.user._id)) {
+      return res.status(403).json({ message: "Not authorized to view this application" });
+    }
+
+    // Get document requirements to show what's required vs what's uploaded
+    const requirements = await DocumentRequirement.findOne({
+      sector: app.sector,
+      application_type: app.application_type,
+    }).lean();
+
+    return res.json({
+      success: true,
+      application: app,
+      requirements: requirements?.requirements || [],
+    });
+  } catch (err) {
+    console.error("getMyApplication error:", err);
+    return res.status(500).json({ message: "Failed to fetch application", error: err.message });
+  }
+}
+
+export { 
+  createApplication, 
+  submitApplication, 
+  getApplication, 
+  listApplicationsForOfficials,
+  getMyApplications,
+  getMyApplication,
+};

@@ -120,12 +120,35 @@ export const DocumentAPI = {
   get: (id) => apiRequest(`/documents/${id}`, { method: "GET" }),
   reassign: (id, payload) => apiRequest(`/documents/${id}/reassign`, { method: "POST", body: JSON.stringify(payload) }),
   verify: (id) => apiRequest(`/documents/${id}/verify`, { method: "POST" }),
+  replace: (id, file, opts = {}) => {
+    const form = new FormData();
+    form.append("file", file);
+    if (opts.document_name) form.append("document_name", opts.document_name);
+    return apiRequest(`/documents/${id}/replace`, { method: "POST", body: form });
+  },
 };
 
 // Requirements API (for AYUSH sector-specific document requirements)
 export const RequirementsAPI = {
   get: (sector, applicationType) => apiRequest(`/requirements/${encodeURIComponent(sector)}/${encodeURIComponent(applicationType)}`, { method: "GET" }),
   getCommon: (sector, applicationType) => apiRequest(`/requirements/${encodeURIComponent(sector)}/${encodeURIComponent(applicationType)}/common`, { method: "GET" }),
+};
+
+// Application API
+export const ApplicationAPI = {
+  create: (payload) => apiRequest("/applications", { method: "POST", body: JSON.stringify(payload) }),
+  submit: (id, payload) => apiRequest(`/applications/${id}/submit`, { method: "POST", body: JSON.stringify(payload || {}) }),
+  get: (id) => apiRequest(`/applications/${id}`, { method: "GET" }),
+  // For startup owners
+  getMyApplications: (opts = {}) => {
+    const qs = new URLSearchParams();
+    if (opts.status) qs.set('status', opts.status);
+    if (opts.sector) qs.set('sector', opts.sector);
+    if (opts.application_type) qs.set('application_type', opts.application_type);
+    const suffix = qs.toString() ? `?${qs.toString()}` : '';
+    return apiRequest(`/applications/my/list${suffix}`, { method: "GET" });
+  },
+  getMyApplication: (id) => apiRequest(`/applications/my/${id}`, { method: "GET" }),
 };
 
 

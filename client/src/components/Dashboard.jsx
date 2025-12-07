@@ -1,40 +1,40 @@
-import React, { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
-import { 
-  FaLeaf, 
-  FaUser, 
-  FaRocket, 
-  FaChartLine, 
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import {
+  FaLeaf,
+  FaUser,
+  FaRocket,
+  FaChartLine,
   FaFileAlt,
   FaCheckCircle,
   FaClock,
   FaExclamationTriangle,
   FaArrowRight,
-  FaHome
-} from 'react-icons/fa'
+  FaHome,
+} from "react-icons/fa";
 
 function Dashboard() {
-  const navigate = useNavigate()
-  const { user, logout } = useAuth()
-  const [userProfile, setUserProfile] = useState(null)
-  const [profileComplete, setProfileComplete] = useState(false)
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const [userProfile, setUserProfile] = useState(null);
+  const [profileComplete, setProfileComplete] = useState(false);
 
   useEffect(() => {
     if (user) {
       //console.log('User data in Dashboard:', user.user.name);
-      setUserProfile({ name: user.name, email: user.email, role: user.role })
-      setProfileComplete(true)
+      setUserProfile({ name: user.name, email: user.email, role: user.role });
+      setProfileComplete(true);
     }
-  }, [user])
+  }, [user]);
 
   const handleCompleteProfile = () => {
-    navigate('/StartupOwner/complete-profile')
-  }
+    navigate("/StartupOwner/complete-profile");
+  };
 
   const handleApplyForStartup = () => {
-    navigate('/StartupOwner/startup-application')
-  }
+    navigate("/StartupOwner/startup-application");
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -47,14 +47,19 @@ function Dashboard() {
               <span className="text-xl font-bold text-gray-900">AYUSH</span>
             </div>
             <div className="flex items-center space-x-4">
-              <Link to="/" className="text-gray-700 hover:text-ayush-600 transition-colors flex items-center">
+              <Link
+                to="/"
+                className="text-gray-700 hover:text-ayush-600 transition-colors flex items-center"
+              >
                 <FaHome className="mr-2" />
                 Home
               </Link>
               <div className="text-gray-700">
-                {userProfile ? `Welcome, ${userProfile.name}` : 'Welcome'}
+                {userProfile ? `Welcome, ${userProfile.name}` : "Welcome"}
               </div>
-            <button onClick={logout} className="text-sm text-red-600">Logout</button>
+              <button onClick={logout} className="text-sm text-red-600">
+                Logout
+              </button>
             </div>
           </div>
         </div>
@@ -69,17 +74,22 @@ function Dashboard() {
               Startup Owner Dashboard
             </h1>
             <p className="text-lg text-gray-600 mb-6">
-              Manage your AYUSH startup registration and track your application progress
+              Manage your AYUSH startup registration and track your application
+              progress
             </p>
-            
+
             {userProfile && (
               <div className="bg-ayush-50 rounded-lg p-6 mb-6">
                 <div className="flex items-center justify-center mb-4">
                   <FaUser className="text-4xl text-ayush-600 mr-4" />
                   <div className="text-left">
-                    <h3 className="text-xl font-semibold text-gray-900">{userProfile.name}</h3>
+                    <h3 className="text-xl font-semibold text-gray-900">
+                      {userProfile.name}
+                    </h3>
                     <p className="text-gray-600">{userProfile.email}</p>
-                    <p className="text-sm text-ayush-600 font-medium">{userProfile.role}</p>
+                    <p className="text-sm text-ayush-600 font-medium">
+                      {userProfile.role}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -100,16 +110,15 @@ function Dashboard() {
                 )}
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                {profileComplete ? 'Profile Complete' : 'Complete Your Profile'}
+                {profileComplete ? "Profile Complete" : "Complete Your Profile"}
               </h3>
               <p className="text-gray-600 mb-6">
-                {profileComplete 
-                  ? 'Your profile has been successfully completed and saved.'
-                  : 'Complete your profile by providing your name, email, and role information.'
-                }
+                {profileComplete
+                  ? "Your profile has been successfully completed and saved."
+                  : "Complete your profile by providing your name, email, and role information."}
               </p>
               {!profileComplete && (
-                <button 
+                <button
                   onClick={handleCompleteProfile}
                   className="btn-primary w-full"
                 >
@@ -135,18 +144,21 @@ function Dashboard() {
                 Apply for Startup Registration
               </h3>
               <p className="text-gray-600 mb-6">
-                Submit your startup application with all required information and documents.
+                Submit your startup application with all required information
+                and documents.
               </p>
-              <button 
+              <button
                 onClick={handleApplyForStartup}
                 disabled={!profileComplete}
                 className={`w-full py-3 px-6 rounded-lg font-semibold transition-colors duration-200 ${
-                  profileComplete 
-                    ? 'bg-ayush-600 hover:bg-ayush-700 text-white' 
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  profileComplete
+                    ? "bg-ayush-600 hover:bg-ayush-700 text-white"
+                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
                 }`}
               >
-                {profileComplete ? 'Apply for Startup' : 'Complete Profile First'}
+                {profileComplete
+                  ? "Apply for Startup"
+                  : "Complete Profile First"}
                 {profileComplete && <FaArrowRight className="inline ml-2" />}
               </button>
               {!profileComplete && (
@@ -160,29 +172,37 @@ function Dashboard() {
 
         {/* Status Overview */}
         <div className="bg-white rounded-lg shadow-lg p-8">
-          <h3 className="text-2xl font-bold text-gray-900 mb-6">Application Status</h3>
+          <h3 className="text-2xl font-bold text-gray-900 mb-6">
+            Application Status
+          </h3>
           <div className="grid md:grid-cols-3 gap-6">
             <div className="text-center p-6 bg-gray-50 rounded-lg">
               <FaClock className="text-4xl text-yellow-500 mx-auto mb-4" />
-              <h4 className="text-lg font-semibold text-gray-900 mb-2">Profile Status</h4>
+              <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                Profile Status
+              </h4>
               <p className="text-gray-600">
-                {profileComplete ? 'Completed' : 'Pending'}
+                {profileComplete ? "Completed" : "Pending"}
               </p>
             </div>
-            
+
             <div className="text-center p-6 bg-gray-50 rounded-lg">
               <FaFileAlt className="text-4xl text-blue-500 mx-auto mb-4" />
-              <h4 className="text-lg font-semibold text-gray-900 mb-2">Application Status</h4>
+              <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                Application Status
+              </h4>
               <p className="text-gray-600">
-                {profileComplete ? 'Ready to Apply' : 'Profile Required'}
+                {profileComplete ? "Ready to Apply" : "Profile Required"}
               </p>
             </div>
-            
+
             <div className="text-center p-6 bg-gray-50 rounded-lg">
               <FaChartLine className="text-4xl text-green-500 mx-auto mb-4" />
-              <h4 className="text-lg font-semibold text-gray-900 mb-2">Progress</h4>
+              <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                Progress
+              </h4>
               <p className="text-gray-600">
-                {profileComplete ? '50% Complete' : '25% Complete'}
+                {profileComplete ? "50% Complete" : "25% Complete"}
               </p>
             </div>
           </div>
@@ -190,43 +210,58 @@ function Dashboard() {
 
         {/* Quick Actions */}
         <div className="mt-8 bg-white rounded-lg shadow-lg p-8">
-          <h3 className="text-2xl font-bold text-gray-900 mb-6">Quick Actions</h3>
+          <h3 className="text-2xl font-bold text-gray-900 mb-6">
+            Quick Actions
+          </h3>
           <div className="grid md:grid-cols-4 gap-4">
-            <Link 
-              to="/StartupOwner/complete-profile" 
+            <Link
+              to="/StartupOwner/complete-profile"
               className="p-4 bg-ayush-50 hover:bg-ayush-100 rounded-lg text-center transition-colors"
             >
               <FaUser className="text-2xl text-ayush-600 mx-auto mb-2" />
-              <span className="text-sm font-medium text-gray-900">Update Profile</span>
+              <span className="text-sm font-medium text-gray-900">
+                Update Profile
+              </span>
             </Link>
-            
-            <Link 
-              to="/StartupOwner/startup-application" 
+
+            <Link
+              to="/StartupOwner/startup-application"
               className={`p-4 rounded-lg text-center transition-colors ${
-                profileComplete 
-                  ? 'bg-ayush-50 hover:bg-ayush-100' 
-                  : 'bg-gray-100 cursor-not-allowed'
+                profileComplete
+                  ? "bg-ayush-50 hover:bg-ayush-100"
+                  : "bg-gray-100 cursor-not-allowed"
               }`}
             >
               <FaRocket className="text-2xl text-ayush-600 mx-auto mb-2" />
-              <span className="text-sm font-medium text-gray-900">New Application</span>
+              <span className="text-sm font-medium text-gray-900">
+                New Application
+              </span>
             </Link>
-            
-            <button className="p-4 bg-gray-50 hover:bg-gray-100 rounded-lg text-center transition-colors">
-              <FaFileAlt className="text-2xl text-gray-600 mx-auto mb-2" />
-              <span className="text-sm font-medium text-gray-900">View Documents</span>
-            </button>
-            
-            <button className="p-4 bg-gray-50 hover:bg-gray-100 rounded-lg text-center transition-colors">
-              <FaChartLine className="text-2xl text-gray-600 mx-auto mb-2" />
-              <span className="text-sm font-medium text-gray-900">Track Progress</span>
-            </button>
+
+            <Link
+              to="/StartupOwner/profile"
+              className="p-4 bg-ayush-50 hover:bg-ayush-100 rounded-lg text-center transition-colors"
+            >
+              <FaFileAlt className="text-2xl text-ayush-600 mx-auto mb-2" />
+              <span className="text-sm font-medium text-gray-900">
+                View Applications
+              </span>
+            </Link>
+
+            <Link
+              to="/StartupOwner/applications"
+              className="p-4 bg-ayush-50 hover:bg-ayush-100 rounded-lg text-center transition-colors"
+            >
+              <FaChartLine className="text-2xl text-ayush-600 mx-auto mb-2" />
+              <span className="text-sm font-medium text-gray-900">
+                Track Progress
+              </span>
+            </Link>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-export default Dashboard
-
+export default Dashboard;

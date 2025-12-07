@@ -16,6 +16,8 @@ import UserProfileView from "./components/UserProfileView";
 import SubmittedApplication from "./components/SubmittedApplication";
 import StartupOwnerProfile from "./components/StartupOwnerProfile";
 import AyushGreenPage from "./components/WebScrapping";
+import ApplicationView from "./components/ApplicationView";
+import ApplicationsList from "./components/ApplicationsList";
 
 function App() {
   return (
@@ -79,6 +81,22 @@ function App() {
             element={
               <PrivateRoute>
                 <SubmittedApplication />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/StartupOwner/applications"
+            element={
+              <PrivateRoute>
+                <ApplicationsList />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/StartupOwner/applications/:id"
+            element={
+              <PrivateRoute>
+                <ApplicationView />
               </PrivateRoute>
             }
           />

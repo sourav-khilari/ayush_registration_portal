@@ -584,6 +584,115 @@ async function setDocumentVerification(req, res) {
   });
 }
 
+// ---------------------- Replace Rejected Document ---------------------- //
+async function replaceRejectedDocument(req, res) {
+  const file = req.file;
+  if (!file) throw new ValidationError("File is required");
+
+  const docId = req.params.id;
+  const doc = await Document.findById(docId);
+  if (!doc) throw new NotFoundError("Document not found");
+
+  // Verify ownership - user must own the document
+  if (String(doc.uploaded_by) !== String(req.user._id)) {
+    throw new AppError("Not authorized to replace this document", 403);
+  }
+
+  // Only allow replacement if document is rejected
+  if (doc.verified_status !== "rejected") {
+    throw new ValidationError("Document can only be replaced if it is rejected");
+  }
+
+  const allowedTypes = ["application/pdf", "image/jpeg", "image/png"];
+  if (!allowedTypes.includes(file.mimetype))
+    throw new ValidationError("Only PDF, JPEG, and PNG files are allowed");
+
+  try {
+    // Save old version to versions array
+    if (!doc.versions) doc.versions = [];
+    doc.versions.push({
+      fileUrl: doc.fileUrl,
+      fileName: doc.filename,
+      fileSize: doc.file_size,
+      uploaded_at: doc.updatedAt || doc.createdAt,
+      uploaded_by: doc.uploaded_by,
+    });
+
+    // Upload new file
+    const { fileUrl, username } = await uploadToLocal(
+      file.path,
+      file.originalname,
+      req?.user?.email || req.user.name || req.user.username
+    );
+
+    // Convert to page images
+    let pageImages = [];
+    try {
+      const storedAbsPath = resolveFileUrlToPath(fileUrl);
+      pageImages = await processDocumentForImages(
+        storedAbsPath,
+        file.originalname,
+        username
+      );
+    } catch (err) {
+      console.error("Page image processing failed:", err);
+    }
+
+    // Update document with new file
+    doc.fileUrl = fileUrl;
+    doc.filename = file.originalname;
+    doc.document_name = req.body.document_name || file.originalname;
+    doc.file_size = file.size;
+    doc.page_images = pageImages;
+    doc.page_count = pageImages.length;
+    doc.ocr_status = "pending";
+    doc.verified_status = "pending"; // Reset verification status
+    doc.rejection_reason = undefined; // Clear rejection reason
+    doc.verified_by = undefined;
+    doc.verified_at = undefined;
+
+    await doc.save();
+
+    // Process OCR and extraction in background (same as upload)
+    try {
+      doc.ocr_status = "processing";
+      await doc.save();
+
+      const { ocrResults, extractedData } = await processOCRAndExtract(
+        pageImages,
+        doc.doc_category_declared
+      );
+
+      if (extractedData.ocr_failed || ocrResults.length === 0) {
+        doc.ocr_status = "failed";
+      } else {
+        doc.ocr_status = "done";
+      }
+
+      doc.ocr_results = ocrResults;
+      doc.extracted_fields = {};
+      for (const [key, value] of Object.entries(extractedData)) {
+        doc.extracted_fields[key] = { value };
+      }
+
+      await doc.save();
+    } catch (err) {
+      console.error("OCR processing error:", err);
+      doc.ocr_status = "failed";
+      await doc.save();
+    }
+
+    res.json({
+      success: true,
+      message: "Document replaced successfully. Verification will be processed.",
+      document: doc,
+    });
+  } catch (error) {
+    console.error("Replace document error:", error);
+    throw new AppError("Document replacement failed", 500);
+  }
+}
+
 // ---------------------- Exports ---------------------- //
 export const uploadDocumentHandler = asyncHandler(handleUploadDocument);
 export const getDocumentHandler = asyncHandler(getDocument);
@@ -593,3 +702,4 @@ export const getRequirementsHandler = asyncHandler(getRequirements);
 export const setDocumentVerificationHandler = asyncHandler(
   setDocumentVerification
 );
+export const replaceRejectedDocumentHandler = asyncHandler(replaceRejectedDocument);
