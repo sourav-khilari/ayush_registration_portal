@@ -126,6 +126,10 @@ export const DocumentAPI = {
     if (opts.document_name) form.append("document_name", opts.document_name);
     return apiRequest(`/documents/${id}/replace`, { method: "POST", body: form });
   },
+  // Email lookup for OTP (Step 1: extract last4 and request OTP)
+  emailLookup: (payload) => apiRequest("/documents/email-lookup", { method: "POST", body: JSON.stringify(payload) }),
+  // Verify OTP (Step 2: verify the OTP)
+  verifyOtp: (payload) => apiRequest("/documents/verify-otp", { method: "POST", body: JSON.stringify(payload) }),
 };
 
 // Requirements API (for AYUSH sector-specific document requirements)

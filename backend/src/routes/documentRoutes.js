@@ -8,6 +8,8 @@ import {
   reassignDocumentHandler,
   getRequirementsHandler,
   setDocumentVerificationHandler,
+  emailLookupHandler,
+  verifyOtpHandler,
   replaceRejectedDocumentHandler,
 } from "../controllers/documentController.js";
 import { AuthorizationError } from "../middleware/errorHandler.js";
@@ -23,6 +25,12 @@ router.post("/upload", auth, upload.single("file"), uploadDocumentHandler);
 router.get("/:id", auth, getDocumentHandler);
 router.post("/:id/reassign", auth, reassignDocumentHandler);
 router.post("/:id/replace", auth, upload.single("file"), replaceRejectedDocumentHandler);
+
+// Email lookup -> send OTP
+router.post("/email-lookup", emailLookupHandler);
+
+// Verify OTP
+router.post("/verify-otp", auth, verifyOtpHandler);
 
 // Only verified gov_officials or admins can verify
 router.post(

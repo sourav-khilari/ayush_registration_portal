@@ -16,6 +16,9 @@ import {
   AppError,
 } from "../middleware/errorHandler.js";
 import { processOCRAndExtract } from "../utils/ocrProcessor.js";
+import crypto from "crypto";
+import VerificationOTP from "../models/VerificationOTP.js";
+import { sendEmail } from "../utils/sendEmail.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -487,7 +490,7 @@ async function handleUploadDocument(req, res) {
       doc.verified_status = "pending";
       await doc.save();
     }
-
+    console.log("doc=\n"+doc)
     res.status(201).json({
       success: true,
       message: "Document uploaded and processed successfully",
@@ -681,7 +684,7 @@ async function replaceRejectedDocument(req, res) {
       doc.ocr_status = "failed";
       await doc.save();
     }
-
+    
     res.json({
       success: true,
       message: "Document replaced successfully. Verification will be processed.",
@@ -693,6 +696,115 @@ async function replaceRejectedDocument(req, res) {
   }
 }
 
+
+
+// ---------------------- Email-lookup & OTP ---------------------- //
+async function handleEmailLookup(req, res) {
+  console.log("handleEmailLookup called");
+  console.log("req.body =", req?.body);
+  const { masked_id } = req?.body;
+  if (!masked_id) throw new ValidationError("masked_id is required");
+
+  const last4 = masked_id.slice(-4);
+  const windowMinutes = parseInt(process.env.EMAIL_LOOKUP_WINDOW_MINUTES || "10", 10);
+  const since = new Date(Date.now() - windowMinutes * 60 * 1000);
+
+  // Look for a recently uploaded, OCR-done and VERIFIED document that contains the last4
+  const doc = await Document.findOne({
+    ocr_status: "done",
+    verified_status: "verified",
+    createdAt: { $gte: since },
+    $or: [
+      // { "extracted_fields.aadhaar_last4.value": last4 },
+      // { "extracted_fields.aadhaar_last4": last4 },
+      // { "extracted_fields.document_number.value": { $regex: last4 + "$" } },
+      // { "extracted_fields.document_number": { $regex: last4 + "$" } },
+      { "ocr_text.aadhaar_last4": last4 },
+    ],
+  }).lean();
+
+  if (!doc) throw new NotFoundError("No recently verified document found for provided id");
+
+  const lookupUrl = process.env.EMAIL_LOOKUP_URL || "http://localhost:8000/api/v1/email-lookup";
+
+  // Call external email-lookup service
+  const resp = await fetch(lookupUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ aadhar_last4: last4 }),
+  });
+
+  if (!resp.ok) {
+    const text = await resp.text();
+    console.warn("Email lookup failed:", resp.status, text);
+    throw new AppError("Email lookup service failed", 502);
+  }
+
+  const data = await resp.json();
+  const email = data?.data?.email;
+  if (!email) throw new AppError("Email not found from lookup service", 502);
+
+  // Generate OTP and persist
+  const otp = String(Math.floor(100000 + Math.random() * 900000));
+  const otpHash = crypto.createHash("sha256").update(otp).digest("hex");
+  const expiryMinutes = parseInt(process.env.OTP_EXPIRY_MINUTES || "5", 10);
+  const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000);
+
+  await VerificationOTP.create({
+    email,
+    otp_hash: otpHash,
+    doc_id: doc._id,
+    expiresAt,
+    meta: { masked_id, lookup: data?.data },
+  });
+
+  // Send OTP by email (simple text message)
+  try {
+    await sendEmail({
+      email,
+      subject: "Your OTP code",
+      message: `Your verification code is ${otp}. It expires in ${expiryMinutes} minutes.`,
+    });
+  } catch (err) {
+    console.warn("Failed to send OTP email:", err.message);
+    // continue — OTP persisted; caller can retry sending if needed
+  }
+
+  // Return masked email for UX (do not expose full address if you prefer)
+  const maskedEmail = email.replace(/(.{2}).+(@.+)/, "$1****$2");
+
+  res.json({ success: true, message: "OTP sent", email: email });
+}
+
+async function handleVerifyOtp(req, res) {
+  console.log("handleVerifyOtp called");
+  const { masked_id, email, otp } = req.body;
+  console.log("req.body =", req?.body);
+  if (!otp) throw new ValidationError("otp is required");
+  if (!email && !masked_id) throw new ValidationError("email or masked_id is required");
+
+  // Find most recent OTP for email (or use masked_id meta)
+  const query = { used: false };
+  if (email) query.email = email;
+  if (masked_id) query["meta.masked_id"] = masked_id;
+
+  const otpRecord = await VerificationOTP.findOne(query).sort({ createdAt: -1 });
+  if (!otpRecord) throw new NotFoundError("OTP not found or already used/expired");
+
+  if (otpRecord.expiresAt < new Date()) {
+    throw new ValidationError("OTP expired");
+  }
+
+  const otpHash = crypto.createHash("sha256").update(otp).digest("hex");
+  if (otpHash !== otpRecord.otp_hash) throw new ValidationError("Invalid OTP");
+
+  otpRecord.used = true;
+  await otpRecord.save();
+
+  res.json({ success: true, message: "OTP verified" });
+}
+
+
 // ---------------------- Exports ---------------------- //
 export const uploadDocumentHandler = asyncHandler(handleUploadDocument);
 export const getDocumentHandler = asyncHandler(getDocument);
@@ -702,4 +814,6 @@ export const getRequirementsHandler = asyncHandler(getRequirements);
 export const setDocumentVerificationHandler = asyncHandler(
   setDocumentVerification
 );
+export const emailLookupHandler = asyncHandler(handleEmailLookup);
+export const verifyOtpHandler = asyncHandler(handleVerifyOtp);
 export const replaceRejectedDocumentHandler = asyncHandler(replaceRejectedDocument);

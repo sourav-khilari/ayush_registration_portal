@@ -761,6 +761,17 @@ function StartupApplication() {
   // Upload results: array of { category, fileName, status, id, raw }
   const [uploadResults, setUploadResults] = useState([]);
 
+  // Aadhaar verification state
+  const [aadhaarUploadLoading, setAadhaarUploadLoading] = useState(false);
+  const [aadhaarVerified, setAadhaarVerified] = useState(false); // OCR verified
+  const [maskedId, setMaskedId] = useState(null); // extracted last4 as "XXXX-XXXX-3642"
+  const [aadhaarOtpPending, setAadhaarOtpPending] = useState(false); // email-lookup called
+  const [aadhaarEmail, setAadhaarEmail] = useState(null); // masked email from email-lookup
+  const [otpInput, setOtpInput] = useState("");
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [aadhaarFullyVerified, setAadhaarFullyVerified] = useState(false); // OTP verified
+  const [verificationError, setVerificationError] = useState("");
+
   useEffect(() => {
     if (user) {
       setUserProfile(user);
@@ -881,6 +892,119 @@ function StartupApplication() {
     }));
   };
 
+  // ---- Aadhaar Verification Handlers ----
+  const handleUploadAadhaar = async () => {
+    const aadhaarFile = documentsData["founder_id"]?.file;
+    if (!aadhaarFile) {
+      setVerificationError("Please select a founder_id file");
+      return;
+    }
+
+    setAadhaarUploadLoading(true);
+    setVerificationError("");
+    console.log("🔵 Starting Aadhaar upload...", aadhaarFile.name);
+
+    try {
+      const res = await DocumentAPI.upload(aadhaarFile, {
+        doc_category_declared: "founder_id",
+      });
+
+      console.log("✅ Upload response:", res);
+
+      // Check if document is verified
+      if (res?.document?.verified_status === "verified") {
+        console.log("✅ Document verified, extracting last4...");
+        setAadhaarVerified(true);
+        
+        // Extract last4 from response - from ocr_text (extracted_fields is empty Map)
+        const last4 = res?.document?.ocr_text?.aadhaar_last4;
+
+        console.log("📋 Extracted last4:", last4);
+
+        if (last4) {
+          const masked = `XXXX-XXXX-${last4}`;
+          setMaskedId(masked);
+          console.log("🔐 Masked ID:", masked);
+          
+          // Auto-call email-lookup
+          console.log("📧 Calling email-lookup API...");
+          try {
+            const emailRes = await DocumentAPI.emailLookup({ masked_id: masked });
+            console.log("✅ Email-lookup response:", emailRes);
+
+            if (emailRes?.success) {
+              setAadhaarEmail(emailRes.email);
+              setAadhaarOtpPending(true);
+              console.log("📨 OTP pending set to true, email:", emailRes.email);
+            } else {
+              setVerificationError(`Email lookup failed: ${emailRes?.message || "unknown error"}`);
+              console.error("❌ Email lookup failed:", emailRes);
+            }
+          } catch (emailErr) {
+            setVerificationError(`Email lookup failed: ${emailErr.message}`);
+            console.error("❌ Email lookup error:", emailErr);
+          }
+        } else {
+          setVerificationError("Could not extract Aadhaar last 4 digits from response");
+          console.error("❌ Could not extract last4. ocr_text:", res?.document?.ocr_text, "Full response:", res);
+          setAadhaarVerified(false);
+        }
+      } else {
+        setVerificationError(`Aadhaar verification failed: ${res?.document?.verified_status || "unknown"}`);
+        console.error("❌ Verification failed. Status:", res?.document?.verified_status, "Full response:", res);
+        setAadhaarVerified(false);
+      }
+    } catch (err) {
+      setVerificationError(`Upload failed: ${err.message}`);
+      console.error("❌ Upload error:", err);
+      setAadhaarVerified(false);
+    } finally {
+      setAadhaarUploadLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otpInput.trim()) {
+      setVerificationError("Please enter the OTP");
+      return;
+    }
+
+    if (!maskedId || !aadhaarEmail) {
+      setVerificationError("Missing email or masked ID for OTP verification");
+      console.error("❌ Missing data. maskedId:", maskedId, "email:", aadhaarEmail);
+      return;
+    }
+
+    console.log("🔐 Verifying OTP...", { maskedId, email: aadhaarEmail, otp: otpInput });
+    setOtpLoading(true);
+    setVerificationError("");
+
+    try {
+      const res = await DocumentAPI.verifyOtp({
+        masked_id: maskedId,
+        email: aadhaarEmail,
+        otp: otpInput,
+      });
+
+      console.log("✅ OTP verification response:", res);
+
+      if (res?.success) {
+        console.log("✅ OTP verified successfully!");
+        setAadhaarFullyVerified(true);
+        setOtpInput("");
+        setAadhaarOtpPending(false);
+      } else {
+        setVerificationError("OTP verification failed");
+        console.error("❌ OTP verification failed. Response:", res);
+      }
+    } catch (err) {
+      setVerificationError(`OTP verification error: ${err.message}`);
+      console.error("❌ OTP error:", err);
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
   const labelize = (slug) => {
     if (!slug) return "";
     return slug
@@ -890,6 +1014,17 @@ function StartupApplication() {
   };
 
   const validateRequiredDocumentsSelected = () => {
+    // First check if Aadhaar verification is required and not complete
+    const requiresAadhaar = (requirementsState.items || []).some(
+      (req) => req.doc_category === "founder_id" && req.required !== false
+    );
+    if (requiresAadhaar && !aadhaarFullyVerified) {
+      setDocumentsError(
+        "Please verify your Aadhaar with OTP before proceeding"
+      );
+      return false;
+    }
+
     const missing = (requirementsState.items || [])
       .filter((req) => req.required !== false) // required by default
       .filter((req) => !documentsData[req.doc_category]?.file)
@@ -1417,11 +1552,16 @@ function StartupApplication() {
           )}
 
           {requirementsState.items.map((req) => (
-            <div key={req.doc_category} className="border rounded-lg p-4">
+            <div key={req.doc_category} className={`border rounded-lg p-4 ${
+              req.doc_category === "founder_id" && aadhaarFullyVerified ? "border-green-300 bg-green-50" : ""
+            }`}>
               <div className="flex items-center justify-between mb-2">
                 <div>
                   <p className="font-semibold text-gray-900">
                     {labelize(req.doc_category)}
+                    {req.doc_category === "founder_id" && aadhaarFullyVerified && (
+                      <span className="ml-2 text-green-600 text-sm">✓ Verified</span>
+                    )}
                   </p>
                   {req.note && (
                     <p className="text-xs text-gray-600 mt-1">{req.note}</p>
@@ -1437,6 +1577,12 @@ function StartupApplication() {
                   {req.required === false ? "Optional" : "Required"}
                 </span>
               </div>
+
+              {verificationError && req.doc_category === "founder_id" && (
+                <div className="p-3 mb-4 rounded-md bg-red-50 text-red-700 text-sm">
+                  {verificationError}
+                </div>
+              )}
 
               {(req.extract_fields && req.extract_fields.length > 0) && (
                 <div className="grid md:grid-cols-2 gap-4 mb-3">
@@ -1470,25 +1616,77 @@ function StartupApplication() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Upload Document
                 </label>
-                <input
-                  type="file"
-                  onChange={(e) =>
-                    handleDocFileChange(req.doc_category, e.target.files?.[0] || null)
-                  }
-                  className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-ayush-50 file:text-ayush-700 hover:file:bg-ayush-100"
-                />
-                {documentsData[req.doc_category]?.file && (
-                  <p className="mt-1 text-xs text-gray-600">
-                    Selected: {documentsData[req.doc_category].file.name}
-                  </p>
-                )}
-                {documentsData[req.doc_category]?.uploaded && (
-                  <p className="mt-1 text-xs text-green-600">
-                    Uploaded — status:{" "}
-                    {documentsData[req.doc_category].verified_status || "pending"}
-                  </p>
-                )}
+                <div className="flex gap-2 items-start">
+                  <div className="flex-1">
+                    <input
+                      type="file"
+                      onChange={(e) => {
+                        handleDocFileChange(req.doc_category, e.target.files?.[0] || null);
+                        if (req.doc_category === "founder_id") {
+                          setVerificationError("");
+                        }
+                      }}
+                      className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-ayush-50 file:text-ayush-700 hover:file:bg-ayush-100"
+                    />
+                    {documentsData[req.doc_category]?.file && (
+                      <p className="mt-1 text-xs text-gray-600">
+                        Selected: {documentsData[req.doc_category].file.name}
+                      </p>
+                    )}
+                    {documentsData[req.doc_category]?.uploaded && (
+                      <p className="mt-1 text-xs text-green-600">
+                        Uploaded — status:{" "}
+                        {documentsData[req.doc_category].verified_status || "pending"}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Verify button for founder_id */}
+                  {req.doc_category === "founder_id" && !aadhaarFullyVerified && (
+                    <button
+                      onClick={handleUploadAadhaar}
+                      disabled={!documentsData[req.doc_category]?.file || aadhaarUploadLoading}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap h-10 mt-0"
+                    >
+                      {aadhaarUploadLoading ? "Verifying..." : "Verify"}
+                    </button>
+                  )}
+                </div>
               </div>
+
+              {/* OTP Input - Show only for founder_id after email-lookup succeeds */}
+              {req.doc_category === "founder_id" && aadhaarVerified && aadhaarOtpPending && !aadhaarFullyVerified && (
+                <div className="mt-4 p-4 rounded-md bg-blue-50 border border-blue-200">
+                  <p className="text-sm text-blue-800 mb-3">
+                    ✉️ OTP sent to: <span className="font-semibold">{aadhaarEmail}</span>
+                  </p>
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Enter OTP Code
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Enter 6-digit OTP"
+                        value={otpInput}
+                        onChange={(e) => {
+                          setOtpInput(e.target.value);
+                          setVerificationError("");
+                        }}
+                        maxLength="6"
+                        className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    <button
+                      onClick={handleVerifyOtp}
+                      disabled={!otpInput.trim() || otpLoading}
+                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap h-10"
+                    >
+                      {otpLoading ? "Verifying..." : "Verify OTP"}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
