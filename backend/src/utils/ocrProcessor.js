@@ -66,21 +66,18 @@ export async function processOCRAndExtract(pageImages, docCategory) {
   if (allText.length === 0) {
     // If OCR failed completely, return minimal data
     console.warn(`⚠️ No OCR text extracted for ${docCategory}`);
-    extractedData = { 
-      text: "", 
+    extractedData = {
+      text: "",
       ocr_confidence: 0.0,
-      ocr_failed: true 
+      ocr_failed: true,
     };
   } else if (extractorFn) {
     extractedData = extractorFn(allText);
-    console.log(
-      `🧩 Extracted fields for ${docCategory}:`,
-      extractedData
-    );
+    console.log(`🧩 Extracted fields for ${docCategory}:`, extractedData);
   } else {
-    extractedData = { 
-      text: allText.join(" "), 
-      ocr_confidence: 0.8 
+    extractedData = {
+      text: allText.join(" "),
+      ocr_confidence: 0.8,
     };
     console.log(`⚠️ No extractor found for ${docCategory}`);
   }
@@ -91,4 +88,3 @@ export async function processOCRAndExtract(pageImages, docCategory) {
     extractedData,
   };
 }
-
