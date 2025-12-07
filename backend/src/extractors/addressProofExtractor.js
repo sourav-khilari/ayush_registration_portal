@@ -172,11 +172,6 @@
 // }
 
 
-
-/**
- * Improved extractor for Address Proof documents (Utility bills, Bank statements, etc.)
- * Usage: extractAddressProofFields(ocrTextArray)
- */
 export function extractAddressProofFields(ocrTextArray) {
   // Normalize and filter blank lines
   const arr = (ocrTextArray || []).map(s => (s || "").trim()).filter(Boolean);
