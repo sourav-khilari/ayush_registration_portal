@@ -725,7 +725,7 @@ async function handleEmailLookup(req, res) {
 
   if (!doc) throw new NotFoundError("No recently verified document found for provided id");
 
-  const lookupUrl = process.env.EMAIL_LOOKUP_URL || "http://localhost:8000/api/v1/email-lookup";
+  const lookupUrl = `${process.env.DOC_VER_API_BASE}/email-lookup` || "http://localhost:8000/api/v1/verify/email-lookup";
 
   // Call external email-lookup service
   const resp = await fetch(lookupUrl, {
