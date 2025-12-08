@@ -17,6 +17,7 @@ import startupRoutes from "./routes/startupRoutes.js";
 import documentRoutes from "./routes/documentRoutes.js";
 import applicationRoutes from "./routes/applicationRoutes.js";
 import requirementRoutes from "./routes/requirementRoutes.js"; // ✅ NEW
+import productRoutes from "./routes/productRoutes.js";
 
 async function createApp() {
   const app = express();
@@ -68,6 +69,7 @@ async function createApp() {
   app.use("/api/documents", documentRoutes);
   app.use("/api/applications", applicationRoutes);
   app.use("/api/requirements", requirementRoutes); // ✅ NEW
+  app.use("/product", productRoutes);
 
   // -------------------
   // Health Check Route
@@ -84,7 +86,7 @@ async function createApp() {
   // -------------------
   // Handle 404 for undefined routes
   app.use(notFoundHandler);
-  
+
   // Global error handler (must be last)
   app.use(errorHandler);
 
