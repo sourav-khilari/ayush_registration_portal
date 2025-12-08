@@ -112,7 +112,7 @@ async function handleUploadDocument(req, res) {
           doc.extracted_fields[key] = { value };
         }
 
-        doc.verified_status = "pending";
+        doc.verified_status = "failed";
         await doc.save();
 
         // ---------------------- FAILURE EMAIL (OCR failed) ---------------------- //
@@ -189,7 +189,7 @@ async function handleUploadDocument(req, res) {
             console.log(
               `⚠️ Missing required fields for Aadhaar verification, skipping verification`
             );
-            doc.verified_status = "pending";
+            doc.verified_status = "failed";
             await doc.save();
 
             // send failure email (missing fields)
@@ -220,7 +220,7 @@ async function handleUploadDocument(req, res) {
             console.log(
               `⚠️ Missing required fields for Passport verification, skipping verification`
             );
-            doc.verified_status = "pending";
+            doc.verified_status = "failed";
             await doc.save();
 
             // send failure email (missing fields)
@@ -243,7 +243,7 @@ async function handleUploadDocument(req, res) {
           console.log(
             `ℹ️ Founder ID document type not determined, skipping verification`
           );
-          doc.verified_status = "pending";
+          doc.verified_status = "failed";
           await doc.save();
 
           // notify user
@@ -283,7 +283,7 @@ async function handleUploadDocument(req, res) {
             console.log(
               `⚠️ Missing required fields for Aadhaar verification, skipping verification`
             );
-            doc.verified_status = "pending";
+            doc.verified_status = "failed";
             await doc.save();
 
             try {
@@ -313,7 +313,7 @@ async function handleUploadDocument(req, res) {
             console.log(
               `⚠️ Missing required fields for PAN verification, skipping verification`
             );
-            doc.verified_status = "pending";
+            doc.verified_status = "failed";
             await doc.save();
 
             try {
@@ -352,7 +352,7 @@ async function handleUploadDocument(req, res) {
             console.log(
               `⚠️ Missing required fields for utility bill verification, skipping verification`
             );
-            doc.verified_status = "pending";
+            doc.verified_status = "failed";
             await doc.save();
 
             try {
@@ -398,7 +398,7 @@ async function handleUploadDocument(req, res) {
             console.log(
               `⚠️ Missing required fields for GST verification, skipping verification`
             );
-            doc.verified_status = "pending";
+            doc.verified_status = "failed";
             await doc.save();
 
             try {
@@ -441,7 +441,7 @@ async function handleUploadDocument(req, res) {
               console.log(
                 `⚠️ Missing required fields for GST verification, skipping verification`
               );
-              doc.verified_status = "pending";
+              doc.verified_status = "failed";
               await doc.save();
 
               try {
@@ -478,7 +478,7 @@ async function handleUploadDocument(req, res) {
               console.log(
                 `⚠️ Missing required fields for incorporation verification, skipping verification`
               );
-              doc.verified_status = "pending";
+              doc.verified_status = "failed";
               await doc.save();
 
               try {
@@ -503,7 +503,7 @@ async function handleUploadDocument(req, res) {
         console.log(
           `ℹ️ Verification not supported for document type: ${doc_category_declared}`
         );
-        doc.verified_status = "pending";
+        doc.verified_status = "failed";
         await doc.save();
 
         try {
@@ -573,7 +573,7 @@ async function handleUploadDocument(req, res) {
               `❌ Verification service failed (${verifyResp.status}):`,
               errorText
             );
-            doc.verified_status = "pending";
+            doc.verified_status = "failed";
             doc.verification_response = {
               error: errorText,
               statusCode: verifyResp.status,
@@ -581,12 +581,12 @@ async function handleUploadDocument(req, res) {
           }
         } catch (verifyError) {
           console.warn("❌ Verification request failed:", verifyError.message);
-          doc.verified_status = "pending";
+          doc.verified_status = "failed";
           doc.verification_response = { error: verifyError.message };
         }
       } else {
         // no verification attempted
-        doc.verified_status = doc.verified_status || "pending";
+        doc.verified_status = doc.verified_status || "failed";
       }
 
       await doc.save();
@@ -608,7 +608,7 @@ async function handleUploadDocument(req, res) {
     } catch (err) {
       console.error("OCR or Verification error:", err);
       doc.ocr_status = "failed";
-      doc.verified_status = "pending";
+      doc.verified_status = "failed";
       await doc.save();
 
       // send failure email for OCR/verification error
