@@ -3,7 +3,8 @@ import { extractFounderIdFields } from "./founderIdExtractor.js";
 import { extractAddressProofFields } from "./addressProofExtractor.js";
 import { extractBusinessPitchFields } from "./businessPitchExtractor.js";
 import { extractCompanyRegistrationFields } from "./companyRegistrationExtractor.js";
-import { extractGSTFields } from "./gstExtractor.js"; // <-- ADD THIS
+import { extractGSTFields } from "./gstExtractor.js";
+import { extractMOAFields } from "./moaExtractor.js"; // <-- ADDED
 
 export function getExtractor(docType) {
   const t = docType?.toLowerCase().trim();
@@ -26,10 +27,17 @@ export function getExtractor(docType) {
 
     case "gst":
     case "gst_certificate":
-      return extractGSTFields; // <-- USE THE NEW GST EXTRACTOR
+      return extractGSTFields;
 
     case "company_registration":
       return extractCompanyRegistrationFields;
+
+    // ✅ NEW MOA cases added
+    case "moa":
+    case "moa_certificate":
+
+    case "memorandum_of_association":
+      return extractMOAFields;
 
     default:
       return null;

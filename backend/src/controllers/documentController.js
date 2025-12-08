@@ -1,3 +1,4 @@
+// src/controllers/documentController.js
 import path from "path";
 import { fileURLToPath } from "url";
 import Document from "../models/Document.js";
@@ -51,7 +52,7 @@ async function handleUploadDocument(req, res) {
     const { fileUrl, username } = await uploadToLocal(
       file.path,
       file.originalname,
-      req?.user?.email || req.user.name || req.user.username
+      req?.user?.email || req.user?.name || req.user?.username
     );
 
     // Step 2: Convert to page images (for OCR)
@@ -371,7 +372,7 @@ async function handleUploadDocument(req, res) {
             });
           }
         } else if (verifyDocType === "gst") {
-          // New: GST-specific payload shape expected by /verify/gst
+          // GST-specific payload shape expected by /verify/gst
           extractedPayload = {
             gstin:
               extractedData.gstin ||
@@ -555,7 +556,7 @@ async function handleUploadDocument(req, res) {
             },
             body: JSON.stringify({
               request_id: `req-${doc._id}`,
-              submitted_by: req.user.email || "unknown",
+              submitted_by: req.user?.email || "unknown",
               doc_type: apiDocType,
               extracted: extractedPayload,
             }),
@@ -621,7 +622,7 @@ async function handleUploadDocument(req, res) {
         );
       }
     }
-    console.log("doc=\n" + doc);
+    console.log("doc=\n" + JSON.stringify(doc, null, 2));
     res.status(201).json({
       success: true,
       message: "Document uploaded and processed successfully",
@@ -790,7 +791,7 @@ async function replaceRejectedDocument(req, res) {
     const { fileUrl, username } = await uploadToLocal(
       file.path,
       file.originalname,
-      req?.user?.email || req.user.name || req.user.username
+      req?.user?.email || req.user?.name || req.user?.username
     );
 
     let pageImages = [];
@@ -836,7 +837,7 @@ async function replaceRejectedDocument(req, res) {
 
       doc.ocr_results = ocrResults;
       doc.extracted_fields = {};
-      for (const [key, value] of Object.entries(extractedData)) {
+      for (const [key, value] of Object.entries(extractedData || {})) {
         doc.extracted_fields[key] = { value };
       }
 
@@ -866,7 +867,7 @@ async function handleEmailLookup(req, res) {
   const { masked_id } = req?.body;
   if (!masked_id) throw new ValidationError("masked_id is required");
 
-  const last4 = masked_id.slice(-4);
+  const last4 = String(masked_id).slice(-4);
   const windowMinutes = parseInt(
     process.env.EMAIL_LOOKUP_WINDOW_MINUTES || "10",
     10
@@ -885,9 +886,9 @@ async function handleEmailLookup(req, res) {
       "No recently verified document found for provided id"
     );
 
-  const lookupUrl =
-    `${process.env.DOC_VER_API_BASE}/email-lookup` ||
-    "http://localhost:8000/api/v1/verify/email-lookup";
+  const lookupBase =
+    process.env.DOC_VER_API_BASE || "http://localhost:8000/api/v1/verify";
+  const lookupUrl = `${lookupBase}/email-lookup`;
 
   const resp = await fetch(lookupUrl, {
     method: "POST",

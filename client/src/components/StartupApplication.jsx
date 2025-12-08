@@ -72,6 +72,43 @@ function StartupApplication() {
   const [qrLoading, setQrLoading] = useState(false);
   const [qrResult, setQrResult] = useState(null); // holds last QR verification result
 
+  // ===== DOC_META: friendly labels + short descriptions for doc_category keys =====
+  const DOC_META = {
+    company_registration: {
+      label: "Company Registration",
+      desc: "Proof that your company is legally registered (GST / MSME / CIN / Trade Licence).",
+      requiredText: "Required (unless sole proprietor)",
+    },
+    constitution_document: {
+      label: "Business Formation Document",
+      desc: "Partnership Deed, MOA / AOA, LLP agreement or similar. Upload only if applicable.",
+    },
+    proof_business_activity: {
+      label: "Proof of Business Activity",
+      desc: "Demo screenshots, website link, client LOIs, product photos or other proof you are operational.",
+    },
+    business_pitch: {
+      label: "Business Pitch (Optional)",
+      desc: "Short doc explaining idea, problem, solution, and target users.",
+    },
+    prototype_or_mvp: {
+      label: "Prototype / MVP (Optional)",
+      desc: "Images, video or files showing a working demo or prototype.",
+    },
+    ip_status: {
+      label: "IP Status (Optional)",
+      desc: "Patent / Trademark filings or application numbers, if any.",
+    },
+    founder_id: {
+      label: "Founder ID (Aadhaar)",
+      desc: "Upload Aadhaar for identity verification (we'll extract last 4 digits and verify by OTP).",
+    },
+    product_qr: {
+      label: "Product QR / Barcode",
+      desc: "Upload an image of the product QR or barcode to verify product details.",
+    },
+  };
+
   useEffect(() => {
     if (user) {
       setUserProfile(user);
@@ -357,8 +394,6 @@ function StartupApplication() {
       const res = await fetch(url, {
         method: "POST",
         body: form,
-        // include auth headers if your backend requires them:
-        // headers: { Authorization: `Bearer ${token}` }
         credentials: "include",
       });
 
@@ -411,7 +446,9 @@ function StartupApplication() {
     const missing = (requirementsState.items || [])
       .filter((req) => req.required !== false) // required by default
       .filter((req) => !documentsData[req.doc_category]?.file)
-      .map((req) => labelize(req.doc_category));
+      .map(
+        (req) => DOC_META[req.doc_category]?.label || labelize(req.doc_category)
+      );
 
     if (missing.length > 0) {
       setDocumentsError(
@@ -947,8 +984,13 @@ function StartupApplication() {
             >
               <div className="flex items-center justify-between mb-2">
                 <div>
+                  {/*
+                    Use friendly label and description when available via DOC_META,
+                    otherwise fallback to labelize(req.doc_category) and req.note.
+                  */}
                   <p className="font-semibold text-gray-900">
-                    {labelize(req.doc_category)}
+                    {DOC_META[req.doc_category]?.label ||
+                      labelize(req.doc_category)}
                     {req.doc_category === "founder_id" &&
                       aadhaarFullyVerified && (
                         <span className="ml-2 text-green-600 text-sm">
@@ -956,8 +998,22 @@ function StartupApplication() {
                         </span>
                       )}
                   </p>
-                  {req.note && (
-                    <p className="text-xs text-gray-600 mt-1">{req.note}</p>
+
+                  {/* required hint from meta or fallback */}
+                  <p className="text-xs text-gray-500 mt-1">
+                    {DOC_META[req.doc_category]?.requiredText ||
+                      (req.required === false ? "Optional" : "")}
+                  </p>
+
+                  {/* friendly description or fallback to req.note */}
+                  {DOC_META[req.doc_category]?.desc ? (
+                    <p className="text-xs text-gray-600 mt-1">
+                      {DOC_META[req.doc_category].desc}
+                    </p>
+                  ) : (
+                    req.note && (
+                      <p className="text-xs text-gray-600 mt-1">{req.note}</p>
+                    )
                   )}
                 </div>
                 <span
@@ -1164,7 +1220,9 @@ function StartupApplication() {
               <tbody>
                 {uploadResults.map((r, i) => (
                   <tr key={i} className="border-t">
-                    <td className="py-2">{labelize(r.category)}</td>
+                    <td className="py-2">
+                      {DOC_META[r.category]?.label || labelize(r.category)}
+                    </td>
                     <td className="py-2">{r.fileName}</td>
                     <td className="py-2">
                       {r.status === "verified" ? (

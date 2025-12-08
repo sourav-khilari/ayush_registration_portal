@@ -24,10 +24,13 @@ function App() {
     <AuthProvider>
       <Router>
         <Routes>
+          {/* Public Pages */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/webscrap" element={<AyushGreenPage />} />
+
+          {/* Startup Owner Protected Routes */}
           <Route
             path="/StartupOwner/dashboard"
             element={
@@ -36,6 +39,7 @@ function App() {
               </PrivateRoute>
             }
           />
+
           <Route
             path="/StartupOwner/complete-profile"
             element={
@@ -44,6 +48,7 @@ function App() {
               </PrivateRoute>
             }
           />
+
           <Route
             path="/StartupOwner/startup-application"
             element={
@@ -52,30 +57,7 @@ function App() {
               </PrivateRoute>
             }
           />
-          <Route
-            path="/user/profile"
-            element={
-              <PrivateRoute>
-                <UserProfile />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/user/dashboard"
-            element={
-              <PrivateRoute>
-                <UserDashboard />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/user/profile/view"
-            element={
-              <PrivateRoute>
-                <UserProfileView />
-              </PrivateRoute>
-            }
-          />
+
           <Route
             path="/StartupOwner/application/submitted"
             element={
@@ -84,6 +66,7 @@ function App() {
               </PrivateRoute>
             }
           />
+
           <Route
             path="/StartupOwner/applications"
             element={
@@ -92,6 +75,7 @@ function App() {
               </PrivateRoute>
             }
           />
+
           <Route
             path="/StartupOwner/applications/:id"
             element={
@@ -100,6 +84,7 @@ function App() {
               </PrivateRoute>
             }
           />
+
           <Route
             path="/StartupOwner/profile"
             element={
@@ -108,6 +93,35 @@ function App() {
               </PrivateRoute>
             }
           />
+
+          {/* Regular User Routes */}
+          <Route
+            path="/user/profile"
+            element={
+              <PrivateRoute>
+                <UserProfile />
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/user/dashboard"
+            element={
+              <PrivateRoute>
+                <UserDashboard />
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/user/profile/view"
+            element={
+              <PrivateRoute>
+                <UserProfileView />
+              </PrivateRoute>
+            }
+          />
+
           <Route
             path="/user/profile/edit"
             element={

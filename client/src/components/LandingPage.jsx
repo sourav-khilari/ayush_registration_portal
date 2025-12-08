@@ -18,7 +18,7 @@ import {
 
 function LandingPage() {
   const navigate = useNavigate();
-  const { token, user } = useAuth();
+  const { token, user, logout } = useAuth();
 
   const handleStartRegistration = () => {
     if (token && user?.role === "startup_owner") {
@@ -28,58 +28,124 @@ function LandingPage() {
     }
   };
 
+  // navigate to landing page then scroll to a section id
+  const navigateToSection = (sectionId) => {
+    // If already on landing page just scroll
+    if (window.location.pathname === "/") {
+      const el = document.getElementById(sectionId);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+
+    // Otherwise navigate to root then scroll after a tiny delay
+    navigate("/", { replace: false });
+    // wait for navigation & DOM render
+    setTimeout(() => {
+      const el = document.getElementById(sectionId);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 120); // 80-200ms is usually fine
+  };
+
+  // Home link should always navigate to "/"
+  const handleHomeClick = (e) => {
+    // Use Link for normal behavior — but we provide fallback if you ever use <a>
+    navigate("/");
+    // Optionally scroll to top
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-ayush-50 to-green-100">
       {/* Navigation */}
       <nav className="bg-white shadow-lg sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-2">
+            <div
+              className="flex items-center space-x-2 cursor-pointer"
+              onClick={() => handleHomeClick()}
+            >
               <FaLeaf className="text-ayush-600 text-2xl" />
               <span className="text-xl font-bold text-gray-900">AYUSH</span>
             </div>
+
             <div className="hidden md:flex space-x-8">
-              <a
-                href="#home"
+              {/* Home always goes to "/" */}
+              <button
+                onClick={() => handleHomeClick()}
                 className="text-gray-700 hover:text-ayush-600 transition-colors"
               >
                 Home
-              </a>
-              <a
-                href="#about"
+              </button>
+
+              {/* These will navigate to landing page then scroll to the id */}
+              <button
+                onClick={() => navigateToSection("about")}
                 className="text-gray-700 hover:text-ayush-600 transition-colors"
               >
                 About
-              </a>
-              <a
-                href="#services"
+              </button>
+
+              <button
+                onClick={() => navigateToSection("services")}
                 className="text-gray-700 hover:text-ayush-600 transition-colors"
               >
                 Services
-              </a>
-              <a
-                href="#contact"
+              </button>
+
+              <button
+                onClick={() => navigateToSection("contact")}
                 className="text-gray-700 hover:text-ayush-600 transition-colors"
               >
                 Contact
-              </a>
+              </button>
             </div>
+
             <div className="flex items-center space-x-3">
-              <Link
-                to="/signup"
-                className="px-4 py-2 border border-ayush-600 text-ayush-600 rounded hover:bg-ayush-50 transition-colors"
-              >
-                Sign Up
-              </Link>
-              <Link
-                to="/login"
-                className="px-4 py-2 border border-ayush-600 text-ayush-600 rounded hover:bg-ayush-50 transition-colors"
-              >
-                Login
-              </Link>
+              {!token ? (
+                <>
+                  <Link
+                    to="/signup"
+                    className="px-4 py-2 border border-ayush-600 text-ayush-600 rounded hover:bg-ayush-50 transition-colors"
+                  >
+                    Sign Up
+                  </Link>
+                  <Link
+                    to="/login"
+                    className="px-4 py-2 border border-ayush-600 text-ayush-600 rounded hover:bg-ayush-50 transition-colors"
+                  >
+                    Login
+                  </Link>
+                </>
+              ) : (
+                <>
+                  {/* Dashboard link adapts to role */}
+                  <button
+                    onClick={() =>
+                      navigate(
+                        user?.role === "startup_owner"
+                          ? "/StartupOwner/dashboard"
+                          : "/user/dashboard"
+                      )
+                    }
+                    className="px-4 py-2 border border-ayush-600 text-ayush-600 rounded hover:bg-ayush-50 transition-colors"
+                  >
+                    Dashboard
+                  </button>
+                  <button
+                    onClick={() => {
+                      logout?.(); // call logout if provided by context
+                      navigate("/"); // ensure user is returned to landing page
+                    }}
+                    className="px-4 py-2 border border-red-600 text-red-600 rounded hover:bg-red-50 transition-colors"
+                  >
+                    Logout
+                  </button>
+                </>
+              )}
+
               <Link
                 to="/webscrap"
-                className="hover:text-white transition-colors"
+                className="hover:text-white transition-colors text-gray-700"
               >
                 Webscrap Data
               </Link>
@@ -121,7 +187,10 @@ function LandingPage() {
               >
                 Start Registration <FaArrowRight className="inline ml-2" />
               </button>
-              <button className="btn-secondary text-lg px-8 py-4">
+              <button
+                onClick={() => navigateToSection("about")}
+                className="btn-secondary text-lg px-8 py-4"
+              >
                 Learn More
               </button>
             </div>
@@ -264,7 +333,7 @@ function LandingPage() {
                   </div>
                 </div>
               </div>
-              {/* AYUSH Banner Image as decorative element */}
+
               <div className="absolute -top-4 -right-4 w-32 h-32 rounded-full overflow-hidden shadow-lg border-4 border-white">
                 <img
                   src="/ayush_banner.jpeg"
@@ -442,28 +511,28 @@ function LandingPage() {
               <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
               <ul className="space-y-2 text-gray-400">
                 <li>
-                  <a
-                    href="#home"
+                  <button
+                    onClick={() => handleHomeClick()}
                     className="hover:text-white transition-colors"
                   >
                     Home
-                  </a>
+                  </button>
                 </li>
                 <li>
-                  <a
-                    href="#about"
+                  <button
+                    onClick={() => navigateToSection("about")}
                     className="hover:text-white transition-colors"
                   >
                     About
-                  </a>
+                  </button>
                 </li>
                 <li>
-                  <a
-                    href="#services"
+                  <button
+                    onClick={() => navigateToSection("services")}
                     className="hover:text-white transition-colors"
                   >
                     Services
-                  </a>
+                  </button>
                 </li>
                 <li>
                   <Link
