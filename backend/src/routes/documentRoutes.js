@@ -10,6 +10,7 @@ import {
   setDocumentVerificationHandler,
   emailLookupHandler,
   verifyOtpHandler,
+  oakyHandler,
   replaceRejectedDocumentHandler,
 } from "../controllers/documentController.js";
 import { AuthorizationError } from "../middleware/errorHandler.js";
@@ -35,6 +36,9 @@ router.post(
 
 // Email lookup -> send OTP
 router.post("/email-lookup", emailLookupHandler);
+
+// Notify registration summary (oaky)
+router.post("/oaky", oakyHandler);
 
 // Verify OTP
 router.post("/verify-otp", auth, verifyOtpHandler);

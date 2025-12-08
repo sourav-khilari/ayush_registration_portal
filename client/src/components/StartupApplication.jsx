@@ -608,6 +608,43 @@ function StartupApplication() {
       // Save upload results to state so UI can show summary
       setUploadResults(uploadResponses);
 
+      // Call backend notify endpoint (oaky) to send registration summary email.
+      // This is not required to show in the frontend; we log response for debugging.
+      try {
+        const founder = uploadResponses.find(
+          (r) => (r.category || "").toLowerCase() === "founder_id"
+        );
+        const aadhaar_last4 =
+          founder?.raw?.ocr_text?.aadhaar_last4 ||
+          (founder?.raw?.ocr_text?.document_number
+            ? String(founder.raw.ocr_text.document_number).slice(-4)
+            : undefined);
+
+        const docsPayload = uploadResponses.map((r) => ({
+          category: r.category,
+          verified_status: r.status,
+          doc_id: r.id,
+          filename: r.fileName,
+          reason:
+            (r.raw && (r.raw.rejection_reason || r.raw?.verification_response?.error)) ||
+            undefined,
+        }));
+
+        if (aadhaar_last4) {
+          console.log("📣 Calling notify-registration (oaky) with payload", {
+            aadhaar_last4,
+            documents: docsPayload,
+          });
+          DocumentAPI.notifyRegistration({ aadhaar_last4, documents: docsPayload })
+            .then((resp) => console.log("oaky response:", resp))
+            .catch((err) => console.warn("oaky failed:", err));
+        } else {
+          console.log("oaky: no aadhaar_last4 found in uploaded responses — skipping notify");
+        }
+      } catch (err) {
+        console.warn("oaky error preparing payload:", err);
+      }
+
       // Move UI to a confirmation/summary area (we keep user on the page)
       setCurrentStep(3); // stay on docs step but show summary below
     } catch (error) {

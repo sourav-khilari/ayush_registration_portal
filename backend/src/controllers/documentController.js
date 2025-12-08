@@ -964,6 +964,84 @@ async function handleVerifyOtp(req, res) {
   res.json({ success: true, message: "OTP verified" });
 }
 
+// ---------------------- Oaky: notify-registration ---------------------- //
+async function handleOaky(req, res) {
+  console.log("handleOaky called");
+  console.log("req.body =", req?.body);
+  const { aadhaar_last4, documents } = req.body || {};
+  if (!aadhaar_last4)
+    throw new ValidationError("aadhaar_last4 is required in request body");
+
+  // documents is optional but should be an array if provided
+  const docs = Array.isArray(documents) ? documents : [];
+
+  const lookupUrl =
+    (process.env.DOC_VER_API_BASE || "http://localhost:8000/api/v1/verify") +
+    "/email-lookup";
+
+  let email = null;
+  try {
+    const resp = await fetch(lookupUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ aadhar_last4: aadhaar_last4 }),
+    });
+
+    if (!resp.ok) {
+      const txt = await resp.text();
+      console.warn("Email lookup failed for oaky:", resp.status, txt);
+      throw new AppError("Email lookup service failed", 502);
+    }
+
+    const data = await resp.json();
+    email = data?.data?.email || data?.email;
+    if (!email) {
+      console.warn("Email lookup returned no email:", data);
+      throw new AppError("Email not found from lookup service", 404);
+    }
+  } catch (err) {
+    console.error("oaky: lookup error", err?.message || err);
+    throw err;
+  }
+
+  // Compose HTML email summarizing document statuses
+  const htmlRows = (docs || [])
+    .map((d) => {
+      const cat = d.category || d.doc_category || d.doc_category_declared || "unknown";
+      const status = d.verified_status || d.status || (d.raw && (d.raw.verified_status || d.raw.status)) || "unknown";
+      const reason = d.reason || d.rejection_reason || (d.raw && d.raw.rejection_reason) || "";
+      return `<tr><td style="padding:8px;border:1px solid #ddd">${cat}</td><td style="padding:8px;border:1px solid #ddd">${status}</td><td style="padding:8px;border:1px solid #ddd">${reason || "-"}</td></tr>`;
+    })
+    .join('');
+
+  const html = `
+    <div style="font-family:Arial,Helvetica,sans-serif;line-height:1.4;color:#111">
+      <h2>Registration document verification summary</h2>
+      <p>We received verification results for your registration. Aadhaar last4: <strong>****${aadhaar_last4}</strong></p>
+      <table style="border-collapse:collapse;border:1px solid #ddd;width:100%">
+        <thead><tr><th style="padding:8px;border:1px solid #ddd;text-align:left">Document</th><th style="padding:8px;border:1px solid #ddd;text-align:left">Status</th><th style="padding:8px;border:1px solid #ddd;text-align:left">Notes</th></tr></thead>
+        <tbody>
+          ${htmlRows || '<tr><td style="padding:8px;border:1px solid #ddd" colspan="3">No document details provided.</td></tr>'}
+        </tbody>
+      </table>
+      <p style="margin-top:12px">If you have questions, reply to this email or contact support.</p>
+    </div>
+  `;
+
+  const plain = `Registration summary for Aadhaar ****${aadhaar_last4}\n\n` +
+    (docs.length ? docs.map(d => `${d.category||d.doc_category||'doc'}: ${d.verified_status||d.status||'unknown'}`).join('\n') : 'No document details provided.');
+
+  try {
+    await sendEmail({ email, subject: "Registration documents summary", message: plain, html });
+    const maskedEmail = String(email).replace(/(.{2}).+(@.+)/, "$1****$2");
+    console.log(`oaky: sent summary to ${email}`);
+    return res.json({ success: true, message: "Notification sent", email: maskedEmail });
+  } catch (err) {
+    console.error("oaky: failed to send email", err?.message || err);
+    throw new AppError("Failed to send notification email", 500);
+  }
+}
+
 // ---------------------- Exports ---------------------- //
 export const uploadDocumentHandler = asyncHandler(handleUploadDocument);
 export const getDocumentHandler = asyncHandler(getDocument);
@@ -981,3 +1059,4 @@ export const verifyOtpHandler = asyncHandler(handleVerifyOtp);
 export const replaceRejectedDocumentHandler = asyncHandler(
   replaceRejectedDocument
 );
+export const oakyHandler = asyncHandler(handleOaky);

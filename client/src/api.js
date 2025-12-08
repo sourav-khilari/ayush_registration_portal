@@ -130,6 +130,8 @@ export const DocumentAPI = {
   emailLookup: (payload) => apiRequest("/documents/email-lookup", { method: "POST", body: JSON.stringify(payload) }),
   // Verify OTP (Step 2: verify the OTP)
   verifyOtp: (payload) => apiRequest("/documents/verify-otp", { method: "POST", body: JSON.stringify(payload) }),
+  // Notify registration summary (oaky)
+  notifyRegistration: (payload) => apiRequest("/documents/oaky", { method: "POST", body: JSON.stringify(payload) }),
 };
 
 // Requirements API (for AYUSH sector-specific document requirements)
