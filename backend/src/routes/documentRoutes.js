@@ -13,6 +13,8 @@ import {
   replaceRejectedDocumentHandler,
 } from "../controllers/documentController.js";
 import { AuthorizationError } from "../middleware/errorHandler.js";
+import { checkAllDocsAndSendFinalMail } from "../utils/checkAllDocsAndSendFinalMail.js";
+
 import requireRole from "../middleware/requireRole.js";
 
 const router = express.Router();
@@ -24,7 +26,12 @@ router.get("/list", auth, listDocumentsHandler);
 router.post("/upload", auth, upload.single("file"), uploadDocumentHandler);
 router.get("/:id", auth, getDocumentHandler);
 router.post("/:id/reassign", auth, reassignDocumentHandler);
-router.post("/:id/replace", auth, upload.single("file"), replaceRejectedDocumentHandler);
+router.post(
+  "/:id/replace",
+  auth,
+  upload.single("file"),
+  replaceRejectedDocumentHandler
+);
 
 // Email lookup -> send OTP
 router.post("/email-lookup", emailLookupHandler);
