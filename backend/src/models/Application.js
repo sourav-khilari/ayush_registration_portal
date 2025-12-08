@@ -42,7 +42,7 @@ const ApplicationSchema = new mongoose.Schema(
         "manufacturing_own",
         "loan_license",
         "clinic",
-        "training_center"
+        "training_center",
       ],
       required: true,
     },
@@ -59,6 +59,22 @@ const ApplicationSchema = new mongoose.Schema(
       default: "draft",
       index: true,
     },
+    status: {
+      type: String,
+      enum: [
+        "draft",
+        "submitted",
+        "under_review",
+        "approved",
+        "rejected",
+        "withdrawn",
+      ],
+      default: "draft",
+      index: true,
+    },
+    verificationEmailSent: { type: Boolean, default: false },
+    documents: [{ type: mongoose.Schema.Types.ObjectId, ref: "Document" }],
+    application_data: { type: mongoose.Schema.Types.Mixed },
     documents: [{ type: mongoose.Schema.Types.ObjectId, ref: "Document" }],
     application_data: { type: mongoose.Schema.Types.Mixed },
     assigned_official: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
@@ -118,6 +134,5 @@ ApplicationSchema.methods.checkRequiredDocuments = async function (opts = {}) {
   return { complete: missing.length === 0, missing, details };
 };
 
-export default
-  mongoose.models.Application ||
+export default mongoose.models.Application ||
   mongoose.model("Application", ApplicationSchema);

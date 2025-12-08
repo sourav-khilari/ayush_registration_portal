@@ -3,6 +3,9 @@ import { fileURLToPath } from "url";
 import Document from "../models/Document.js";
 import DocumentRequirement from "../models/DocumentRequirement.js";
 import Application from "../models/Application.js";
+import { checkAllDocsAndSendFinalMail } from "../utils/checkAllDocsAndSendFinalMail.js";
+import { sendDocumentFailureEmail } from "../utils/sendDocumentFailureEmail.js";
+
 import {
   uploadToLocal,
   resolveFileUrlToPath,
@@ -112,6 +115,16 @@ async function handleUploadDocument(req, res) {
         doc.verified_status = "pending";
         await doc.save();
 
+        // ---------------------- FAILURE EMAIL (OCR failed) ---------------------- //
+        try {
+          await sendDocumentFailureEmail(doc);
+        } catch (err) {
+          console.error(
+            "Failed to send failure email (OCR failed):",
+            err.message
+          );
+        }
+
         // Return early — do not attempt verification if OCR failed
         return res.status(201).json({
           success: true,
@@ -139,8 +152,8 @@ async function handleUploadDocument(req, res) {
         aadhaar: "aadhaar",
         pan: "pan",
         founder_pan: "pan",
-        company_registration: "incorporation", // legacy corp/incorp mapping retained
-        gst: "gst", // route to /verify/gst
+        company_registration: "incorporation",
+        gst: "gst",
         gst_certificate: "gst",
         address_proof: "utility-bill",
       };
@@ -178,13 +191,22 @@ async function handleUploadDocument(req, res) {
             );
             doc.verified_status = "pending";
             await doc.save();
-            return res
-              .status(201)
-              .json({
-                success: true,
-                message: "Aadhaar fields missing; verification skipped",
-                document: doc,
-              });
+
+            // send failure email (missing fields)
+            try {
+              await sendDocumentFailureEmail(doc);
+            } catch (err) {
+              console.error(
+                "Failed to send failure email (missing aadhaar fields):",
+                err.message
+              );
+            }
+
+            return res.status(201).json({
+              success: true,
+              message: "Aadhaar fields missing; verification skipped",
+              document: doc,
+            });
           }
         } else if (extractedData.passport_no_masked) {
           verifyDocType = "passport";
@@ -200,13 +222,22 @@ async function handleUploadDocument(req, res) {
             );
             doc.verified_status = "pending";
             await doc.save();
-            return res
-              .status(201)
-              .json({
-                success: true,
-                message: "Passport fields missing; verification skipped",
-                document: doc,
-              });
+
+            // send failure email (missing fields)
+            try {
+              await sendDocumentFailureEmail(doc);
+            } catch (err) {
+              console.error(
+                "Failed to send failure email (missing passport fields):",
+                err.message
+              );
+            }
+
+            return res.status(201).json({
+              success: true,
+              message: "Passport fields missing; verification skipped",
+              document: doc,
+            });
           }
         } else {
           console.log(
@@ -214,6 +245,17 @@ async function handleUploadDocument(req, res) {
           );
           doc.verified_status = "pending";
           await doc.save();
+
+          // notify user
+          try {
+            await sendDocumentFailureEmail(doc);
+          } catch (err) {
+            console.error(
+              "Failed to send failure email (unknown founder id type):",
+              err.message
+            );
+          }
+
           return res.status(201).json({
             success: true,
             message:
@@ -243,13 +285,21 @@ async function handleUploadDocument(req, res) {
             );
             doc.verified_status = "pending";
             await doc.save();
-            return res
-              .status(201)
-              .json({
-                success: true,
-                message: "Aadhaar fields missing; verification skipped",
-                document: doc,
-              });
+
+            try {
+              await sendDocumentFailureEmail(doc);
+            } catch (err) {
+              console.error(
+                "Failed to send failure email (missing aadhaar fields):",
+                err.message
+              );
+            }
+
+            return res.status(201).json({
+              success: true,
+              message: "Aadhaar fields missing; verification skipped",
+              document: doc,
+            });
           }
         } else if (verifyDocType === "pan") {
           extractedPayload = {
@@ -265,13 +315,21 @@ async function handleUploadDocument(req, res) {
             );
             doc.verified_status = "pending";
             await doc.save();
-            return res
-              .status(201)
-              .json({
-                success: true,
-                message: "PAN fields missing; verification skipped",
-                document: doc,
-              });
+
+            try {
+              await sendDocumentFailureEmail(doc);
+            } catch (err) {
+              console.error(
+                "Failed to send failure email (missing pan fields):",
+                err.message
+              );
+            }
+
+            return res.status(201).json({
+              success: true,
+              message: "PAN fields missing; verification skipped",
+              document: doc,
+            });
           }
         } else if (verifyDocType === "utility-bill") {
           extractedPayload = {
@@ -296,13 +354,21 @@ async function handleUploadDocument(req, res) {
             );
             doc.verified_status = "pending";
             await doc.save();
-            return res
-              .status(201)
-              .json({
-                success: true,
-                message: "Utility bill fields missing; verification skipped",
-                document: doc,
-              });
+
+            try {
+              await sendDocumentFailureEmail(doc);
+            } catch (err) {
+              console.error(
+                "Failed to send failure email (missing utility bill fields):",
+                err.message
+              );
+            }
+
+            return res.status(201).json({
+              success: true,
+              message: "Utility bill fields missing; verification skipped",
+              document: doc,
+            });
           }
         } else if (verifyDocType === "gst") {
           // New: GST-specific payload shape expected by /verify/gst
@@ -334,6 +400,16 @@ async function handleUploadDocument(req, res) {
             );
             doc.verified_status = "pending";
             await doc.save();
+
+            try {
+              await sendDocumentFailureEmail(doc);
+            } catch (err) {
+              console.error(
+                "Failed to send failure email (missing gst fields):",
+                err.message
+              );
+            }
+
             return res.status(201).json({
               success: true,
               message: "GST fields missing; verification skipped",
@@ -349,7 +425,9 @@ async function handleUploadDocument(req, res) {
             extractedPayload = {
               gstin: extractedData.gstin,
               legal_name: extractedData.legal_name || extractedData.entity_name,
-              registration_date: extractedData.registration_date || extractedData.date_of_incorporation,
+              registration_date:
+                extractedData.registration_date ||
+                extractedData.date_of_incorporation,
               ocr_confidence: extractedData.ocr_confidence || 0.8,
             };
 
@@ -365,6 +443,16 @@ async function handleUploadDocument(req, res) {
               );
               doc.verified_status = "pending";
               await doc.save();
+
+              try {
+                await sendDocumentFailureEmail(doc);
+              } catch (err) {
+                console.error(
+                  "Failed to send failure email (missing gst fields on incorp detection):",
+                  err.message
+                );
+              }
+
               return res.status(201).json({
                 success: true,
                 message: "GST fields missing; verification skipped",
@@ -392,13 +480,21 @@ async function handleUploadDocument(req, res) {
               );
               doc.verified_status = "pending";
               await doc.save();
-              return res
-                .status(201)
-                .json({
-                  success: true,
-                  message: "Incorporation fields missing; verification skipped",
-                  document: doc,
-                });
+
+              try {
+                await sendDocumentFailureEmail(doc);
+              } catch (err) {
+                console.error(
+                  "Failed to send failure email (missing incorp fields):",
+                  err.message
+                );
+              }
+
+              return res.status(201).json({
+                success: true,
+                message: "Incorporation fields missing; verification skipped",
+                document: doc,
+              });
             }
           }
         }
@@ -409,6 +505,16 @@ async function handleUploadDocument(req, res) {
         );
         doc.verified_status = "pending";
         await doc.save();
+
+        try {
+          await sendDocumentFailureEmail(doc);
+        } catch (err) {
+          console.error(
+            "Failed to send failure email (unsupported doc type):",
+            err.message
+          );
+        }
+
         return res.status(201).json({
           success: true,
           message:
@@ -484,13 +590,38 @@ async function handleUploadDocument(req, res) {
       }
 
       await doc.save();
+
+      // ---------------------- FAILURE EMAIL (AUTO VERIFICATION result) ---------------------- //
+      if (
+        doc.verified_status === "rejected" ||
+        doc.verified_status === "pending"
+      ) {
+        try {
+          await sendDocumentFailureEmail(doc);
+        } catch (err) {
+          console.error(
+            "Failed to send failure email (auto verification result):",
+            err.message
+          );
+        }
+      }
     } catch (err) {
       console.error("OCR or Verification error:", err);
       doc.ocr_status = "failed";
       doc.verified_status = "pending";
       await doc.save();
+
+      // send failure email for OCR/verification error
+      try {
+        await sendDocumentFailureEmail(doc);
+      } catch (emailErr) {
+        console.error(
+          "Failed to send failure email (OCR/verification catch):",
+          emailErr.message
+        );
+      }
     }
-    console.log("doc=\n"+doc)
+    console.log("doc=\n" + doc);
     res.status(201).json({
       success: true,
       message: "Document uploaded and processed successfully",
@@ -565,26 +696,62 @@ async function getRequirements(req, res) {
   res.json({ success: true, requirements: reqDoc });
 }
 
-// ---------------------- Manual Verification by Officials ---------------------- //
-async function setDocumentVerification(req, res) {
-  const { status, reason } = req.body;
-  if (!status || !["verified", "rejected"].includes(status))
-    throw new ValidationError("Invalid status");
+// ---------------------- Manual Verification handler ---------------------- //
+async function setDocumentVerificationImpl(req, res) {
+  try {
+    const { docId } = req.params;
+    const { verified_status, comment } = req.body;
 
-  const doc = await Document.findById(req.params.id);
-  if (!doc) throw new NotFoundError("Document not found");
+    if (!docId) return res.status(400).json({ message: "docId required" });
 
-  doc.verified_status = status;
-  doc.rejection_reason = status === "rejected" ? reason || "" : undefined;
-  doc.verified_by = req.user._id;
-  doc.verified_at = new Date();
-  await doc.save();
+    const update = { verified_status };
+    if (comment) update["meta.verificationComment"] = comment;
+    if (verified_status === "verified") {
+      update.verified_at = new Date();
+      update.verified_by = req.user?._id || req.user?.id || null;
+    }
 
-  res.json({
-    success: true,
-    message: "Document verification updated successfully",
-    document: doc,
-  });
+    const doc = await Document.findByIdAndUpdate(docId, update, { new: true });
+    if (!doc) return res.status(404).json({ message: "Document not found" });
+
+    const appId =
+      doc.application_id || doc.applicationId || doc.meta?.applicationId;
+    if (appId) {
+      await Application.findByIdAndUpdate(appId, {
+        $addToSet: { documents: doc._id },
+      });
+    }
+
+    // If admin rejected -> send failure email
+    if (doc.verified_status === "rejected") {
+      try {
+        await sendDocumentFailureEmail(doc);
+      } catch (err) {
+        console.error(
+          "Failed to send failure email (manual rejection):",
+          err.message
+        );
+      }
+    }
+
+    // Trigger final-mail check AFTER persisting verification
+    if (doc.verified_status === "verified") {
+      try {
+        await checkAllDocsAndSendFinalMail(doc._id);
+      } catch (err) {
+        console.error("Failed to check/send final verification email:", err);
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: "Document verification updated",
+      data: doc,
+    });
+  } catch (err) {
+    console.error("setDocumentVerificationImpl error:", err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
 }
 
 // ---------------------- Replace Rejected Document ---------------------- //
@@ -596,14 +763,14 @@ async function replaceRejectedDocument(req, res) {
   const doc = await Document.findById(docId);
   if (!doc) throw new NotFoundError("Document not found");
 
-  // Verify ownership - user must own the document
   if (String(doc.uploaded_by) !== String(req.user._id)) {
     throw new AppError("Not authorized to replace this document", 403);
   }
 
-  // Only allow replacement if document is rejected
   if (doc.verified_status !== "rejected") {
-    throw new ValidationError("Document can only be replaced if it is rejected");
+    throw new ValidationError(
+      "Document can only be replaced if it is rejected"
+    );
   }
 
   const allowedTypes = ["application/pdf", "image/jpeg", "image/png"];
@@ -611,7 +778,6 @@ async function replaceRejectedDocument(req, res) {
     throw new ValidationError("Only PDF, JPEG, and PNG files are allowed");
 
   try {
-    // Save old version to versions array
     if (!doc.versions) doc.versions = [];
     doc.versions.push({
       fileUrl: doc.fileUrl,
@@ -621,14 +787,12 @@ async function replaceRejectedDocument(req, res) {
       uploaded_by: doc.uploaded_by,
     });
 
-    // Upload new file
     const { fileUrl, username } = await uploadToLocal(
       file.path,
       file.originalname,
       req?.user?.email || req.user.name || req.user.username
     );
 
-    // Convert to page images
     let pageImages = [];
     try {
       const storedAbsPath = resolveFileUrlToPath(fileUrl);
@@ -641,7 +805,6 @@ async function replaceRejectedDocument(req, res) {
       console.error("Page image processing failed:", err);
     }
 
-    // Update document with new file
     doc.fileUrl = fileUrl;
     doc.filename = file.originalname;
     doc.document_name = req.body.document_name || file.originalname;
@@ -649,14 +812,13 @@ async function replaceRejectedDocument(req, res) {
     doc.page_images = pageImages;
     doc.page_count = pageImages.length;
     doc.ocr_status = "pending";
-    doc.verified_status = "pending"; // Reset verification status
-    doc.rejection_reason = undefined; // Clear rejection reason
+    doc.verified_status = "pending";
+    doc.rejection_reason = undefined;
     doc.verified_by = undefined;
     doc.verified_at = undefined;
 
     await doc.save();
 
-    // Process OCR and extraction in background (same as upload)
     try {
       doc.ocr_status = "processing";
       await doc.save();
@@ -684,10 +846,11 @@ async function replaceRejectedDocument(req, res) {
       doc.ocr_status = "failed";
       await doc.save();
     }
-    
+
     res.json({
       success: true,
-      message: "Document replaced successfully. Verification will be processed.",
+      message:
+        "Document replaced successfully. Verification will be processed.",
       document: doc,
     });
   } catch (error) {
@@ -695,8 +858,6 @@ async function replaceRejectedDocument(req, res) {
     throw new AppError("Document replacement failed", 500);
   }
 }
-
-
 
 // ---------------------- Email-lookup & OTP ---------------------- //
 async function handleEmailLookup(req, res) {
@@ -706,28 +867,28 @@ async function handleEmailLookup(req, res) {
   if (!masked_id) throw new ValidationError("masked_id is required");
 
   const last4 = masked_id.slice(-4);
-  const windowMinutes = parseInt(process.env.EMAIL_LOOKUP_WINDOW_MINUTES || "10", 10);
+  const windowMinutes = parseInt(
+    process.env.EMAIL_LOOKUP_WINDOW_MINUTES || "10",
+    10
+  );
   const since = new Date(Date.now() - windowMinutes * 60 * 1000);
 
-  // Look for a recently uploaded, OCR-done and VERIFIED document that contains the last4
   const doc = await Document.findOne({
     ocr_status: "done",
     verified_status: "verified",
     createdAt: { $gte: since },
-    $or: [
-      // { "extracted_fields.aadhaar_last4.value": last4 },
-      // { "extracted_fields.aadhaar_last4": last4 },
-      // { "extracted_fields.document_number.value": { $regex: last4 + "$" } },
-      // { "extracted_fields.document_number": { $regex: last4 + "$" } },
-      { "ocr_text.aadhaar_last4": last4 },
-    ],
+    $or: [{ "ocr_text.aadhaar_last4": last4 }],
   }).lean();
 
-  if (!doc) throw new NotFoundError("No recently verified document found for provided id");
+  if (!doc)
+    throw new NotFoundError(
+      "No recently verified document found for provided id"
+    );
 
-  const lookupUrl = `${process.env.DOC_VER_API_BASE}/email-lookup` || "http://localhost:8000/api/v1/verify/email-lookup";
+  const lookupUrl =
+    `${process.env.DOC_VER_API_BASE}/email-lookup` ||
+    "http://localhost:8000/api/v1/verify/email-lookup";
 
-  // Call external email-lookup service
   const resp = await fetch(lookupUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -744,7 +905,6 @@ async function handleEmailLookup(req, res) {
   const email = data?.data?.email;
   if (!email) throw new AppError("Email not found from lookup service", 502);
 
-  // Generate OTP and persist
   const otp = String(Math.floor(100000 + Math.random() * 900000));
   const otpHash = crypto.createHash("sha256").update(otp).digest("hex");
   const expiryMinutes = parseInt(process.env.OTP_EXPIRY_MINUTES || "5", 10);
@@ -758,7 +918,6 @@ async function handleEmailLookup(req, res) {
     meta: { masked_id, lookup: data?.data },
   });
 
-  // Send OTP by email (simple text message)
   try {
     await sendEmail({
       email,
@@ -767,10 +926,8 @@ async function handleEmailLookup(req, res) {
     });
   } catch (err) {
     console.warn("Failed to send OTP email:", err.message);
-    // continue — OTP persisted; caller can retry sending if needed
   }
 
-  // Return masked email for UX (do not expose full address if you prefer)
   const maskedEmail = email.replace(/(.{2}).+(@.+)/, "$1****$2");
 
   res.json({ success: true, message: "OTP sent", email: email });
@@ -781,15 +938,18 @@ async function handleVerifyOtp(req, res) {
   const { masked_id, email, otp } = req.body;
   console.log("req.body =", req?.body);
   if (!otp) throw new ValidationError("otp is required");
-  if (!email && !masked_id) throw new ValidationError("email or masked_id is required");
+  if (!email && !masked_id)
+    throw new ValidationError("email or masked_id is required");
 
-  // Find most recent OTP for email (or use masked_id meta)
   const query = { used: false };
   if (email) query.email = email;
   if (masked_id) query["meta.masked_id"] = masked_id;
 
-  const otpRecord = await VerificationOTP.findOne(query).sort({ createdAt: -1 });
-  if (!otpRecord) throw new NotFoundError("OTP not found or already used/expired");
+  const otpRecord = await VerificationOTP.findOne(query).sort({
+    createdAt: -1,
+  });
+  if (!otpRecord)
+    throw new NotFoundError("OTP not found or already used/expired");
 
   if (otpRecord.expiresAt < new Date()) {
     throw new ValidationError("OTP expired");
@@ -804,16 +964,20 @@ async function handleVerifyOtp(req, res) {
   res.json({ success: true, message: "OTP verified" });
 }
 
-
 // ---------------------- Exports ---------------------- //
 export const uploadDocumentHandler = asyncHandler(handleUploadDocument);
 export const getDocumentHandler = asyncHandler(getDocument);
 export const listDocumentsHandler = asyncHandler(listDocuments);
 export const reassignDocumentHandler = asyncHandler(reassignDocument);
 export const getRequirementsHandler = asyncHandler(getRequirements);
+
+// keep the external export name unchanged — but point it to the renamed impl
 export const setDocumentVerificationHandler = asyncHandler(
-  setDocumentVerification
+  setDocumentVerificationImpl
 );
+
 export const emailLookupHandler = asyncHandler(handleEmailLookup);
 export const verifyOtpHandler = asyncHandler(handleVerifyOtp);
-export const replaceRejectedDocumentHandler = asyncHandler(replaceRejectedDocument);
+export const replaceRejectedDocumentHandler = asyncHandler(
+  replaceRejectedDocument
+);
