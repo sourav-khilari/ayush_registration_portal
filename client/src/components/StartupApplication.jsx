@@ -663,7 +663,9 @@ function StartupApplication() {
           doc_id: r.id,
           filename: r.fileName,
           reason:
-            (r.raw && (r.raw.rejection_reason || r.raw?.verification_response?.error)) ||
+            (r.raw &&
+              (r.raw.rejection_reason ||
+                r.raw?.verification_response?.error)) ||
             undefined,
         }));
 
@@ -672,11 +674,16 @@ function StartupApplication() {
             aadhaar_last4,
             documents: docsPayload,
           });
-          DocumentAPI.notifyRegistration({ aadhaar_last4, documents: docsPayload })
+          DocumentAPI.notifyRegistration({
+            aadhaar_last4,
+            documents: docsPayload,
+          })
             .then((resp) => console.log("oaky response:", resp))
             .catch((err) => console.warn("oaky failed:", err));
         } else {
-          console.log("oaky: no aadhaar_last4 found in uploaded responses — skipping notify");
+          console.log(
+            "oaky: no aadhaar_last4 found in uploaded responses — skipping notify"
+          );
         }
       } catch (err) {
         console.warn("oaky error preparing payload:", err);
