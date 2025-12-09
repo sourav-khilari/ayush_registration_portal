@@ -372,6 +372,7 @@ function StartupApplication() {
   };
 
   // ---- QR Verification Handler ----
+  // ---- QR Verification Handler (Direct API call - NO backend upload) ----
   const handleVerifyQR = async (docCategory = "product_qr") => {
     const docEntry = documentsData[docCategory];
     if (!docEntry || !docEntry.file) {
@@ -382,42 +383,56 @@ function StartupApplication() {
     setQrLoading(true);
     setQrResult(null);
     setDocumentsError("");
+    console.log("📦 Verifying Product QR directly via external API...");
 
     try {
       const form = new FormData();
       form.append("image", docEntry.file);
 
-      // Vite env or fallback
-      const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5002";
-      const url = `${API_BASE}/product/verify-image`;
+      // Call the external verification API directly (NOT backend proxy)
+      const verifyImageUrl = "https://doc-ver-service.onrender.com/api/v1/verify/verify-image";
 
-      const res = await fetch(url, {
+      console.log(`📡 Sending to external API: ${verifyImageUrl}`);
+      
+      const res = await fetch(verifyImageUrl, {
         method: "POST",
         body: form,
-        credentials: "include",
+        // Note: No credentials needed for external API
       });
 
+      if (!res.ok) {
+        throw new Error(`API returned ${res.status}`);
+      }
+
       const data = await res.json();
-      console.log("QR verify response:", data);
+      console.log("✅ QR verify response:", data);
       setQrResult(data);
 
-      // If server returned product or barcode info, update documentsData
-      if (data?.success && (data.product || data.barcode)) {
-        setDocumentsData((prev) => ({
-          ...prev,
-          [docCategory]: {
-            ...(prev[docCategory] || {}),
-            uploaded: prev[docCategory]?.uploaded || false,
-            verified_qr: true,
-            verified_qr_at: new Date().toISOString(),
-            matched_product: data.product || null,
-            matched_barcode: data.barcode || null,
-          },
-        }));
+      // Update documentsData based on verification response
+      // Check if verified field is true
+      const isVerified = data?.verified === true;
+      
+      setDocumentsData((prev) => ({
+        ...prev,
+        [docCategory]: {
+          ...(prev[docCategory] || {}),
+          uploaded: true,
+          verified_qr: isVerified,
+          verified_status: isVerified ? "verified" : "rejected",
+          verified_qr_at: new Date().toISOString(),
+          verification_response: data,
+          matched_product: data?.product || null,
+          matched_barcode: data?.barcode || null,
+        },
+      }));
+
+      if (!isVerified) {
+        setDocumentsError("Product QR verification failed. Please try with a valid QR code.");
       }
     } catch (err) {
-      console.error("QR verify error:", err);
-      setDocumentsError("QR verification failed. Try again.");
+      console.error("❌ QR verify error:", err);
+      setDocumentsError(`QR verification failed: ${err.message}. Please try again.`);
+      setQrResult({ success: false, error: err.message });
     } finally {
       setQrLoading(false);
     }
@@ -439,6 +454,17 @@ function StartupApplication() {
     if (requiresAadhaar && !aadhaarFullyVerified) {
       setDocumentsError(
         "Please verify your Aadhaar with OTP before proceeding"
+      );
+      return false;
+    }
+
+    // Check if Product QR is required and verify it's been verified
+    const requiresProductQR = (requirementsState.items || []).some(
+      (req) => req.doc_category === "product_qr" && req.required !== false
+    );
+    if (requiresProductQR && !documentsData["product_qr"]?.verified_qr) {
+      setDocumentsError(
+        "Please verify your Product QR before proceeding"
       );
       return false;
     }
@@ -583,6 +609,26 @@ function StartupApplication() {
         if (!docEntry || !docEntry.file) continue;
 
         try {
+          // Special handling for product_qr: don't upload to backend, use local verified_qr data
+          if ((req.doc_category || "").toLowerCase() === "product_qr") {
+            const qrData = documentsData["product_qr"];
+            const isQRVerified = qrData?.verified_qr === true && qrData?.verification_response?.verified === true;
+            
+            uploadResponses.push({
+              category: req.doc_category,
+              fileName: docEntry.file.name,
+              status: isQRVerified ? "verified" : "rejected",
+              id: null, // product_qr doesn't get stored on backend
+              raw: {
+                doc_category_declared: req.doc_category,
+                verified_status: isQRVerified ? "verified" : "rejected",
+                verification_response: qrData?.verification_response || {},
+              },
+            });
+            console.log("📦 Product QR added to uploadResponses:", { category: req.doc_category, status: isQRVerified ? "verified" : "rejected" });
+            continue; // skip backend upload for product_qr
+          }
+
           // Prepare metadata - include startup_id and description with any extracted fields
           // Put fields into description JSON so backend can optionally use them.
           const descriptionPayload =
@@ -657,15 +703,30 @@ function StartupApplication() {
             ? String(founder.raw.ocr_text.document_number).slice(-4)
             : undefined);
 
-        const docsPayload = uploadResponses.map((r) => ({
-          category: r.category,
-          verified_status: r.status,
-          doc_id: r.id,
-          filename: r.fileName,
-          reason:
-            (r.raw && (r.raw.rejection_reason || r.raw?.verification_response?.error)) ||
-            undefined,
-        }));
+        // Build docs payload - for product_qr, check the verified_qr flag from documentsData
+        const docsPayload = uploadResponses.map((r) => {
+          let verified_status = r.status;
+          
+          // Special handling for product_qr: check verified_qr flag and verification_response
+          if ((r.category || "").toLowerCase() === "product_qr") {
+            const qrData = documentsData["product_qr"];
+            if (qrData?.verification_response?.verified === true) {
+              verified_status = "verified";
+            } else {
+              verified_status = "rejected";
+            }
+          }
+          
+          return {
+            category: r.category,
+            verified_status,
+            doc_id: r.id,
+            filename: r.fileName,
+            reason:
+              (r.raw && (r.raw.rejection_reason || r.raw?.verification_response?.error)) ||
+              undefined,
+          };
+        });
 
         if (aadhaar_last4) {
           console.log("📣 Calling notify-registration (oaky) with payload", {
@@ -1161,37 +1222,18 @@ function StartupApplication() {
 
                       {/* show quick result */}
                       {qrResult && (
-                        <div className="mt-2 p-2 rounded border bg-gray-50 text-xs w-64 text-left">
-                          <div className="font-semibold text-sm mb-1">
-                            QR Result:{" "}
-                            {qrResult.status ||
-                              (qrResult.success ? "VERIFIED" : "NOT_FOUND")}
+                        <div className={`mt-2 p-3 rounded border text-xs w-80 text-left ${qrResult?.verified === true ? "bg-green-50 border-green-300" : "bg-red-50 border-red-300"}`}>
+                          <div className={`font-semibold text-sm mb-2 ${qrResult?.verified === true ? "text-green-800" : "text-red-800"}`}>
+                            QR Status: {qrResult?.verified === true ? "✅ VERIFIED" : "❌ NOT VERIFIED"}
                           </div>
-                          <div className="text-xs text-gray-700">
-                            {qrResult.matched_type && (
-                              <div>
-                                <strong>Matched:</strong>{" "}
-                                {qrResult.matched_type}
-                              </div>
-                            )}
-                            {qrResult.matched_by && (
-                              <div>
-                                <strong>By:</strong> {qrResult.matched_by}
-                              </div>
-                            )}
-                            {qrResult.product && (
-                              <div>
-                                <strong>Product:</strong>{" "}
-                                {qrResult.product.product_name}
-                              </div>
-                            )}
-                            {qrResult.barcode && (
-                              <div>
-                                <strong>Barcode status:</strong>{" "}
-                                {qrResult.barcode.status}
-                              </div>
-                            )}
-                          </div>
+                          {qrResult && Object.keys(qrResult).length > 0 && (
+                            <details className="text-xs text-gray-700 mt-1">
+                              <summary className="cursor-pointer font-semibold">Response Details</summary>
+                              <pre className="mt-2 p-2 bg-gray-100 rounded overflow-auto max-h-40 text-xs">
+                                {JSON.stringify(qrResult, null, 2)}
+                              </pre>
+                            </details>
+                          )}
                         </div>
                       )}
                     </div>
