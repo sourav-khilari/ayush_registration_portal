@@ -384,7 +384,7 @@ async function handleUploadDocument(req, res) {
               extractedData.canonical_name,
             registration_date:
               extractedData.registration_date ||
-              extractedData.date_of_incorporation ||
+              extractedData.date_of_registration ||
               extractedData.dob,
             ocr_confidence: extractedData.ocr_confidence || 0.8,
           };
@@ -1008,12 +1008,21 @@ async function handleOaky(req, res) {
   // Compose HTML email summarizing document statuses
   const htmlRows = (docs || [])
     .map((d) => {
-      const cat = d.category || d.doc_category || d.doc_category_declared || "unknown";
-      const status = d.verified_status || d.status || (d.raw && (d.raw.verified_status || d.raw.status)) || "unknown";
-      const reason = d.reason || d.rejection_reason || (d.raw && d.raw.rejection_reason) || "";
+      const cat =
+        d.category || d.doc_category || d.doc_category_declared || "unknown";
+      const status =
+        d.verified_status ||
+        d.status ||
+        (d.raw && (d.raw.verified_status || d.raw.status)) ||
+        "unknown";
+      const reason =
+        d.reason ||
+        d.rejection_reason ||
+        (d.raw && d.raw.rejection_reason) ||
+        "";
       return `<tr><td style="padding:8px;border:1px solid #ddd">${cat}</td><td style="padding:8px;border:1px solid #ddd">${status}</td><td style="padding:8px;border:1px solid #ddd">${reason || "-"}</td></tr>`;
     })
-    .join('');
+    .join("");
 
   const html = `
     <div style="font-family:Arial,Helvetica,sans-serif;line-height:1.4;color:#111">
@@ -1029,14 +1038,31 @@ async function handleOaky(req, res) {
     </div>
   `;
 
-  const plain = `Registration summary for Aadhaar ****${aadhaar_last4}\n\n` +
-    (docs.length ? docs.map(d => `${d.category||d.doc_category||'doc'}: ${d.verified_status||d.status||'unknown'}`).join('\n') : 'No document details provided.');
+  const plain =
+    `Registration summary for Aadhaar ****${aadhaar_last4}\n\n` +
+    (docs.length
+      ? docs
+          .map(
+            (d) =>
+              `${d.category || d.doc_category || "doc"}: ${d.verified_status || d.status || "unknown"}`
+          )
+          .join("\n")
+      : "No document details provided.");
 
   try {
-    await sendEmail({ email, subject: "Registration documents summary", message: plain, html });
+    await sendEmail({
+      email,
+      subject: "Registration documents summary",
+      message: plain,
+      html,
+    });
     const maskedEmail = String(email).replace(/(.{2}).+(@.+)/, "$1****$2");
     console.log(`oaky: sent summary to ${email}`);
-    return res.json({ success: true, message: "Notification sent", email: maskedEmail });
+    return res.json({
+      success: true,
+      message: "Notification sent",
+      email: maskedEmail,
+    });
   } catch (err) {
     console.error("oaky: failed to send email", err?.message || err);
     throw new AppError("Failed to send notification email", 500);
