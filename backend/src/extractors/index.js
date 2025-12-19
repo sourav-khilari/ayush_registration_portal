@@ -5,6 +5,7 @@ import { extractBusinessPitchFields } from "./businessPitchExtractor.js";
 import { extractCompanyRegistrationFields } from "./companyRegistrationExtractor.js";
 import { extractGSTFields } from "./gstExtractor.js";
 import { extractMOAFields } from "./moaExtractor.js"; // <-- ADDED
+import { extractIncorporationFields } from "./incorporationExtractor.js"; // ✅ NEW
 
 export function getExtractor(docType) {
   const t = docType?.toLowerCase().trim();
@@ -32,12 +33,17 @@ export function getExtractor(docType) {
     case "company_registration":
       return extractCompanyRegistrationFields;
 
-    // ✅ NEW MOA cases added
+    // ✅ MOA
     case "moa":
     case "moa_certificate":
-
     case "memorandum_of_association":
       return extractMOAFields;
+
+    // ✅ INCORPORATION / CONSTITUTION
+    case "constitution_document":
+    case "business_formation_document":
+    case "incorporation":
+      return extractIncorporationFields;
 
     default:
       return null;

@@ -61,7 +61,7 @@ const DocumentSchema = new mongoose.Schema(
 
     verified_status: {
       type: String,
-      enum: ["pending", "verified", "rejected"],
+      enum: ["pending", "verified", "rejected", "error"],
       default: "pending",
     },
     verified_by: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
@@ -92,5 +92,5 @@ DocumentSchema.index({ application_id: 1 });
 DocumentSchema.index({ startup_id: 1 });
 DocumentSchema.index({ doc_category_declared: 1 });
 
-export default
-  mongoose.models.Document || mongoose.model("Document", DocumentSchema);
+export default mongoose.models.Document ||
+  mongoose.model("Document", DocumentSchema);

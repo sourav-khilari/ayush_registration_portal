@@ -147,25 +147,37 @@ async function handleUploadDocument(req, res) {
       }
 
       // ---------------------- Verification Service ---------------------- //
+
       // Map document categories to verification API doc types
       const verificationTypeMap = {
+        // Identity
         aadhar: "aadhaar",
         aadhaar: "aadhaar",
+        founder_id: "aadhaar",
+
         pan: "pan",
         founder_pan: "pan",
-        company_registration: "incorporation",
+
+        // Company registration (GST only)
         gst: "gst",
         gst_certificate: "gst",
+        company_registration: "gst",
+
+        // Business formation
+        constitution_document: "incorporation",
+        business_formation_document: "incorporation",
+
+        // Address
         address_proof: "utility-bill",
       };
 
       const normalizedDocType = (doc_category_declared || "")
         .toLowerCase()
         .trim();
-      let verifyDocType = null;
+      let verifyDocType = verificationTypeMap[normalizedDocType] || null;
       let extractedPayload = null;
 
-      // Helper: validation before calling external verifier
+      // Helper
       function hasAllKeys(obj, keys) {
         return keys.every(
           (k) =>
@@ -176,99 +188,12 @@ async function handleUploadDocument(req, res) {
         );
       }
 
-      // Handle founder_id separately (can be Aadhaar or Passport)
-      if (normalizedDocType === "founder_id") {
-        if (extractedData.aadhaar_last4) {
-          verifyDocType = "aadhaar";
-          extractedPayload = {
-            aadhaar_last4: extractedData.aadhaar_last4,
-            name: extractedData.name,
-            dob: extractedData.dob,
-            ocr_confidence: extractedData.ocr_confidence || 0.8,
-          };
-          if (!hasAllKeys(extractedPayload, ["aadhaar_last4", "name"])) {
-            console.log(
-              `⚠️ Missing required fields for Aadhaar verification, skipping verification`
-            );
-            doc.verified_status = "failed";
-            await doc.save();
+      /* -------------------------------------------------
+   BUILD PAYLOAD BASED ON verifyDocType
+--------------------------------------------------*/
 
-            // send failure email (missing fields)
-            try {
-              await sendDocumentFailureEmail(doc);
-            } catch (err) {
-              console.error(
-                "Failed to send failure email (missing aadhaar fields):",
-                err.message
-              );
-            }
-
-            return res.status(201).json({
-              success: true,
-              message: "Aadhaar fields missing; verification skipped",
-              document: doc,
-            });
-          }
-        } else if (extractedData.passport_no_masked) {
-          verifyDocType = "passport";
-          extractedPayload = {
-            passport_no_masked: extractedData.passport_no_masked,
-            name: extractedData.name,
-            dob: extractedData.dob,
-            ocr_confidence: extractedData.ocr_confidence || 0.8,
-          };
-          if (!hasAllKeys(extractedPayload, ["passport_no_masked", "name"])) {
-            console.log(
-              `⚠️ Missing required fields for Passport verification, skipping verification`
-            );
-            doc.verified_status = "failed";
-            await doc.save();
-
-            // send failure email (missing fields)
-            try {
-              await sendDocumentFailureEmail(doc);
-            } catch (err) {
-              console.error(
-                "Failed to send failure email (missing passport fields):",
-                err.message
-              );
-            }
-
-            return res.status(201).json({
-              success: true,
-              message: "Passport fields missing; verification skipped",
-              document: doc,
-            });
-          }
-        } else {
-          console.log(
-            `ℹ️ Founder ID document type not determined, skipping verification`
-          );
-          doc.verified_status = "failed";
-          await doc.save();
-
-          // notify user
-          try {
-            await sendDocumentFailureEmail(doc);
-          } catch (err) {
-            console.error(
-              "Failed to send failure email (unknown founder id type):",
-              err.message
-            );
-          }
-
-          return res.status(201).json({
-            success: true,
-            message:
-              "Document uploaded. Unable to determine founder ID type; verification skipped.",
-            document: doc,
-          });
-        }
-      } else if (verificationTypeMap[normalizedDocType]) {
-        verifyDocType = verificationTypeMap[normalizedDocType];
-
-        // Build payload based on document type
-        if (verifyDocType === "aadhaar") {
+      switch (verifyDocType) {
+        case "aadhaar":
           extractedPayload = {
             aadhaar_last4:
               extractedData.aadhaar_last4 ||
@@ -281,28 +206,18 @@ async function handleUploadDocument(req, res) {
           };
 
           if (!hasAllKeys(extractedPayload, ["aadhaar_last4", "name"])) {
-            console.log(
-              `⚠️ Missing required fields for Aadhaar verification, skipping verification`
-            );
-            doc.verified_status = "failed";
+            doc.verified_status = "rejected";
             await doc.save();
-
-            try {
-              await sendDocumentFailureEmail(doc);
-            } catch (err) {
-              console.error(
-                "Failed to send failure email (missing aadhaar fields):",
-                err.message
-              );
-            }
-
+            await sendDocumentFailureEmail(doc);
             return res.status(201).json({
               success: true,
               message: "Aadhaar fields missing; verification skipped",
               document: doc,
             });
           }
-        } else if (verifyDocType === "pan") {
+          break;
+
+        case "pan":
           extractedPayload = {
             pan: extractedData.pan_number || extractedData.pan,
             name: extractedData.name,
@@ -311,28 +226,18 @@ async function handleUploadDocument(req, res) {
           };
 
           if (!hasAllKeys(extractedPayload, ["pan", "name"])) {
-            console.log(
-              `⚠️ Missing required fields for PAN verification, skipping verification`
-            );
-            doc.verified_status = "failed";
+            doc.verified_status = "rejected";
             await doc.save();
-
-            try {
-              await sendDocumentFailureEmail(doc);
-            } catch (err) {
-              console.error(
-                "Failed to send failure email (missing pan fields):",
-                err.message
-              );
-            }
-
+            await sendDocumentFailureEmail(doc);
             return res.status(201).json({
               success: true,
               message: "PAN fields missing; verification skipped",
               document: doc,
             });
           }
-        } else if (verifyDocType === "utility-bill") {
+          break;
+
+        case "utility-bill":
           extractedPayload = {
             consumer_name: extractedData.consumer_name,
             consumer_account_no_masked:
@@ -350,42 +255,27 @@ async function handleUploadDocument(req, res) {
               "billing_date",
             ])
           ) {
-            console.log(
-              `⚠️ Missing required fields for utility bill verification, skipping verification`
-            );
-            doc.verified_status = "failed";
+            doc.verified_status = "rejected";
             await doc.save();
-
-            try {
-              await sendDocumentFailureEmail(doc);
-            } catch (err) {
-              console.error(
-                "Failed to send failure email (missing utility bill fields):",
-                err.message
-              );
-            }
-
+            await sendDocumentFailureEmail(doc);
             return res.status(201).json({
               success: true,
               message: "Utility bill fields missing; verification skipped",
               document: doc,
             });
           }
-        } else if (verifyDocType === "gst") {
-          // GST-specific payload shape expected by /verify/gst
+          break;
+
+        case "gst":
           extractedPayload = {
-            gstin:
-              extractedData.gstin ||
-              extractedData.reg_no ||
-              extractedData.id_masked,
+            gstin: extractedData.gstin,
             legal_name:
               extractedData.legal_name ||
               extractedData.entity_name ||
               extractedData.canonical_name,
             registration_date:
               extractedData.registration_date ||
-              extractedData.date_of_registration ||
-              extractedData.dob,
+              extractedData.date_of_registration,
             ocr_confidence: extractedData.ocr_confidence || 0.8,
           };
 
@@ -396,198 +286,117 @@ async function handleUploadDocument(req, res) {
               "registration_date",
             ])
           ) {
-            console.log(
-              `⚠️ Missing required fields for GST verification, skipping verification`
-            );
-            doc.verified_status = "failed";
+            doc.verified_status = "rejected";
             await doc.save();
-
-            try {
-              await sendDocumentFailureEmail(doc);
-            } catch (err) {
-              console.error(
-                "Failed to send failure email (missing gst fields):",
-                err.message
-              );
-            }
-
+            await sendDocumentFailureEmail(doc);
             return res.status(201).json({
               success: true,
               message: "GST fields missing; verification skipped",
               document: doc,
-              mappedAttempt: extractedPayload,
             });
           }
-        } else if (verifyDocType === "incorporation") {
-          // Check if this is actually a GST certificate (has gstin field)
-          if (extractedData.gstin) {
-            // Route to GST verification instead
-            verifyDocType = "gst";
-            extractedPayload = {
-              gstin: extractedData.gstin,
-              legal_name: extractedData.legal_name || extractedData.entity_name,
-              registration_date:
-                extractedData.registration_date ||
-                extractedData.date_of_incorporation,
-              ocr_confidence: extractedData.ocr_confidence || 0.8,
-            };
+          break;
 
-            if (
-              !hasAllKeys(extractedPayload, [
-                "gstin",
-                "legal_name",
-                "registration_date",
-              ])
-            ) {
-              console.log(
-                `⚠️ Missing required fields for GST verification, skipping verification`
-              );
-              doc.verified_status = "failed";
-              await doc.save();
+        case "incorporation":
+          extractedPayload = {
+            reg_no:
+              extractedData.cin || extractedData.llpin || extractedData.reg_no,
+            entity_name:
+              extractedData.entity_name ||
+              extractedData.company_name ||
+              extractedData.canonical_name,
+            date_of_incorporation:
+              extractedData.date_of_incorporation ||
+              extractedData.incorporation_date,
+            ocr_confidence: extractedData.ocr_confidence || 0.8,
+          };
 
-              try {
-                await sendDocumentFailureEmail(doc);
-              } catch (err) {
-                console.error(
-                  "Failed to send failure email (missing gst fields on incorp detection):",
-                  err.message
-                );
-              }
-
-              return res.status(201).json({
-                success: true,
-                message: "GST fields missing; verification skipped",
-                document: doc,
-              });
-            }
-          } else {
-            // Regular incorporation verification
-            extractedPayload = {
-              reg_no: extractedData.reg_no,
-              entity_name: extractedData.entity_name,
-              date_of_incorporation: extractedData.date_of_incorporation,
-              ocr_confidence: extractedData.ocr_confidence || 0.8,
-            };
-
-            if (
-              !hasAllKeys(extractedPayload, [
-                "reg_no",
-                "entity_name",
-                "date_of_incorporation",
-              ])
-            ) {
-              console.log(
-                `⚠️ Missing required fields for incorporation verification, skipping verification`
-              );
-              doc.verified_status = "failed";
-              await doc.save();
-
-              try {
-                await sendDocumentFailureEmail(doc);
-              } catch (err) {
-                console.error(
-                  "Failed to send failure email (missing incorp fields):",
-                  err.message
-                );
-              }
-
-              return res.status(201).json({
-                success: true,
-                message: "Incorporation fields missing; verification skipped",
-                document: doc,
-              });
-            }
+          if (
+            !hasAllKeys(extractedPayload, [
+              "reg_no",
+              "entity_name",
+              "date_of_incorporation",
+            ])
+          ) {
+            doc.verified_status = "rejected";
+            await doc.save();
+            await sendDocumentFailureEmail(doc);
+            return res.status(201).json({
+              success: true,
+              message: "Incorporation fields missing; verification skipped",
+              document: doc,
+            });
           }
-        }
-      } else {
-        // unsupported doc type
-        console.log(
-          `ℹ️ Verification not supported for document type: ${doc_category_declared}`
-        );
-        doc.verified_status = "failed";
-        await doc.save();
+          break;
 
-        try {
-          await sendDocumentFailureEmail(doc);
-        } catch (err) {
-          console.error(
-            "Failed to send failure email (unsupported doc type):",
-            err.message
+        default:
+          console.log(
+            `ℹ️ Verification not supported for document type: ${doc_category_declared}`
           );
-        }
-
-        return res.status(201).json({
-          success: true,
-          message:
-            "Document uploaded. Verification not supported for this category.",
-          document: doc,
-        });
+          doc.verified_status = "rejected";
+          await doc.save();
+          await sendDocumentFailureEmail(doc);
+          return res.status(201).json({
+            success: true,
+            message:
+              "Document uploaded. Verification not supported for this category.",
+            document: doc,
+          });
       }
 
-      // Only attempt verification if we have a valid doc type and payload with required fields
-      if (verifyDocType && extractedPayload) {
-        const verifyBase =
-          process.env.DOC_VER_API_BASE ||
-          "https://doc-ver-service.onrender.com/api/v1/verify";
-        // Map to correct endpoint - note: verifyDocType already holds endpoint suffix
-        const verifyUrl = `${verifyBase}/${verifyDocType}`;
+      /* -------------------------------------------------
+   CALL VERIFICATION API
+--------------------------------------------------*/
 
-        console.log(`📡 Sending verification request to: ${verifyUrl}`);
-        console.log("📦 Sending extracted payload:", extractedPayload);
+      const verifyBase =
+        process.env.DOC_VER_API_BASE ||
+        "https://doc-ver-service.onrender.com/api/v1/verify";
 
-        try {
-          // Map to API doc_type value if required by remote API
-          const docTypeMap = {
-            aadhaar: "AADHAAR",
-            pan: "PAN",
-            incorporation: "INCORP",
-            "utility-bill": "UTILITY",
-            gst: "GST",
-            passport: "PASSPORT",
-          };
-          const apiDocType =
-            docTypeMap[verifyDocType] || verifyDocType.toUpperCase();
+      const verifyUrl = `${verifyBase}/${verifyDocType}`;
 
-          const verifyResp = await fetch(verifyUrl, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-api-key": process.env.DOC_VER_API_KEY,
-            },
-            body: JSON.stringify({
-              request_id: `req-${doc._id}`,
-              submitted_by: req.user?.email || "unknown",
-              doc_type: apiDocType,
-              extracted: extractedPayload,
-            }),
-          });
+      console.log(`📡 Sending verification request to: ${verifyUrl}`);
+      console.log("📦 Payload:", extractedPayload);
 
-          if (verifyResp.ok) {
-            const verifyData = await verifyResp.json();
-            doc.verified_status =
-              verifyData?.status === "VERIFIED" ? "verified" : "rejected";
-            doc.verification_response = verifyData;
-            console.log("✅ Verification response:", verifyData);
-          } else {
-            const errorText = await verifyResp.text();
-            console.warn(
-              `❌ Verification service failed (${verifyResp.status}):`,
-              errorText
-            );
-            doc.verified_status = "failed";
-            doc.verification_response = {
-              error: errorText,
-              statusCode: verifyResp.status,
-            };
-          }
-        } catch (verifyError) {
-          console.warn("❌ Verification request failed:", verifyError.message);
-          doc.verified_status = "failed";
-          doc.verification_response = { error: verifyError.message };
+      try {
+        const docTypeMap = {
+          aadhaar: "AADHAAR",
+          pan: "PAN",
+          gst: "GST",
+          incorporation: "INCORP",
+          "utility-bill": "UTILITY",
+        };
+
+        const apiDocType =
+          docTypeMap[verifyDocType] || verifyDocType.toUpperCase();
+
+        const verifyResp = await fetch(verifyUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": process.env.DOC_VER_API_KEY,
+          },
+          body: JSON.stringify({
+            request_id: `req-${doc._id}`,
+            submitted_by: req.user?.email || "unknown",
+            doc_type: apiDocType,
+            extracted: extractedPayload,
+          }),
+        });
+
+        if (verifyResp.ok) {
+          const verifyData = await verifyResp.json();
+          doc.verified_status =
+            verifyData?.status === "VERIFIED" ? "verified" : "rejected";
+          doc.verification_response = verifyData;
+          console.log("✅ Verification response:", verifyData);
+        } else {
+          const errText = await verifyResp.text();
+          doc.verified_status = "error";
+          doc.verification_response = { error: errText };
         }
-      } else {
-        // no verification attempted
-        doc.verified_status = doc.verified_status || "failed";
+      } catch (err) {
+        doc.verified_status = "error";
+        doc.verification_response = { error: err.message };
       }
 
       await doc.save();
