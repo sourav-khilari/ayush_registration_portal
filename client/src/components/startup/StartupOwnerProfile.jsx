@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
-import { StartupAPI, DocumentAPI } from '../api'
+import { useAuth } from '../../context/AuthContext'
+import { StartupAPI, DocumentAPI } from '../../api'
 import { 
   FaUser, 
   FaBuilding, 
@@ -546,3 +546,4 @@ function StartupOwnerProfile() {
 }
 
 export default StartupOwnerProfile
+

@@ -1,23 +1,23 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import "./index.css";
-import LandingPage from "./components/LandingPage";
-import Dashboard from "./components/Dashboard";
-import CompleteProfile from "./components/CompleteProfile";
-import StartupApplication from "./components/StartupApplication";
-import Login from "./components/Login";
-import Signup from "./components/Signup";
-import PrivateRoute from "./components/PrivateRoute";
+import LandingPage from "./components/common/LandingPage";
+import Dashboard from "./components/startup/Dashboard";
+import CompleteProfile from "./components/startup/CompleteProfile";
+import StartupApplication from "./components/startup/StartupApplication";
+import Login from "./components/auth/Login";
+import Signup from "./components/auth/Signup";
+import PrivateRoute from "./components/common/PrivateRoute";
 import { AuthProvider } from "./context/AuthContext";
-import UserProfile from "./components/UserProfile";
-import UserDashboard from "./components/UserDashboard";
-import UserProfileEdit from "./components/UserProfileEdit";
-import UserProfileView from "./components/UserProfileView";
-import SubmittedApplication from "./components/SubmittedApplication";
-import StartupOwnerProfile from "./components/StartupOwnerProfile";
-import AyushGreenPage from "./components/WebScrapping";
-import ApplicationView from "./components/ApplicationView";
-import ApplicationsList from "./components/ApplicationsList";
+import UserProfile from "./components/user/UserProfile";
+import UserDashboard from "./components/user/UserDashboard";
+import UserProfileEdit from "./components/user/UserProfileEdit";
+import UserProfileView from "./components/user/UserProfileView";
+import SubmittedApplication from "./components/startup/SubmittedApplication";
+import StartupOwnerProfile from "./components/startup/StartupOwnerProfile";
+import AyushGreenPage from "./components/webscrap/WebScrapping";
+import ApplicationView from "./components/startup/ApplicationView";
+import ApplicationsList from "./components/startup/ApplicationsList";
 
 function App() {
   return (

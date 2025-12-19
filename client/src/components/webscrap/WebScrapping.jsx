@@ -22,16 +22,12 @@ export default function AyushGreenPage() {
   const [query, setQuery] = useState("");
   const [lastUpdated, setLastUpdated] = useState(null);
   const [seenItems, setSeenItems] = useState(new Set()); // Track items that have been seen
-  const [lastNewItemsCount, setLastNewItemsCount] = useState(0); // Track if new items were found in last fetch
 
   // ids (or fallback keys) of items that arrived as new in the most recent fetch;
   // used to show temporary badges/animations and the "new items arrived" banner.
   const [newArrivedKeys, setNewArrivedKeys] = useState([]);
   const clearTimerRef = useRef(null);
   const autoRefreshTimerRef = useRef(null);
-  const shuffleTimerRef = useRef(null);
-  const itemsRef = useRef([]); // Ref to access latest items without dependency
-  const lastNewItemsCountRef = useRef(0); // Ref to access latest count without dependency
 
   useEffect(() => {
     fetchItems(page);
@@ -54,45 +50,6 @@ export default function AyushGreenPage() {
     };
   }, []);
 
-  // Shuffle data every 5 minutes if no update happened
-  useEffect(() => {
-    const shuffleInterval = setInterval(() => {
-      // Use refs to get latest values without causing dependency issues
-      const currentItems = itemsRef.current;
-      const currentNewCount = lastNewItemsCountRef.current;
-
-      // Only shuffle if no new items were found in the last fetch
-      if (currentNewCount === 0 && currentItems.length > 0) {
-        // Shuffle existing items
-        const newItems = currentItems.filter((it) => it.isNew === true);
-        const oldItems = currentItems.filter((it) => it.isNew !== true);
-
-        // Fisher-Yates shuffle algorithm for old items only
-        const shuffledOld = [...oldItems];
-        for (let i = shuffledOld.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [shuffledOld[i], shuffledOld[j]] = [shuffledOld[j], shuffledOld[i]];
-        }
-
-        // Keep new items at top, shuffle old items below
-        setItems([...newItems, ...shuffledOld]);
-        setLastUpdated(new Date());
-      } else {
-        // If there were new items, fetch fresh data from API (which scrapes from 6 websites)
-        setPage(1);
-        fetchItems(1);
-      }
-    }, 5 * 60 * 1000); // 5 minutes
-
-    shuffleTimerRef.current = shuffleInterval;
-
-    return () => {
-      if (shuffleTimerRef.current) {
-        clearInterval(shuffleTimerRef.current);
-      }
-    };
-  }, []); // Empty deps - using refs for latest values
-
   // cleanup any timer when component unmounts
   useEffect(() => {
     return () => {
@@ -101,9 +58,6 @@ export default function AyushGreenPage() {
       }
       if (autoRefreshTimerRef.current) {
         clearInterval(autoRefreshTimerRef.current);
-      }
-      if (shuffleTimerRef.current) {
-        clearInterval(shuffleTimerRef.current);
       }
     };
   }, []);
@@ -139,13 +93,12 @@ export default function AyushGreenPage() {
         const dateB = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
         return dateB - dateA; // Most recent first
       };
-
+      
       const sortedNew = newItems.sort(sortByDate);
       const sortedOld = oldItems.sort(sortByDate);
       const sorted = [...sortedNew, ...sortedOld]; // New items always at top
 
       setItems(sorted);
-      itemsRef.current = sorted; // Update ref with latest items
       setTotal(
         typeof data.total === "number" ? data.total : incoming.length || 0
       );
@@ -154,11 +107,7 @@ export default function AyushGreenPage() {
       // Track newly seen items
       const currentSeenItems = new Set(seenItems);
       const newKeys = newItems.map((it) => it.__key);
-
-      // Track count of new items for shuffle logic
-      setLastNewItemsCount(newKeys.length);
-      lastNewItemsCountRef.current = newKeys.length; // Update ref
-
+      
       // Mark new items as seen after they're displayed
       newKeys.forEach((key) => {
         if (!currentSeenItems.has(key)) {
@@ -218,27 +167,15 @@ export default function AyushGreenPage() {
               </h1>
               {lastUpdated && (
                 <p className="text-sm text-gray-600 mt-1">
-                  Last Updated:{" "}
-                  {lastUpdated.toLocaleTimeString("en-IN", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    second: "2-digit",
+                  Last Updated: {lastUpdated.toLocaleTimeString("en-IN", { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    second: '2-digit'
                   })}
                   <span className="ml-2 inline-flex items-center gap-1">
                     <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
                     Auto-refresh active
                   </span>
-                  {lastNewItemsCount === 0 && items.length > 0 && (
-                    <span className="ml-2 inline-flex items-center gap-1 text-xs text-blue-600">
-                      <svg
-                        className="w-3 h-3"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" />
-                      </svg>
-                    </span>
-                  )}
                 </p>
               )}
             </div>
@@ -262,7 +199,7 @@ export default function AyushGreenPage() {
               aria-label="Manual refresh"
             >
               <svg
-                className={`w-5 h-5 ${loading ? "animate-spin" : ""}`}
+                className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`}
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -320,22 +257,13 @@ export default function AyushGreenPage() {
             {!loading && newArrivedKeys.length > 0 && (
               <div className="mb-4 rounded-lg border-2 border-red-300 bg-red-50 px-4 py-3 flex items-center gap-3 shadow-md">
                 <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-100 text-red-800 text-sm font-semibold">
-                  <svg
-                    className="w-4 h-4"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
-                      clipRule="evenodd"
-                    />
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                   </svg>
                   NEW
                 </span>
                 <span className="text-sm font-medium text-red-900">
-                  {newArrivedKeys.length} new article
-                  {newArrivedKeys.length > 1 ? "s" : ""} scraped
+                  {newArrivedKeys.length} new article{newArrivedKeys.length > 1 ? "s" : ""} scraped
                 </span>
               </div>
             )}
@@ -413,8 +341,7 @@ export default function AyushGreenPage() {
                               isNew ? "text-gray-700" : "text-gray-700"
                             }`}
                           >
-                            {it.summary ||
-                              "No summary available for this article."}
+                            {it.summary || "No summary available for this article."}
                           </p>
                         </div>
 
@@ -437,16 +364,13 @@ export default function AyushGreenPage() {
                             </svg>
                             <time dateTime={it.publishedAt}>
                               {it.publishedAt
-                                ? new Date(it.publishedAt).toLocaleString(
-                                    "en-IN",
-                                    {
-                                      year: "numeric",
-                                      month: "short",
-                                      day: "numeric",
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                    }
-                                  )
+                                ? new Date(it.publishedAt).toLocaleString("en-IN", {
+                                    year: "numeric",
+                                    month: "short",
+                                    day: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })
                                 : "Date not available"}
                             </time>
                           </div>
@@ -520,14 +444,10 @@ export default function AyushGreenPage() {
       <footer className="max-w-5xl mx-auto mt-10 text-center text-sm text-gray-600">
         <p>Data provided from your backend API — {API}</p>
         <p className="mt-2 text-xs text-gray-500">
-          Auto-refreshing every 15 minutes • Shuffle every 5 minutes (if no
-          updates) • Last sync:{" "}
-          {lastUpdated ? lastUpdated.toLocaleString("en-IN") : "Never"}
-        </p>
-        <p className="mt-1 text-xs text-gray-400">
-          Fetching data from 6 websites via API
+          Auto-refreshing every 15 minutes • Last sync: {lastUpdated ? lastUpdated.toLocaleString("en-IN") : "Never"}
         </p>
       </footer>
     </div>
   );
 }
+

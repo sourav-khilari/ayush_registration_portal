@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
-import { AuthAPI } from '../api'
+import { useAuth } from '../../context/AuthContext'
+import { AuthAPI } from '../../api'
 
 export default function UserProfile() {
   const { user } = useAuth()
@@ -62,5 +62,4 @@ function Field({ label, value }) {
     </div>
   )
 }
-
 

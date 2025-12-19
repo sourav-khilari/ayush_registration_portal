@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ApplicationAPI, DocumentAPI } from '../api';
+import { ApplicationAPI, DocumentAPI } from '../../api';
 import { toast } from 'react-toastify';
 
 function ApplicationView() {
@@ -259,7 +259,7 @@ function ApplicationView() {
                               <a
                                 href={`${import.meta.env.VITE_API_BASE || ''}${doc.fileUrl}`}
                                 target="_blank"
-                                rel="noopener noreferrer"
+                                rel="noreferrer"
                                 className="mt-2 inline-block text-sm text-ayush-600 hover:text-ayush-700"
                               >
                                 View Document →
@@ -324,6 +324,4 @@ function ApplicationView() {
 }
 
 export default ApplicationView;
-
-
 

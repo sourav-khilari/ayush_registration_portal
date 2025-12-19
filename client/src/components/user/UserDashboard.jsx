@@ -9,8 +9,8 @@ import {
   FaEdit,
   FaHome
 } from 'react-icons/fa'
-import { useAuth } from '../context/AuthContext'
-import { AuthAPI } from '../api'
+import { useAuth } from '../../context/AuthContext'
+import { AuthAPI } from '../../api'
 
 export default function UserDashboard() {
   const { user } = useAuth()
@@ -211,5 +211,4 @@ function Input({ label, value, onChange, type = 'text', required = false, disabl
     </div>
   )
 }
-
 

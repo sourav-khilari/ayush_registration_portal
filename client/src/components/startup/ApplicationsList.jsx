@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ApplicationAPI } from '../api';
+import { ApplicationAPI } from '../../api';
 import { toast } from 'react-toastify';
 
 function ApplicationsList() {
@@ -211,6 +211,4 @@ function ApplicationsList() {
 }
 
 export default ApplicationsList;
-
-
 

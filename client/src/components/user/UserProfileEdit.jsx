@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { AuthAPI } from '../api'
+import { AuthAPI } from '../../api'
 
 export default function UserProfileEdit() {
   const navigate = useNavigate()
@@ -130,5 +130,4 @@ function Input({ value, onChange, type = 'text', required = false, disabled = fa
     />
   )
 }
-
 

@@ -1,6 +1,6 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 
 export default function PrivateRoute({ children }) {
   const { token, loading } = useAuth();
@@ -8,5 +8,4 @@ export default function PrivateRoute({ children }) {
   if (!token) return <Navigate to="/login" replace />;
   return children;
 }
-
 

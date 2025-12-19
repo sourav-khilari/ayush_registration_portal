@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { AuthAPI } from '../api'
+import { AuthAPI } from '../../api'
 
 export default function UserProfileView() {
   const [profile, setProfile] = useState(null)
@@ -65,5 +65,4 @@ function Field({ label, value }) {
     </div>
   )
 }
-
 
