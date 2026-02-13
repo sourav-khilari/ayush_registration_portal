@@ -62,6 +62,57 @@ async function deleteStartup(req, res) {
   res.json({ message: "Deleted" });
 }
 
+/**
+ * Update startup status (e.g. approve / reject) by a verified
+ * government official or admin.
+ */
+async function updateStartupStatusByOfficial(req, res) {
+  try {
+    const isAdmin = req.user.role === "admin";
+    const isGov =
+      req.user.role === "gov_official" && req.user.role_verified === true;
+
+    if (!isAdmin && !isGov) {
+      return res.status(403).json({
+        message: "Forbidden: only verified government officials or admins",
+      });
+    }
+
+    const { status } = req.body || {};
+    const allowedStatuses = [
+      "pending",
+      "under_review",
+      "approved",
+      "rejected",
+      "inactive",
+    ];
+
+    if (!status || !allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        message: "Invalid or missing status value",
+      });
+    }
+
+    const startup = await Startup.findById(req.params.id);
+    if (!startup) {
+      return res.status(404).json({ message: "Startup not found" });
+    }
+
+    startup.status = status;
+    await startup.save();
+
+    return res.json({
+      message: `Startup status updated to ${status}`,
+      startup,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      message: "Failed to update startup status",
+      error: err.message,
+    });
+  }
+}
+
 // List all startups for verified govt officials or admins
 async function listStartupsForOfficials(req, res) {
   try {
@@ -95,6 +146,72 @@ async function listStartupsForOfficials(req, res) {
   }
 }
 
+/**
+ * List startups for investors with rich filtering.
+ * This is less restrictive than the officials view but only exposes
+ * investor-safe fields.
+ */
+async function listStartupsForInvestors(req, res) {
+  try {
+    if (req.user.role !== "investor") {
+      return res
+        .status(403)
+        .json({ message: "Forbidden: only investors are allowed" });
+    }
+
+    const {
+      category,
+      profitStatus,
+      minRevenue,
+      maxRevenue,
+      location,
+      q,
+    } = req.query;
+
+    const filter = { status: "approved" }; // investors see only approved startups by default
+
+    if (category) filter.startup_type = category;
+    if (profitStatus) filter.financial_status = profitStatus;
+
+    if (location) {
+      const regex = new RegExp(location, "i");
+      filter.$or = [
+        { location: regex },
+        { address: regex },
+      ];
+    }
+
+    const revenueFilter = {};
+    if (minRevenue) revenueFilter.$gte = Number(minRevenue);
+    if (maxRevenue) revenueFilter.$lte = Number(maxRevenue);
+    if (Object.keys(revenueFilter).length) {
+      filter.revenue = revenueFilter;
+    }
+
+    if (q) {
+      const regex = new RegExp(q, "i");
+      filter.$or = [
+        ...(filter.$or || []),
+        { name: regex },
+        { founder_name: regex },
+      ];
+    }
+
+    const items = await Startup.find(filter)
+      .sort({ createdAt: -1 })
+      .select(
+        "name founder_name startup_type status location address revenue financial_status revenue_history website description createdAt"
+      )
+      .lean();
+
+    return res.json({ items });
+  } catch (err) {
+    return res
+      .status(500)
+      .json({ message: "Failed to list startups for investors", error: err.message });
+  }
+}
+
 export {
   createStartup,
   getMyStartups,
@@ -102,4 +219,6 @@ export {
   updateStartup,
   deleteStartup,
   listStartupsForOfficials,
+  listStartupsForInvestors,
+  updateStartupStatusByOfficial,
 };

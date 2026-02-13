@@ -31,6 +31,38 @@ async function registerUser(req, res) {
     throw new ValidationError("Password must be at least 6 characters long");
   }
 
+  // Lock down government official registration to configured credentials
+  if (role === "gov_official") {
+    const allowedEmail = process.env.GOV_OFFICIAL_EMAIL;
+    const allowedPassword = process.env.GOV_OFFICIAL_PASSWORD;
+    if (allowedEmail && email !== allowedEmail) {
+      throw new ValidationError(
+        "Government officials must use the configured official email address"
+      );
+    }
+    if (allowedPassword && password !== allowedPassword) {
+      throw new ValidationError(
+        "Invalid government official password. Please contact the system administrator."
+      );
+    }
+  }
+
+  // Lock down admin registration to configured credentials
+  if (role === "admin") {
+    const allowedEmail = process.env.ADMIN_EMAIL;
+    const allowedPassword = process.env.ADMIN_PASSWORD;
+    if (allowedEmail && email !== allowedEmail) {
+      throw new ValidationError(
+        "Admins must use the configured admin email address"
+      );
+    }
+    if (allowedPassword && password !== allowedPassword) {
+      throw new ValidationError(
+        "Invalid admin password. Please use the configured admin credentials."
+      );
+    }
+  }
+
   const existingUser = await User.findOne({ email });
   if (existingUser) {
     throw new ConflictError("User already exists");
@@ -77,6 +109,27 @@ async function loginUser(req, res) {
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) {
     throw new AuthenticationError("Invalid credentials");
+  }
+
+  // Extra safety: gov_official logins must match configured email
+  if (user.role === "gov_official") {
+    const allowedEmail = process.env.GOV_OFFICIAL_EMAIL;
+    if (allowedEmail && user.email !== allowedEmail) {
+      throw new AuthenticationError("Invalid credentials");
+    }
+  }
+
+  // Extra safety: admin logins must use configured admin email and password
+  if (user.role === "admin") {
+    const allowedEmail = process.env.ADMIN_EMAIL;
+    if (allowedEmail && user.email !== allowedEmail) {
+      throw new AuthenticationError("Invalid credentials");
+    }
+    // Admin password from env must match (admin is not stored with bcrypt in env)
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    if (adminPassword && password !== adminPassword) {
+      throw new AuthenticationError("Invalid credentials");
+    }
   }
 
   const token = jwt.sign(
@@ -188,6 +241,30 @@ async function uploadVerificationDoc(req, res) {
   });
 }
 
+// Admin lists government officials (for verification)
+async function listGovOfficials(req, res) {
+  const { verified } = req.query; // optional filter: true/false
+  
+  const filter = { role: "gov_official" };
+  if (verified !== undefined) {
+    filter.role_verified = verified === "true";
+  }
+  
+  const officials = await User.find(filter)
+    .select("_id name email role role_verified createdAt verification_docs")
+    .populate({
+      path: "verification_docs",
+      select: "document_name fileUrl createdAt"
+    })
+    .sort({ createdAt: -1 })
+    .lean();
+  
+  res.json({ 
+    success: true,
+    officials 
+  });
+}
+
 // Admin verifies a gov_official user
 async function verifyGovOfficial(req, res) {
   const { user_id } = req.params;
@@ -217,6 +294,7 @@ const loginUserAsync = asyncHandler(loginUser);
 const getProfileAsync = asyncHandler(getProfile);
 const updateProfileAsync = asyncHandler(updateProfile);
 const uploadVerificationDocAsync = asyncHandler(uploadVerificationDoc);
+const listGovOfficialsAsync = asyncHandler(listGovOfficials);
 const verifyGovOfficialAsync = asyncHandler(verifyGovOfficial);
 
 export { 
@@ -224,6 +302,7 @@ export {
   loginUserAsync as loginUser, 
   getProfileAsync as getProfile, 
   updateProfileAsync as updateProfile, 
-  uploadVerificationDocAsync as uploadVerificationDoc, 
+  uploadVerificationDocAsync as uploadVerificationDoc,
+  listGovOfficialsAsync as listGovOfficials,
   verifyGovOfficialAsync as verifyGovOfficial 
 };

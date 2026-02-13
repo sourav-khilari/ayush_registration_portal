@@ -33,7 +33,8 @@ export function AuthProvider({ children }) {
     const newToken = res.token;
     localStorage.setItem("token", newToken);
     setToken(newToken);
-    setUser(res.user.user || null);
+    // Backend returns the user object directly as `res.user`
+    setUser(res.user || null);
     return res;
   }
 

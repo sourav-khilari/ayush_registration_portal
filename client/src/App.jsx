@@ -18,6 +18,10 @@ import StartupOwnerProfile from "./components/startup/StartupOwnerProfile";
 import AyushGreenPage from "./components/webscrap/WebScrapping";
 import ApplicationView from "./components/startup/ApplicationView";
 import ApplicationsList from "./components/startup/ApplicationsList";
+import InvestorDashboard from "./components/investor/InvestorDashboard";
+import StartupDetail from "./components/investor/StartupDetail";
+import GovDashboard from "./components/gov/GovDashboard";
+import GovStartupDetail from "./components/gov/GovStartupDetail";
 
 function App() {
   return (
@@ -127,6 +131,42 @@ function App() {
             element={
               <PrivateRoute>
                 <UserProfileEdit />
+              </PrivateRoute>
+            }
+          />
+
+          {/* Government Official / Admin Routes */}
+          <Route
+            path="/gov/dashboard"
+            element={
+              <PrivateRoute>
+                <GovDashboard />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/gov/startups/:id"
+            element={
+              <PrivateRoute>
+                <GovStartupDetail />
+              </PrivateRoute>
+            }
+          />
+
+          {/* Investor Routes */}
+          <Route
+            path="/investor/dashboard"
+            element={
+              <PrivateRoute>
+                <InvestorDashboard />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/investor/startups/:id"
+            element={
+              <PrivateRoute>
+                <StartupDetail />
               </PrivateRoute>
             }
           />

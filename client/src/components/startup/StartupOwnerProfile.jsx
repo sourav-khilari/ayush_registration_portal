@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { StartupAPI, DocumentAPI } from '../../api'
+import FinancialMetricsSection from './FinancialMetricsSection'
 import { 
   FaUser, 
   FaBuilding, 
@@ -40,11 +41,7 @@ function StartupOwnerProfile() {
   const loadData = async () => {
     try {
       setLoading(true)
-      const [startupRes, docsRes] = await Promise.all([
-        StartupAPI.mine(),
-        DocumentAPI.list()
-      ])
-      
+      const startupRes = await StartupAPI.mine()
       const firstStartup = Array.isArray(startupRes?.startups) ? startupRes.startups[0] : null
       if (firstStartup) {
         setStartup(firstStartup)
@@ -59,9 +56,11 @@ function StartupOwnerProfile() {
           address: firstStartup.address || '',
           tags: (firstStartup.tags || []).join(', ')
         })
+        const docsRes = await DocumentAPI.list({ startup_id: firstStartup._id })
+        setDocuments(Array.isArray(docsRes?.documents) ? docsRes.documents : [])
+      } else {
+        setDocuments([])
       }
-      
-      setDocuments(Array.isArray(docsRes?.documents) ? docsRes.documents : [])
     } catch (err) {
       setError(err.message || 'Failed to load data')
     } finally {
@@ -69,19 +68,26 @@ function StartupOwnerProfile() {
     }
   }
 
+  const getDocumentUrl = (doc) => {
+    if (!doc?.fileUrl) return null
+    const apiBase = import.meta.env.VITE_API_BASE || ''
+    const uploadBase = apiBase.replace(/\/api\/?$/, '') || window.location.origin
+    return `${uploadBase}${doc.fileUrl.startsWith('/') ? '' : '/'}${doc.fileUrl}`
+  }
+
   // Poll documents while any OCR is processing
   useEffect(() => {
-    if (!documents || documents.length === 0) return
+    if (!startup || !documents || documents.length === 0) return
     const hasProcessing = documents.some(d => d.ocr_status === 'processing' || d.ocr_status === 'pending')
     if (!hasProcessing) return
     const id = setInterval(async () => {
       try {
-        const updated = await DocumentAPI.list()
+        const updated = await DocumentAPI.list({ startup_id: startup._id })
         setDocuments(Array.isArray(updated?.documents) ? updated.documents : [])
       } catch (_) {}
     }, 4000)
     return () => clearInterval(id)
-  }, [documents])
+  }, [startup, documents])
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -429,13 +435,15 @@ function StartupOwnerProfile() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {documents.map((doc, index) => (
-                    <div key={index} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                  {documents.map((doc, index) => {
+                    const docUrl = getDocumentUrl(doc)
+                    return (
+                    <div key={doc._id || index} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
                           <FaFileAlt className="text-gray-400" />
                           <div>
-                            <p className="font-medium text-gray-900">{doc.filename || `Document ${index + 1}`}</p>
+                            <p className="font-medium text-gray-900">{doc.document_name || doc.filename || `Document ${index + 1}`}</p>
                             <p className="text-sm text-gray-500">
                               Uploaded: {new Date(doc.createdAt || Date.now()).toLocaleDateString()}
                             </p>
@@ -455,12 +463,16 @@ function StartupOwnerProfile() {
                           }`}>
                             Verify: {doc.verified_status || 'pending'}
                           </span>
-                          <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                            <FaEye />
-                          </button>
-                          <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                            <FaDownload />
-                          </button>
+                          {docUrl && (
+                            <>
+                              <a href={docUrl} target="_blank" rel="noreferrer" className="p-2 text-ayush-600 hover:text-ayush-700 transition-colors" title="View">
+                                <FaEye />
+                              </a>
+                              <a href={docUrl} download={(doc.document_name || doc.filename || 'document').split('/').pop()} className="p-2 text-ayush-600 hover:text-ayush-700 transition-colors" title="Download">
+                                <FaDownload />
+                              </a>
+                            </>
+                          )}
                         </div>
                       </div>
                       {doc.rejection_reason && (
@@ -486,10 +498,17 @@ function StartupOwnerProfile() {
                         </div>
                       )}
                     </div>
-                  ))}
+                  )})}
                 </div>
               )}
             </div>
+
+            {/* Financial Metrics - only for approved startups */}
+            {startup?.status === 'approved' && (
+              <div className="mt-6">
+                <FinancialMetricsSection startup={startup} onSaved={loadData} />
+              </div>
+            )}
           </div>
 
           {/* Sidebar */}

@@ -1,6 +1,7 @@
 // src/controllers/applicationController.js
 import Application from "../models/Application.js";
 import Startup from "../models/Startup.js"; // <- needed to check ownership
+import Document from "../models/Document.js";
 import DocumentRequirement from "../models/DocumentRequirement.js";
 import User from "../models/User.js";
 
@@ -139,12 +140,12 @@ async function listApplicationsForOfficials(req, res) {
 // Get applications for startup owner
 async function getMyApplications(req, res) {
   try {
-    // Get all startups owned by the user
-    const startups = await Startup.find({ user_id: req.user._id }).select("_id").lean();
+    // Get all startups owned by the user (include status)
+    const startups = await Startup.find({ user_id: req.user._id }).select("_id name founder_name email status").lean();
     const startupIds = startups.map(s => s._id);
 
     if (startupIds.length === 0) {
-      return res.json({ applications: [] });
+      return res.json({ success: true, applications: [] });
     }
 
     const { status, sector, application_type } = req.query;
@@ -154,7 +155,8 @@ async function getMyApplications(req, res) {
     if (sector) filter.sector = sector;
     if (application_type) filter.application_type = application_type;
 
-    const applications = await Application
+    // Get existing Application records
+    let applications = await Application
       .find(filter)
       .sort({ createdAt: -1 })
       .populate({
@@ -170,6 +172,78 @@ async function getMyApplications(req, res) {
         select: "name email"
       })
       .lean();
+
+    // Also find startups that have documents but no Application record
+    // Group documents by startup_id to find startups with documents
+    const docsByStartup = await Document.aggregate([
+      { $match: { startup_id: { $in: startupIds }, application_id: null } },
+      { $group: { _id: "$startup_id", docs: { $push: "$$ROOT" }, firstDoc: { $first: "$$ROOT" } } }
+    ]);
+
+    // For each startup with documents but no application, create a virtual application entry
+    for (const group of docsByStartup) {
+      const startupId = group._id;
+      const startup = startups.find(s => String(s._id) === String(startupId));
+      if (!startup) continue;
+
+      // Check if we already have an application for this startup
+      const hasApp = applications.some(app => String(app.startup_id?._id || app.startup_id) === String(startupId));
+      if (hasApp) continue;
+
+      // Get documents for this startup
+      const docs = await Document.find({ startup_id: startupId, application_id: null })
+        .select("doc_category_declared verified_status ocr_status document_name fileUrl rejection_reason verified_at createdAt")
+        .lean();
+
+      // Try to infer sector and application_type from documents or use defaults
+      // Look for common patterns in document categories
+      let inferredSector = sector || null;
+      let inferredType = application_type || "startup_registration";
+
+      // Create a virtual application object
+      // Use startup status if available, otherwise default to draft
+      // Map startup status to application status: approved -> approved, rejected -> rejected, pending/under_review -> under_review, else -> draft
+      let appStatus = "draft";
+      if (startup.status === "approved") {
+        appStatus = "approved";
+      } else if (startup.status === "rejected") {
+        appStatus = "rejected";
+      } else if (startup.status === "pending" || startup.status === "under_review") {
+        appStatus = "under_review";
+      }
+      
+      const virtualApp = {
+        _id: `virtual_${startupId}`,
+        startup_id: { 
+          _id: startup._id, 
+          name: startup.name, 
+          founder_name: startup.founder_name, 
+          email: startup.email,
+          status: startup.status 
+        },
+        sector: inferredSector || "ayurveda", // default
+        application_type: inferredType,
+        status: appStatus, // Use mapped startup status
+        documents: docs,
+        createdAt: docs.length > 0 ? docs[0].createdAt : new Date(),
+        updatedAt: docs.length > 0 ? docs[docs.length - 1].createdAt : new Date(),
+        isVirtual: true, // flag to indicate this is a virtual application
+      };
+
+      // Apply filters if provided
+      if (sector && virtualApp.sector !== sector) continue;
+      if (application_type && virtualApp.application_type !== application_type) continue;
+      if (status && virtualApp.status !== status) continue;
+
+      applications.push(virtualApp);
+    }
+
+    // Sort by createdAt descending
+    applications.sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt) : new Date(0);
+      const dateB = b.createdAt ? new Date(b.createdAt) : new Date(0);
+      return dateB - dateA;
+    });
 
     return res.json({ success: true, applications });
   } catch (err) {

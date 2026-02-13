@@ -16,11 +16,15 @@ export default function Login() {
     setLoading(true);
     try {
       const res = await login({ email, password });
-      const role = res?.user?.role || 'user';
-      if (role === 'startup_owner') {
-        navigate('/StartupOwner/dashboard');
+      const role = res?.user?.role || "user";
+      if (role === "startup_owner") {
+        navigate("/StartupOwner/dashboard");
+      } else if (role === "investor") {
+        navigate("/investor/dashboard");
+      } else if (role === "gov_official" || role === "admin") {
+        navigate("/gov/dashboard");
       } else {
-        navigate('/user/dashboard');
+        navigate("/user/dashboard");
       }
     } catch (err) {
       console.log(err);

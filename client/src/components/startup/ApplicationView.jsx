@@ -19,6 +19,12 @@ function ApplicationView() {
   const loadApplication = async () => {
     try {
       setLoading(true);
+      // Check if this is a virtual application (from documents without Application record)
+      if (id && id.startsWith('virtual_')) {
+        setError('This is a legacy application. Please view it from the applications list.');
+        setLoading(false);
+        return;
+      }
       const res = await ApplicationAPI.getMyApplication(id);
       if (res.success) {
         setApplication(res.application);
@@ -110,10 +116,10 @@ function ApplicationView() {
         <div className="text-center">
           <p className="text-red-600 mb-4">{error || 'Application not found'}</p>
           <button
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate('/StartupOwner/applications')}
             className="px-4 py-2 bg-ayush-500 text-white rounded-md hover:bg-ayush-600"
           >
-            Back to Dashboard
+            Back to Applications
           </button>
         </div>
       </div>
@@ -312,10 +318,10 @@ function ApplicationView() {
         {/* Back Button */}
         <div className="mt-6">
           <button
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate('/StartupOwner/applications')}
             className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
           >
-            Back to Dashboard
+            Back to Applications
           </button>
         </div>
       </div>

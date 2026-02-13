@@ -7,6 +7,13 @@ const router = express.Router();
 
 router.post("/", auth, ctr.createStartup);
 router.get("/mine", auth, ctr.getMyStartups);
+
+// Investor-friendly listing with rich filters
+router.get("/investor", auth, ctr.listStartupsForInvestors);
+
+// Government officials/admins can update startup status (approve/reject/etc.)
+router.patch("/:id/status", auth, ctr.updateStartupStatusByOfficial);
+
 // Only verified govt officials or admins can list all startups
 router.get("/", auth, (req, res, next) => {
   const isAdmin = req.user.role === "admin";

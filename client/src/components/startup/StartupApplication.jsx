@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { StartupAPI, RequirementsAPI, DocumentAPI } from "../../api";
+import { StartupAPI, RequirementsAPI, DocumentAPI, ApplicationAPI } from "../../api";
 import {
   FaLeaf,
   FaRocket,
@@ -627,6 +627,51 @@ function StartupApplication() {
         // ignore mine failures
       }
 
+      if (!startupId) {
+        throw new Error("Could not determine startup ID. Please try again.");
+      }
+
+      // 1.5) Create or find Application record
+      let applicationId = null;
+      try {
+        // Try to find existing application for this startup with same sector/type
+        const existingAppsRes = await ApplicationAPI.getMyApplications();
+        const existingApps = existingAppsRes?.applications || [];
+        const existing = existingApps.find(
+          (app) => {
+            const appStartupId = app.startup_id?._id || app.startup_id;
+            return (
+              String(appStartupId) === String(startupId) &&
+              app.sector === formData.sector &&
+              app.application_type === formData.application_type &&
+              !app.isVirtual // Don't reuse virtual applications
+            );
+          }
+        );
+        
+        if (existing && existing._id && !existing._id.startsWith('virtual_')) {
+          applicationId = existing._id;
+        } else {
+          // Create new application
+          const appRes = await ApplicationAPI.create({
+            startup_id: startupId,
+            sector: formData.sector,
+            application_type: formData.application_type,
+            application_data: {
+              startup_name: formData.startup_name,
+              founder_name: formData.founder_name,
+              email: formData.email,
+              phone_number: formData.phone_number,
+            },
+          });
+          applicationId = appRes?.application?._id || appRes?.application?.id || appRes?._id || appRes?.id;
+        }
+      } catch (appErr) {
+        console.error("Failed to create/find application:", appErr);
+        // Continue anyway - documents will still be linked to startup
+        // Backend will create virtual applications for startups with documents
+      }
+
       // 2) Upload documents one-by-one and capture responses
       const uploadResponses = [];
       // Use the requirementsState.items order so we correlate categories
@@ -665,7 +710,7 @@ function StartupApplication() {
           const res = await DocumentAPI.upload(docEntry.file, {
             doc_category_declared: req.doc_category,
             startup_id: startupId,
-            application_id: undefined,
+            application_id: applicationId || undefined,
             document_name: docEntry.file.name,
             description: descriptionPayload,
           });

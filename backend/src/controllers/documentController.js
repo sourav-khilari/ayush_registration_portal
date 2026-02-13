@@ -453,14 +453,40 @@ async function getDocument(req, res) {
 // ---------------------- List Documents ---------------------- //
 async function listDocuments(req, res) {
   const { startup_id, application_id } = req.query;
-  const filter = { uploaded_by: req.user._id };
-  if (startup_id) filter.startup_id = startup_id;
-  if (application_id) filter.application_id = application_id;
+  const role = req.user?.role;
+  const isAdminOrGovOrInvestor =
+    role === "admin" || role === "gov_official" || role === "investor";
+
+  let filter;
+
+  if (startup_id) {
+    const startupId = startup_id;
+    const appIds = await Application.find({ startup_id: startupId })
+      .select("_id")
+      .lean()
+      .then((apps) => apps.map((a) => a._id));
+
+    const docFilter = {
+      $or: [
+        { startup_id: startupId },
+        ...(appIds.length ? [{ application_id: { $in: appIds } }] : []),
+      ],
+    };
+
+    if (isAdminOrGovOrInvestor) {
+      filter = docFilter;
+    } else {
+      filter = { uploaded_by: req.user._id, ...docFilter };
+    }
+  } else {
+    filter = { uploaded_by: req.user._id };
+    if (application_id) filter.application_id = application_id;
+  }
 
   const docs = await Document.find(filter)
     .sort({ createdAt: -1 })
     .select(
-      "filename fileUrl file_size doc_category_declared verified_status ocr_status extracted_fields createdAt"
+      "document_name filename fileUrl file_size doc_category_declared verified_status ocr_status extracted_fields createdAt"
     )
     .lean();
 

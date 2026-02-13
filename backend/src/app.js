@@ -18,6 +18,7 @@ import documentRoutes from "./routes/documentRoutes.js";
 import applicationRoutes from "./routes/applicationRoutes.js";
 import requirementRoutes from "./routes/requirementRoutes.js"; // ✅ NEW
 import productRoutes from "./routes/productRoutes.js";
+import investmentRoutes from "./routes/investmentRoutes.js";
 
 async function createApp() {
   const app = express();
@@ -70,6 +71,7 @@ async function createApp() {
   app.use("/api/applications", applicationRoutes);
   app.use("/api/requirements", requirementRoutes); // ✅ NEW
   app.use("/product", productRoutes);
+  app.use("/api/investments", investmentRoutes);
 
   // -------------------
   // Health Check Route

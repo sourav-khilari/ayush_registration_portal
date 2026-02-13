@@ -22,6 +22,35 @@ const StartupSchema = new mongoose.Schema(
     description: { type: String },
     website: { type: String },
     address: { type: String },
+    /**
+     * Optional investor-facing metadata.
+     * These fields are non-required so they won't break existing records.
+     */
+    location: { type: String }, // City / region for filtering
+    financial_status: {
+      type: String,
+      enum: ["profit", "loss", "break_even"],
+    },
+    revenue: { type: Number }, // Latest annual revenue in INR (or chosen currency)
+    revenue_history: [
+      {
+        year: Number,
+        value: Number,
+      },
+    ],
+    /** Monthly revenue for line chart: [{ period: "2025-01", value: Number }] */
+    revenue_monthly: [
+      { period: String, value: Number },
+    ],
+    profit_loss: { type: Number }, // Profit or loss (negative = loss) in INR
+    expenses: { type: Number }, // Total expenses in INR
+    /** Expense breakdown for pie chart */
+    expenses_breakdown: [
+      { category: String, amount: Number },
+    ],
+    funding_raised: { type: Number }, // Total funding raised in INR
+    burn_rate: { type: Number }, // Monthly burn rate in INR
+    valuation: { type: Number }, // Optional valuation in INR
     tags: [{ type: String }],
     products: [{ type: mongoose.Schema.Types.ObjectId, ref: "Product" }],
     applications: [

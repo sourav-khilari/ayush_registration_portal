@@ -38,6 +38,8 @@ function ApplicationsList() {
         return 'bg-blue-100 text-blue-800';
       case 'submitted':
         return 'bg-yellow-100 text-yellow-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
       case 'draft':
         return 'bg-gray-100 text-gray-800';
       default:
@@ -112,11 +114,19 @@ function ApplicationsList() {
               const docSummary = getDocumentStatusSummary(app.documents);
               const hasRejected = docSummary.rejected > 0;
 
+              const isVirtual = app.isVirtual || (app._id && app._id.startsWith('virtual_'));
+              
               return (
                 <div
                   key={app._id}
-                  className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow cursor-pointer"
-                  onClick={() => navigate(`/StartupOwner/applications/${app._id}`)}
+                  className={`bg-white rounded-lg shadow-md p-6 transition-shadow ${
+                    isVirtual ? 'cursor-not-allowed opacity-75' : 'hover:shadow-lg cursor-pointer'
+                  }`}
+                  onClick={() => {
+                    if (!isVirtual) {
+                      navigate(`/StartupOwner/applications/${app._id}`);
+                    }
+                  }}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -127,6 +137,11 @@ function ApplicationsList() {
                         <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(app.status)}`}>
                           {app.status?.replace('_', ' ').toUpperCase() || 'DRAFT'}
                         </span>
+                        {isVirtual && (
+                          <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600">
+                            Legacy
+                          </span>
+                        )}
                         {hasRejected && (
                           <span className="px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
                             Action Required
@@ -181,15 +196,22 @@ function ApplicationsList() {
                       )}
                     </div>
 
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/StartupOwner/applications/${app._id}`);
-                      }}
-                      className="ml-4 px-4 py-2 bg-ayush-500 text-white rounded-md hover:bg-ayush-600"
-                    >
-                      View Details
-                    </button>
+                    {!isVirtual && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/StartupOwner/applications/${app._id}`);
+                        }}
+                        className="ml-4 px-4 py-2 bg-ayush-500 text-white rounded-md hover:bg-ayush-600"
+                      >
+                        View Details
+                      </button>
+                    )}
+                    {isVirtual && (
+                      <div className="ml-4 px-4 py-2 bg-gray-200 text-gray-600 rounded-md text-sm">
+                        View documents in profile
+                      </div>
+                    )}
                   </div>
                 </div>
               );
