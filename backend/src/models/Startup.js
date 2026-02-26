@@ -38,6 +38,8 @@ const StartupSchema = new mongoose.Schema(
         value: Number,
       },
     ],
+    // When a government official/admin last changed the status
+    status_updated_at: { type: Date },
     /** Monthly revenue for line chart: [{ period: "2025-01", value: Number }] */
     revenue_monthly: [
       { period: String, value: Number },

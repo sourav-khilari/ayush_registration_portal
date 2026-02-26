@@ -20,6 +20,8 @@ import ApplicationView from "./components/startup/ApplicationView";
 import ApplicationsList from "./components/startup/ApplicationsList";
 import InvestorDashboard from "./components/investor/InvestorDashboard";
 import StartupDetail from "./components/investor/StartupDetail";
+import StartupFinancialMatrix from "./components/startup/StartupFinancialMatrix";
+import InvestorFinancialMatrix from "./components/investor/InvestorFinancialMatrix";
 import GovDashboard from "./components/gov/GovDashboard";
 import GovStartupDetail from "./components/gov/GovStartupDetail";
 
@@ -97,6 +99,14 @@ function App() {
               </PrivateRoute>
             }
           />
+          <Route
+            path="/StartupOwner/profile/finacial-matrix"
+            element={
+              <PrivateRoute>
+                <StartupFinancialMatrix />
+              </PrivateRoute>
+            }
+          />
 
           {/* Regular User Routes */}
           <Route
@@ -167,6 +177,14 @@ function App() {
             element={
               <PrivateRoute>
                 <StartupDetail />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/investor/startups/:id/finacial-matrix"
+            element={
+              <PrivateRoute>
+                <InvestorFinancialMatrix />
               </PrivateRoute>
             }
           />

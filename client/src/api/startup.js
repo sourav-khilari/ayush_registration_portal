@@ -6,6 +6,8 @@ export const StartupAPI = {
   get: (id) => apiRequest(`/startups/${id}`, { method: "GET" }),
   update: (id, payload) => apiRequest(`/startups/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
   remove: (id) => apiRequest(`/startups/${id}`, { method: "DELETE" }),
+  // Separate API for Profit vs Expense bar chart
+  profitExpenseChart: (id) => apiRequest(`/startups/${id}/charts/profit-expense`, { method: "GET" }),
   /**
    * List startups available to investors with optional filters.
    * filters: { category, profitStatus, minRevenue, maxRevenue, location, q }

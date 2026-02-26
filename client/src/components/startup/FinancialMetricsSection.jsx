@@ -12,7 +12,14 @@ import {
   Legend,
 } from "chart.js";
 import { Bar, Line, Doughnut } from "react-chartjs-2";
-import { FaChartLine, FaRupeeSign, FaPlus, FaTrash, FaSave } from "react-icons/fa";
+import {
+  FaChartLine,
+  FaRupeeSign,
+  FaPlus,
+  FaTrash,
+  FaSave,
+  FaLock,
+} from "react-icons/fa";
 import { StartupAPI } from "../../api";
 
 ChartJS.register(
@@ -36,9 +43,15 @@ const formatCurrency = (v) => {
   return `₹${n.toLocaleString("en-IN")}`;
 };
 
-export default function FinancialMetricsSection({ startup, onSaved }) {
+export default function FinancialMetricsSection({
+  startup,
+  onSaved,
+  editable = true,
+}) {
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [barChart, setBarChart] = useState(null);
+  const [barChartError, setBarChartError] = useState("");
   const [form, setForm] = useState({
     revenue: "",
     profit_loss: "",
@@ -71,6 +84,27 @@ export default function FinancialMetricsSection({ startup, onSaved }) {
         : [{ year: "", value: "" }],
     });
   }, [startup]);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadBarChart() {
+      if (!startup?._id) return;
+      setBarChartError("");
+      try {
+        const res = await StartupAPI.profitExpenseChart(startup._id);
+        if (!mounted) return;
+        setBarChart(res?.chart || null);
+      } catch (e) {
+        if (!mounted) return;
+        setBarChart(null);
+        setBarChartError(e?.message || "Failed to load chart");
+      }
+    }
+    loadBarChart();
+    return () => {
+      mounted = false;
+    };
+  }, [startup?._id]);
 
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
@@ -187,27 +221,39 @@ export default function FinancialMetricsSection({ startup, onSaved }) {
   const profitLoss = startup?.profit_loss != null ? Number(startup.profit_loss) : null;
   const expenses = startup?.expenses != null ? Number(startup.expenses) : null;
 
+  const canEdit = editable === true;
+
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-          <FaChartLine className="mr-3 text-ayush-600" />
-          Financial Metrics
-        </h2>
-        {!editMode ? (
+    <div className="bg-white/90 backdrop-blur rounded-2xl shadow-lg border border-white/60 p-6">
+      <div className="flex items-start justify-between gap-4 mb-6">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+            <FaChartLine className="mr-3 text-ayush-700" />
+            Financial Dashboard
+          </h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Revenue, profitability and expense insights.
+          </p>
+        </div>
+
+        {!canEdit ? (
+          <span className="inline-flex items-center text-xs font-semibold px-3 py-1 rounded-full bg-gray-100 text-gray-700">
+            <FaLock className="mr-2" /> Read-only
+          </span>
+        ) : !editMode ? (
           <button
             type="button"
             onClick={() => setEditMode(true)}
-            className="text-sm font-medium text-ayush-600 hover:text-ayush-700"
+            className="text-sm font-semibold px-4 py-2 rounded-lg bg-ayush-600 text-white hover:bg-ayush-700"
           >
-            Edit
+            Edit Metrics
           </button>
         ) : (
           <div className="flex gap-2">
             <button
               type="button"
               onClick={() => setEditMode(false)}
-              className="text-sm text-gray-600 hover:text-gray-700"
+              className="text-sm font-semibold px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200"
             >
               Cancel
             </button>
@@ -215,15 +261,15 @@ export default function FinancialMetricsSection({ startup, onSaved }) {
               type="button"
               onClick={handleSave}
               disabled={saving}
-              className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-lg bg-ayush-600 text-white hover:bg-ayush-700 disabled:opacity-60"
+              className="inline-flex items-center px-4 py-2 text-sm font-semibold rounded-lg bg-ayush-600 text-white hover:bg-ayush-700 disabled:opacity-60"
             >
-              <FaSave className="mr-1" /> {saving ? "Saving…" : "Save"}
+              <FaSave className="mr-2" /> {saving ? "Saving…" : "Save"}
             </button>
           </div>
         )}
       </div>
 
-      {editMode ? (
+      {editMode && canEdit ? (
         <div className="space-y-6">
           <div className="grid md:grid-cols-2 gap-4">
             <div>
@@ -371,7 +417,7 @@ export default function FinancialMetricsSection({ startup, onSaved }) {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
             <MetricCard label="Revenue" value={formatCurrency(startup?.revenue)} />
             <MetricCard label="Profit / Loss" value={formatCurrency(startup?.profit_loss)} />
             <MetricCard label="Expenses" value={formatCurrency(startup?.expenses)} />
@@ -382,7 +428,7 @@ export default function FinancialMetricsSection({ startup, onSaved }) {
 
           <div className="grid md:grid-cols-2 gap-6">
             {lineLabels.length > 0 && (
-              <div>
+              <div className="bg-white rounded-xl border border-gray-100 p-4">
                 <h3 className="text-sm font-medium text-gray-700 mb-2">Revenue over time</h3>
                 <div className="h-48">
                   <Line
@@ -410,21 +456,33 @@ export default function FinancialMetricsSection({ startup, onSaved }) {
                 </div>
               </div>
             )}
-            {(profitLoss != null || expenses != null) && (
-              <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-2">Profit vs Expense</h3>
+            {((barChart && Array.isArray(barChart.values)) ||
+              profitLoss != null ||
+              expenses != null) && (
+              <div className="bg-white rounded-xl border border-gray-100 p-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">Profit vs Expense</h3>
+                  {barChartError ? (
+                    <span className="text-xs text-gray-400">Using local values</span>
+                  ) : (
+                    <span className="text-xs text-gray-400">API chart</span>
+                  )}
+                </div>
                 <div className="h-48">
                   <Bar
                     data={{
-                      labels: ["Profit / Loss", "Expenses"],
+                      labels: barChart?.labels || ["Profit / Loss", "Expenses"],
                       datasets: [
                         {
                           label: "₹",
-                          data: [profitLoss ?? 0, expenses ?? 0],
+                          data: barChart?.values || [profitLoss ?? 0, expenses ?? 0],
                           backgroundColor: [
-                            (profitLoss ?? 0) >= 0 ? "rgba(34, 139, 34, 0.7)" : "rgba(220, 38, 38, 0.7)",
-                            "rgba(107, 114, 128, 0.7)",
+                            (Number((barChart?.values || [profitLoss ?? 0])[0]) || 0) >= 0
+                              ? "rgba(34, 139, 34, 0.75)"
+                              : "rgba(220, 38, 38, 0.75)",
+                            "rgba(107, 114, 128, 0.75)",
                           ],
+                          borderRadius: 10,
                         },
                       ],
                     }}
@@ -432,16 +490,14 @@ export default function FinancialMetricsSection({ startup, onSaved }) {
                       responsive: true,
                       maintainAspectRatio: false,
                       plugins: { legend: { display: false } },
-                      scales: {
-                        y: { beginAtZero: true },
-                      },
+                      scales: { y: { beginAtZero: true } },
                     }}
                   />
                 </div>
               </div>
             )}
             {expenseBreakdown.length > 0 && (
-              <div className="md:col-span-2">
+              <div className="md:col-span-2 bg-white rounded-xl border border-gray-100 p-4">
                 <h3 className="text-sm font-medium text-gray-700 mb-2">Expense breakdown</h3>
                 <div className="h-48 flex justify-center">
                   <Doughnut
@@ -480,7 +536,7 @@ export default function FinancialMetricsSection({ startup, onSaved }) {
 
 function MetricCard({ label, value }) {
   return (
-    <div className="p-3 rounded-lg bg-gray-50 border border-gray-100">
+    <div className="p-4 rounded-xl bg-gradient-to-br from-gray-50 to-white border border-gray-100">
       <div className="text-xs text-gray-500 uppercase tracking-wide">{label}</div>
       <div className="mt-1 text-sm font-medium text-gray-900 flex items-center">
         <FaRupeeSign className="text-gray-400 mr-1 text-xs" />

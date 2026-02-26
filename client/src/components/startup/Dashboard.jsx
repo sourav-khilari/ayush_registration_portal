@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { StartupAPI } from "../../api";
 import {
   FaLeaf,
   FaUser,
@@ -19,6 +20,7 @@ function Dashboard() {
   const { user, logout } = useAuth();
   const [userProfile, setUserProfile] = useState(null);
   const [profileComplete, setProfileComplete] = useState(false);
+  const [startup, setStartup] = useState(null);
 
   useEffect(() => {
     if (user) {
@@ -27,6 +29,19 @@ function Dashboard() {
       setProfileComplete(true);
     }
   }, [user]);
+
+  useEffect(() => {
+    async function loadStartup() {
+      try {
+        const res = await StartupAPI.mine();
+        const first = Array.isArray(res?.startups) ? res.startups[0] : null;
+        setStartup(first);
+      } catch (e) {
+        console.error("Failed to load startup for dashboard:", e.message || e);
+      }
+    }
+    loadStartup();
+  }, []);
 
   const handleCompleteProfile = () => {
     navigate("/StartupOwner/complete-profile");
@@ -192,8 +207,18 @@ function Dashboard() {
                 Application Status
               </h4>
               <p className="text-gray-600">
-                {profileComplete ? "Ready to Apply" : "Profile Required"}
+                {startup?.status
+                  ? startup.status.replace("_", " ").toUpperCase()
+                  : profileComplete
+                  ? "Ready to Apply"
+                  : "Profile Required"}
               </p>
+              {startup?.status_updated_at && (
+                <p className="mt-2 text-xs text-gray-500">
+                  Last decision:{" "}
+                  {new Date(startup.status_updated_at).toLocaleDateString()}
+                </p>
+              )}
             </div>
 
             <div className="text-center p-6 bg-gray-50 rounded-lg">
@@ -244,7 +269,7 @@ function Dashboard() {
             >
               <FaFileAlt className="text-2xl text-ayush-600 mx-auto mb-2" />
               <span className="text-sm font-medium text-gray-900">
-                View Applications
+                Startup Profile & Documents
               </span>
             </Link>
 

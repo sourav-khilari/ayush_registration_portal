@@ -11,6 +11,9 @@ router.get("/mine", auth, ctr.getMyStartups);
 // Investor-friendly listing with rich filters
 router.get("/investor", auth, ctr.listStartupsForInvestors);
 
+// Separate API for bar graph (profit vs expense)
+router.get("/:id/charts/profit-expense", auth, ctr.getProfitExpenseChart);
+
 // Government officials/admins can update startup status (approve/reject/etc.)
 router.patch("/:id/status", auth, ctr.updateStartupStatusByOfficial);
 

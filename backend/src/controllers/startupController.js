@@ -1,5 +1,6 @@
 // src/controllers/startupController.js
 import Startup from "../models/Startup.js";
+import { sendEmail } from "../utils/sendEmail.js";
 
 async function createStartup(req, res) {
   try {
@@ -41,6 +42,54 @@ async function getStartupById(req, res) {
   const s = await Startup.findById(req.params.id);
   if (!s) return res.status(404).json({ message: "Not found" });
   res.json(s);
+}
+
+/**
+ * Separate API for Profit vs Expense bar graph.
+ * Returns chart-ready labels + values.
+ */
+async function getProfitExpenseChart(req, res) {
+  try {
+    const startup = await Startup.findById(req.params.id)
+      .select("user_id status profit_loss expenses")
+      .lean();
+
+    if (!startup) return res.status(404).json({ message: "Startup not found" });
+
+    const role = req.user?.role;
+    const isAdmin = role === "admin";
+    const isGov = role === "gov_official" && req.user?.role_verified === true;
+    const isInvestor = role === "investor";
+    const isOwner = String(startup.user_id) === String(req.user?._id);
+
+    if (!isAdmin && !isGov && !isInvestor && !isOwner) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    // Investors can only view approved startups.
+    if (isInvestor && startup.status !== "approved") {
+      return res.status(403).json({ message: "Forbidden: startup not approved" });
+    }
+
+    const profitLoss = Number(startup.profit_loss ?? 0) || 0;
+    const expenses = Number(startup.expenses ?? 0) || 0;
+
+    return res.json({
+      success: true,
+      chart: {
+        type: "bar",
+        title: "Profit vs Expense",
+        currency: "INR",
+        labels: ["Profit / Loss", "Expenses"],
+        values: [profitLoss, expenses],
+      },
+    });
+  } catch (err) {
+    return res.status(500).json({
+      message: "Failed to fetch profit/expense chart",
+      error: err.message,
+    });
+  }
 }
 
 async function updateStartup(req, res) {
@@ -99,7 +148,25 @@ async function updateStartupStatusByOfficial(req, res) {
     }
 
     startup.status = status;
+    startup.status_updated_at = new Date();
     await startup.save();
+
+    // Notify startup owner via email (best-effort)
+    try {
+      await sendEmail({
+        email: startup.email,
+        subject: `Your AYUSH startup has been ${status.toUpperCase()}`,
+        message: `Dear ${startup.founder_name}, your startup "${startup.name}" status has been updated to "${status}".`,
+        html: `<p>Dear ${startup.founder_name},</p>
+               <p>Your AYUSH startup <strong>${startup.name}</strong> status has been updated to 
+               <strong style="text-transform:uppercase;">${status}</strong> by the government authority.</p>
+               <p>Date: ${new Date(startup.status_updated_at).toLocaleString()}</p>
+               <p>If you have any questions, please log in to the portal to view details.</p>
+               <p>Regards,<br/>AYUSH Portal</p>`,
+      });
+    } catch (emailErr) {
+      console.error("Failed to send startup status email:", emailErr);
+    }
 
     return res.json({
       message: `Startup status updated to ${status}`,
@@ -216,6 +283,7 @@ export {
   createStartup,
   getMyStartups,
   getStartupById,
+  getProfitExpenseChart,
   updateStartup,
   deleteStartup,
   listStartupsForOfficials,

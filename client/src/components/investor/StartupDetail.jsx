@@ -7,10 +7,10 @@ import {
   FaGlobe,
   FaEnvelope,
   FaPhone,
-  FaChartLine,
 } from "react-icons/fa";
 import { useAuth } from "../../context/AuthContext";
 import { DocumentAPI, InvestmentAPI, StartupAPI } from "../../api";
+import FinancialMetricsSection from "../startup/FinancialMetricsSection";
 
 export default function StartupDetail() {
   const { id } = useParams();
@@ -128,8 +128,6 @@ export default function StartupDetail() {
       </div>
     );
   }
-
-  const revenueHistory = startup.revenue_history || [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-ayush-50 to-green-100">
@@ -324,26 +322,23 @@ export default function StartupDetail() {
 
           {/* Right: Financial chart + Invest card */}
           <div className="space-y-6">
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Revenue Trend
-                </h2>
-                <FaChartLine className="text-ayush-600" />
-              </div>
-              {revenueHistory.length === 0 ? (
-                <p className="text-sm text-gray-500">
-                  No revenue history available.
-                </p>
-              ) : (
-                <SimpleBarChart data={revenueHistory} />
-              )}
-            </div>
+            <FinancialMetricsSection startup={startup} editable={false} />
 
             <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Invest in this Startup
-              </h2>
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Invest in this Startup
+                </h2>
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate(`/investor/startups/${id}/finacial-matrix`)
+                  }
+                  className="text-xs font-semibold px-3 py-1.5 rounded-full bg-ayush-50 text-ayush-700 hover:bg-ayush-100"
+                >
+                  View Financial Matrix
+                </button>
+              </div>
               <form onSubmit={handleInvest} className="space-y-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">
@@ -482,7 +477,6 @@ function SimpleBarChart({ data }) {
     </div>
   );
 }
-
 function formatRevenue(value) {
   if (value == null) return "N/A";
   if (value >= 1_00_00_000) {

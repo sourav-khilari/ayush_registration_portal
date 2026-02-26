@@ -29,6 +29,8 @@ function StartupOwnerProfile() {
   const { user } = useAuth()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [startups, setStartups] = useState([])
+  const [selectedStartupId, setSelectedStartupId] = useState(null)
   const [startup, setStartup] = useState(null)
   const [documents, setDocuments] = useState([])
   const [editMode, setEditMode] = useState(false)
@@ -42,23 +44,33 @@ function StartupOwnerProfile() {
     try {
       setLoading(true)
       const startupRes = await StartupAPI.mine()
-      const firstStartup = Array.isArray(startupRes?.startups) ? startupRes.startups[0] : null
-      if (firstStartup) {
-        setStartup(firstStartup)
-        setFormData({
-          name: firstStartup.name || '',
-          founder_name: firstStartup.founder_name || '',
-          email: firstStartup.email || '',
-          phone_number: firstStartup.phone_number || '',
-          startup_type: firstStartup.startup_type || '',
-          description: firstStartup.description || '',
-          website: firstStartup.website || '',
-          address: firstStartup.address || '',
-          tags: (firstStartup.tags || []).join(', ')
-        })
-        const docsRes = await DocumentAPI.list({ startup_id: firstStartup._id })
-        setDocuments(Array.isArray(docsRes?.documents) ? docsRes.documents : [])
+      const list = Array.isArray(startupRes?.startups) ? startupRes.startups : []
+      setStartups(list)
+
+      const firstStartup = list[0] || null
+      const idToUse = selectedStartupId || firstStartup?._id || null
+      setSelectedStartupId(idToUse)
+
+      if (idToUse) {
+        const current = list.find((s) => String(s._id) === String(idToUse)) || firstStartup
+        if (current) {
+          setStartup(current)
+          setFormData({
+            name: current.name || '',
+            founder_name: current.founder_name || '',
+            email: current.email || '',
+            phone_number: current.phone_number || '',
+            startup_type: current.startup_type || '',
+            description: current.description || '',
+            website: current.website || '',
+            address: current.address || '',
+            tags: (current.tags || []).join(', ')
+          })
+          const docsRes = await DocumentAPI.list({ startup_id: current._id })
+          setDocuments(Array.isArray(docsRes?.documents) ? docsRes.documents : [])
+        }
       } else {
+        setStartup(null)
         setDocuments([])
       }
     } catch (err) {
@@ -205,14 +217,59 @@ function StartupOwnerProfile() {
             <div className="bg-white rounded-lg shadow-sm p-6">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900">{startup.name}</h1>
-                  <p className="text-gray-600">Startup Owner Profile</p>
+                  <h1 className="text-2xl font-bold text-gray-900">Startup Owner Profile</h1>
+                  <p className="text-gray-600">Manage your startups and documents</p>
+                  {startups.length > 1 && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      You have {startups.length} startups. Switch between them to see previous and new documents.
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center space-x-3">
                   <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(startup.status)}`}>
                     {getStatusIcon(startup.status)}
                     <span className="ml-2 capitalize">{startup.status.replace('_', ' ')}</span>
                   </span>
+                  {startups.length > 1 && (
+                    <select
+                      value={selectedStartupId || startup._id}
+                      onChange={async (e) => {
+                        const id = e.target.value || null
+                        setSelectedStartupId(id)
+                        // reload docs for selected startup
+                        try {
+                          if (id) {
+                            const current = startups.find((s) => String(s._id) === String(id))
+                            if (current) {
+                              setStartup(current)
+                              setFormData({
+                                name: current.name || '',
+                                founder_name: current.founder_name || '',
+                                email: current.email || '',
+                                phone_number: current.phone_number || '',
+                                startup_type: current.startup_type || '',
+                                description: current.description || '',
+                                website: current.website || '',
+                                address: current.address || '',
+                                tags: (current.tags || []).join(', ')
+                              })
+                              const docsRes = await DocumentAPI.list({ startup_id: current._id })
+                              setDocuments(Array.isArray(docsRes?.documents) ? docsRes.documents : [])
+                            }
+                          }
+                        } catch (e2) {
+                          console.error("Failed to load documents for selected startup", e2)
+                        }
+                      }}
+                      className="ml-4 px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-ayush-500"
+                    >
+                      {startups.map((s) => (
+                        <option key={s._id} value={s._id}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                   {!editMode ? (
                     <button onClick={() => setEditMode(true)} className="btn-secondary">
                       <FaEdit className="mr-2" />
@@ -503,12 +560,21 @@ function StartupOwnerProfile() {
               )}
             </div>
 
-            {/* Financial Metrics - only for approved startups */}
-            {startup?.status === 'approved' && (
-              <div className="mt-6">
-                <FinancialMetricsSection startup={startup} onSaved={loadData} />
-              </div>
-            )}
+            {/* Link to standalone Financial Dashboard */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-3">
+                Financial Dashboard
+              </h2>
+              <p className="text-sm text-gray-600 mb-4">
+                View and manage detailed financial metrics for your startup in a dedicated dashboard.
+              </p>
+              <button
+                onClick={() => navigate("/StartupOwner/profile/finacial-matrix")}
+                className="inline-flex items-center px-4 py-2 rounded-lg bg-ayush-600 text-white text-sm font-semibold hover:bg-ayush-700"
+              >
+                Open Financial Dashboard
+              </button>
+            </div>
           </div>
 
           {/* Sidebar */}
@@ -536,6 +602,14 @@ function StartupOwnerProfile() {
                     {new Date(startup.updatedAt).toLocaleDateString()}
                   </span>
                 </div>
+                {startup.status_updated_at && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Gov. Decision Date</span>
+                    <span className="text-sm text-gray-900">
+                      {new Date(startup.status_updated_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 
