@@ -19,6 +19,7 @@ import applicationRoutes from "./routes/applicationRoutes.js";
 import requirementRoutes from "./routes/requirementRoutes.js"; // ✅ NEW
 import productRoutes from "./routes/productRoutes.js";
 import investmentRoutes from "./routes/investmentRoutes.js";
+import dashboardRoutes from "./routes/dashboardRoutes.js"; // ✅ NEW DASHBOARD ROUTES
 
 async function createApp() {
   const app = express();
@@ -56,6 +57,8 @@ async function createApp() {
     "Session",
     "YogaTutorial",
     "YogaPoseFeedback",
+    "StartupProfile",
+    "MetricEntry",
   ];
 
   for (const modelName of modelNames) {
@@ -72,6 +75,7 @@ async function createApp() {
   app.use("/api/requirements", requirementRoutes); // ✅ NEW
   app.use("/product", productRoutes);
   app.use("/api/investments", investmentRoutes);
+  app.use("/api", dashboardRoutes); // ✅ NEW DASHBOARD ROUTES
 
   // -------------------
   // Health Check Route

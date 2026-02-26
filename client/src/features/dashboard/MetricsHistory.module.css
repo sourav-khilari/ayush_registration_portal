@@ -1,0 +1,85 @@
+/* src/features/dashboard/MetricsHistory.module.css */
+
+.container {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 1.5rem 0;
+}
+
+.emptyText {
+  color: #9ca3af;
+  font-style: italic;
+  margin: 1rem 0 0 0;
+}
+
+/* Table Wrapper */
+.tableWrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Table Styles */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.headerRow {
+  background-color: #f3f4f6;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.headerCell {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 700;
+  color: #374151;
+}
+
+.dataRow {
+  border-bottom: 1px solid #e5e7eb;
+  transition: background-color 0.2s;
+}
+
+.dataRow:hover {
+  background-color: #f9fafb;
+}
+
+.dataCell {
+  padding: 0.75rem 1rem;
+  color: #1f2937;
+}
+
+.dataCell:nth-child(2),
+.dataCell:nth-child(3) {
+  text-align: right;
+  font-family: "Courier New", monospace;
+  font-weight: 500;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .title {
+    font-size: 1.1rem;
+  }
+
+  .headerCell,
+  .dataCell {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+}

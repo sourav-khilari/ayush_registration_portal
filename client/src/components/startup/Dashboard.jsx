@@ -238,7 +238,18 @@ function Dashboard() {
           <h3 className="text-2xl font-bold text-gray-900 mb-6">
             Quick Actions
           </h3>
-          <div className="grid md:grid-cols-4 gap-4">
+          <div className="grid md:grid-cols-5 gap-4">
+            <Link
+              to="/startup-dashboard"
+              className="p-4 bg-gradient-to-br from-purple-50 to-blue-50 hover:from-purple-100 hover:to-blue-100 rounded-lg text-center transition-colors border border-purple-200"
+            >
+              <FaChartLine className="text-2xl text-purple-600 mx-auto mb-2" />
+              <span className="text-sm font-medium text-gray-900">
+                📊 Metrics Dashboard
+              </span>
+              <p className="text-xs text-gray-600 mt-1">Track & Analyze</p>
+            </Link>
+
             <Link
               to="/StartupOwner/complete-profile"
               className="p-4 bg-ayush-50 hover:bg-ayush-100 rounded-lg text-center transition-colors"
