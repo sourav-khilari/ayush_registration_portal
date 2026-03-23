@@ -111,14 +111,14 @@ export const errorHandler = (error, req, res, next) => {
     err = handleJWTError(error);
   }
   
-  if (error.code && error.code.startsWith('LIMIT_')) {
+  if (typeof error.code === 'string' && error.code.startsWith('LIMIT_')) {
     err = handleMulterError(error);
   }
 
-  // Default to 500 server error
+  // Default to 500 server error (preserve original message when available)
   if (!err.statusCode) {
     err.statusCode = 500;
-    err.message = 'Internal server error';
+    if (!err.message) err.message = error?.message || "Internal server error";
   }
 
   // Send error response

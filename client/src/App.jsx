@@ -24,7 +24,6 @@ import StartupFinancialMatrix from "./components/startup/StartupFinancialMatrix"
 import InvestorFinancialMatrix from "./components/investor/InvestorFinancialMatrix";
 import GovDashboard from "./components/gov/GovDashboard";
 import GovStartupDetail from "./components/gov/GovStartupDetail";
-import StartupDashboard from "./components/StartupDashboard";
 
 function App() {
   return (
@@ -195,6 +194,16 @@ function App() {
             element={
               <PrivateRoute>
                 <InvestorFinancialMatrix />
+              </PrivateRoute>
+            }
+          />
+
+          {/* Video calling */}
+          <Route
+            path="/call/:room"
+            element={
+              <PrivateRoute>
+                <VideoCall />
               </PrivateRoute>
             }
           />

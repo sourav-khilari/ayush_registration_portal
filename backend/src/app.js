@@ -19,7 +19,8 @@ import applicationRoutes from "./routes/applicationRoutes.js";
 import requirementRoutes from "./routes/requirementRoutes.js"; // ✅ NEW
 import productRoutes from "./routes/productRoutes.js";
 import investmentRoutes from "./routes/investmentRoutes.js";
-import dashboardRoutes from "./routes/dashboardRoutes.js"; // ✅ NEW DASHBOARD ROUTES
+import dashboardRoutes from "./routes/dashboardRoutes.js"; // ✅ Dashboard
+import conversationRoutes from "./routes/conversationRoutes.js"; // ✅ Chat/Video
 
 async function createApp() {
   const app = express();
@@ -36,8 +37,8 @@ async function createApp() {
   app.use(
     "/uploads",
     express.static(
-      path.join(__dirname, "..", process.env.UPLOAD_DIR || "public/uploads")
-    )
+      path.join(__dirname, "..", process.env.UPLOAD_DIR || "public/uploads"),
+    ),
   );
 
   // -------------------
@@ -75,7 +76,8 @@ async function createApp() {
   app.use("/api/requirements", requirementRoutes); // ✅ NEW
   app.use("/product", productRoutes);
   app.use("/api/investments", investmentRoutes);
-  app.use("/api", dashboardRoutes); // ✅ NEW DASHBOARD ROUTES
+  app.use("/api", dashboardRoutes); // ✅ Dashboard
+  app.use("/api/conversations", conversationRoutes); // ✅ Chat/Video
 
   // -------------------
   // Health Check Route
@@ -90,10 +92,7 @@ async function createApp() {
   // -------------------
   // Error Handling Middleware
   // -------------------
-  // Handle 404 for undefined routes
   app.use(notFoundHandler);
-
-  // Global error handler (must be last)
   app.use(errorHandler);
 
   return app;

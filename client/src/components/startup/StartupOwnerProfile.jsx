@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { StartupAPI, DocumentAPI } from '../../api'
+import { StartupAPI, DocumentAPI, ConversationAPI } from '../../api'
 import FinancialMetricsSection from './FinancialMetricsSection'
+import ChatPanel from '../common/ChatPanel'
 import { 
   FaUser, 
   FaBuilding, 
@@ -26,7 +27,7 @@ import {
 
 function StartupOwnerProfile() {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, token } = useAuth()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [startups, setStartups] = useState([])
@@ -35,6 +36,10 @@ function StartupOwnerProfile() {
   const [documents, setDocuments] = useState([])
   const [editMode, setEditMode] = useState(false)
   const [formData, setFormData] = useState({})
+  const [chatList, setChatList] = useState([])
+  const [chatLoading, setChatLoading] = useState(false)
+  const [selectedConversationId, setSelectedConversationId] = useState(null)
+  const [incomingCall, setIncomingCall] = useState(null) // { room, from }
 
   useEffect(() => {
     loadData()
@@ -80,6 +85,25 @@ function StartupOwnerProfile() {
     }
   }
 
+  const loadChats = async (startupId) => {
+    if (!startupId) return
+    try {
+      setChatLoading(true)
+      const res = await ConversationAPI.listForStartup(startupId)
+      const items = Array.isArray(res?.items) ? res.items : []
+      setChatList(items)
+      // auto-select first investor conversation
+      if (!selectedConversationId && items.length) {
+        setSelectedConversationId(items[0]._id)
+      }
+    } catch (e) {
+      // keep chat optional; don't block profile
+      console.error('Failed to load chats', e)
+    } finally {
+      setChatLoading(false)
+    }
+  }
+
   const getDocumentUrl = (doc) => {
     if (!doc?.fileUrl) return null
     const apiBase = import.meta.env.VITE_API_BASE || ''
@@ -100,6 +124,54 @@ function StartupOwnerProfile() {
     }, 4000)
     return () => clearInterval(id)
   }, [startup, documents])
+
+  // Load investor chats for selected startup
+  useEffect(() => {
+    if (!startup?._id) return
+    loadChats(startup._id)
+    // No auto-refresh here (manual refresh only) to avoid polling every 5 seconds.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startup?._id])
+
+  // Listen for incoming call requests (no camera/mic here; just a websocket listener)
+  useEffect(() => {
+    if (!token || !startup?._id) return
+    const roomName = `startup-${startup._id}`
+    const wsUrl = `${window.location.protocol === "https:" ? "wss" : "ws"}://${
+      window.location.hostname
+    }:5002/ws?token=${encodeURIComponent(token)}&room=${encodeURIComponent(roomName)}&listen=1`
+
+    const ws = new WebSocket(wsUrl)
+    let closed = false
+
+    ws.onmessage = (ev) => {
+      let msg
+      try {
+        msg = JSON.parse(ev.data)
+      } catch {
+        return
+      }
+      if (msg.type === "call_request") {
+        // Don't show as incoming if we initiated from this same device later
+        setIncomingCall({ room: roomName, from: msg.from || null })
+      }
+      if (msg.type === "call_cancel") {
+        setIncomingCall(null)
+      }
+    }
+
+    ws.onerror = () => {
+      // keep silent; call is optional
+    }
+
+    return () => {
+      if (closed) return
+      closed = true
+      try {
+        ws.close()
+      } catch (_) {}
+    }
+  }, [token, startup?._id])
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -630,6 +702,86 @@ function StartupOwnerProfile() {
                   Back to Dashboard
                 </button>
               </div>
+            </div>
+
+            {/* Chat & Video with Investors */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Connect with Investors
+              </h3>
+              {incomingCall?.room && (
+                <div className="mb-3 p-3 rounded-lg border border-green-200 bg-green-50">
+                  <div className="text-sm font-semibold text-green-900">
+                    Incoming video call
+                  </div>
+                  <div className="text-xs text-green-800 mt-0.5">
+                    Room: {incomingCall.room}
+                  </div>
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const r = incomingCall.room
+                        setIncomingCall(null)
+                        navigate(`/call/${r}`)
+                      }}
+                      className="px-3 py-1.5 rounded bg-green-600 text-white text-xs font-semibold hover:bg-green-700"
+                    >
+                      Answer
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIncomingCall(null)}
+                      className="px-3 py-1.5 rounded bg-gray-200 text-gray-800 text-xs font-semibold hover:bg-gray-300"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              )}
+              {!startup ? (
+                <p className="text-sm text-gray-500">Select a startup to view chats.</p>
+              ) : chatLoading ? (
+                <p className="text-sm text-gray-500">Loading conversations…</p>
+              ) : chatList.length === 0 ? (
+                <p className="text-sm text-gray-500">
+                  No investor messages yet.
+                </p>
+              ) : (
+                <>
+                  <label className="block text-xs font-medium text-gray-600 mb-2">
+                    Choose Investor
+                  </label>
+                  <select
+                    value={selectedConversationId || ""}
+                    onChange={(e) => setSelectedConversationId(e.target.value)}
+                    className="w-full mb-3 px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-ayush-500"
+                  >
+                    {chatList.map((c) => (
+                      <option key={c._id} value={c._id}>
+                        {c.investor?.name || c.investor?.email || "Investor"}
+                      </option>
+                    ))}
+                  </select>
+                  <ChatPanel
+                    conversationId={selectedConversationId}
+                    currentUser={user}
+                    title="Chat"
+                  />
+                </>
+              )}
+              {startup && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const roomName = `startup-${startup._id}`
+                    navigate(`/call/${roomName}`)
+                  }}
+                  className="w-full mt-3 px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700"
+                >
+                  Join Video Call Room
+                </button>
+              )}
             </div>
           </div>
         </div>

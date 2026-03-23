@@ -7,4 +7,5 @@ export { RequirementsAPI } from "./requirements.js";
 export { ApplicationAPI } from "./application.js";
 export { InvestmentAPI } from "./investment.js";
 export { UserAPI } from "./user.js";
+export { ConversationAPI } from "./conversation.js";
 

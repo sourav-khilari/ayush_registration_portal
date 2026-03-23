@@ -42,6 +42,28 @@ export default function InvestorDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
+  // Refresh investment summary when returning from investment
+  useEffect(() => {
+    let last = null;
+    const tick = () => {
+      try {
+        const v = localStorage.getItem("investments_refresh");
+        if (v && v !== last) {
+          last = v;
+          loadData();
+        }
+      } catch (_) {}
+    };
+    const id = setInterval(tick, 1500);
+    const onFocus = () => loadData();
+    window.addEventListener("focus", onFocus);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener("focus", onFocus);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function loadData(customFilters) {
     setLoading(true);
     setError("");

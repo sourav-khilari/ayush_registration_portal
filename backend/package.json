@@ -34,7 +34,8 @@
     "pdf-poppler": "^0.2.3",
     "qrcode-reader": "^1.0.4",
     "sharp": "^0.34.5",
-    "uuid": "^13.0.0"
+    "uuid": "^13.0.0",
+    "ws": "^8.19.0"
   },
   "devDependencies": {
     "eslint": "^9.35.0",

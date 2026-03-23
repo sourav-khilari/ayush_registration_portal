@@ -10,6 +10,7 @@ import {
 } from "react-icons/fa";
 import { useAuth } from "../../context/AuthContext";
 import { DocumentAPI, InvestmentAPI, StartupAPI } from "../../api";
+import ChatPanel from "../common/ChatPanel";
 import FinancialMetricsSection from "../startup/FinancialMetricsSection";
 
 export default function StartupDetail() {
@@ -92,6 +93,10 @@ export default function StartupDetail() {
       }
       const res = await InvestmentAPI.create(payload);
       setInvestMessage(res.message || "Investment submitted successfully.");
+      // trigger investor dashboard to refresh summary
+      try {
+        localStorage.setItem("investments_refresh", String(Date.now()));
+      } catch (_) {}
     } catch (e) {
       console.error(e);
       setInvestMessage(e.message || "Failed to create investment.");
@@ -406,6 +411,24 @@ export default function StartupDetail() {
                   <p className="text-xs text-gray-700 mt-2">{investMessage}</p>
                 )}
               </form>
+            </div>
+
+            {/* Chat + Video section */}
+            <div className="bg-white rounded-2xl shadow-lg p-6 space-y-4">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Connect with Founder
+              </h2>
+              <ChatPanel startupId={id} currentUser={user} />
+              <button
+                type="button"
+                onClick={() => {
+                  const roomName = `startup-${id}`;
+                  navigate(`/call/${roomName}`);
+                }}
+                className="w-full mt-2 px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700"
+              >
+                Start Video Call
+              </button>
             </div>
           </div>
         </div>
