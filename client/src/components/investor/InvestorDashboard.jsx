@@ -11,7 +11,7 @@ import {
   FaImage,
 } from "react-icons/fa";
 import { useAuth } from "../../context/AuthContext";
-import { StartupAPI, InvestmentAPI, apiRequest } from "../../api";
+import { StartupAPI, InvestmentAPI } from "../../api";
 
 export default function InvestorDashboard() {
   const navigate = useNavigate();
@@ -80,34 +80,14 @@ export default function InvestorDashboard() {
       const startupItems = startupRes.items || [];
       setStartups(startupItems);
 
-      const mediaEntries = await Promise.all(
-        startupItems.map(async (item) => {
-          try {
-            const dashboardRes = await apiRequest(`/dashboard/${item._id}?role=investor`, {
-              method: "GET",
-            });
-            const profile = dashboardRes?.data?.profile || {};
-            return [
-              item._id,
-              {
-                logoUrl: profile.logoUrl || "",
-                demoVideoUrl: profile.demoVideoUrl || "",
-                galleryImages: Array.isArray(profile.galleryImages) ? profile.galleryImages : [],
-              },
-            ];
-          } catch {
-            return [
-              item._id,
-              {
-                logoUrl: "",
-                demoVideoUrl: "",
-                galleryImages: [],
-              },
-            ];
-          }
-        })
-      );
-
+      const mediaEntries = startupItems.map((item) => [
+        item._id,
+        {
+          logoUrl: item.logoUrl || "",
+          demoVideoUrl: item.demoVideoUrl || "",
+          galleryImages: Array.isArray(item.galleryImages) ? item.galleryImages : [],
+        },
+      ]);
       setStartupMedia(Object.fromEntries(mediaEntries));
 
       const items = myInvestments.items || [];
