@@ -300,6 +300,8 @@ async function assembleDashboardData(startupId, role) {
       equityOfferedPercent: profile.equityOfferedPercent,
       team: profile.team || [],
       marketSizeDescription: profile.marketSizeDescription,
+      futurePlan: profile.futurePlan,
+      nextMilestone: profile.nextMilestone,
       createdAt: profile.createdAt,
       updatedAt: profile.updatedAt,
     };
@@ -315,7 +317,7 @@ async function assembleDashboardData(startupId, role) {
     if (process.env.OPENAI_API_KEY || process.env.HUGGINGFACE_API_TOKEN) {
       try {
         const aiPrompt =
-          "Generate maximum 3 concise startup growth insights as bullet points based on the provided KPI and monthly trend data. Focus on revenue trend, user growth momentum, and conversion quality.";
+          "Generate exactly 3 concise startup growth insights based on provided KPI and monthly trend data. Focus on revenue trend, user growth momentum, and conversion quality. OUTPUT RULES: (1) Return ONLY valid JSON array of 3 strings, no markdown or extra text. (2) Each string must start with one of these labels in order: 'Revenue:', 'Users:', 'Conversion:'. (3) Keep each line under 18 words. (4) Do not include chain-of-thought, <think> tags, raw key names, or data dumps.";
 
         const aiData = JSON.stringify(
           {
@@ -334,11 +336,65 @@ async function assembleDashboardData(startupId, role) {
           data: aiData,
         });
 
-        const parsedInsights = String(aiResult?.insight || "")
-          .split("\n")
-          .map((line) => line.replace(/^\s*[-*\d.)]+\s*/, "").trim())
-          .filter(Boolean)
-          .slice(0, 3);
+        const rawInsight = String(aiResult?.insight || "");
+        const cleanedInsight = rawInsight
+          .replace(/<think>[\s\S]*?<\/think>/gi, "")
+          .replace(/<\/?think>/gi, "")
+          .replace(/```json|```/gi, "")
+          .trim();
+
+        let parsedInsights = [];
+
+        try {
+          const jsonStart = cleanedInsight.indexOf("[");
+          const jsonEnd = cleanedInsight.lastIndexOf("]");
+          const jsonCandidate =
+            jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart
+              ? cleanedInsight.slice(jsonStart, jsonEnd + 1)
+              : cleanedInsight;
+
+          const maybeArray = JSON.parse(jsonCandidate);
+          if (Array.isArray(maybeArray)) {
+            parsedInsights = maybeArray
+              .map((item) => String(item || "").trim())
+              .filter(Boolean)
+              .slice(0, 3);
+          }
+        } catch {
+          parsedInsights = cleanedInsight
+            .split("\n")
+            .map((line) => line.replace(/^\s*[-*\d.)]+\s*/, "").trim())
+            .filter(Boolean)
+            .slice(0, 3);
+        }
+
+        const sanitizeInsightLine = (line) =>
+          String(line || "")
+            .replace(/<[^>]+>/g, "")
+            .replace(/\b(currentRevenue|currentUsers|momGrowthPercent|payingCustomers|kpis|series)\b\s*:?/gi, "")
+            .replace(/^\s*(we are given|given|data shows|summary)\s*:?/i, "")
+            .replace(/\s+/g, " ")
+            .trim();
+
+        parsedInsights = parsedInsights.map(sanitizeInsightLine).filter(Boolean);
+
+        const ensureLabeledLine = (label, text, fallbackText) => {
+          const normalized = sanitizeInsightLine(text);
+          if (!normalized) return `${label} ${fallbackText}`;
+          if (new RegExp(`^${label}`, "i").test(normalized)) return normalized;
+          return `${label} ${normalized}`;
+        };
+
+        const fallbackInsights = generateGrowthInsight(metrics, kpis);
+        const fallbackRevenue = fallbackInsights[0] || "Revenue trend is currently mixed.";
+        const fallbackUsers = fallbackInsights[1] || "User growth momentum needs closer tracking.";
+        const fallbackConversion = fallbackInsights[2] || "Conversion quality can be improved.";
+
+        const revenueLine = ensureLabeledLine("Revenue:", parsedInsights[0], fallbackRevenue);
+        const usersLine = ensureLabeledLine("Users:", parsedInsights[1], fallbackUsers);
+        const conversionLine = ensureLabeledLine("Conversion:", parsedInsights[2], fallbackConversion);
+
+        parsedInsights = [revenueLine, usersLine, conversionLine];
 
         if (parsedInsights.length > 0) {
           insights = parsedInsights;

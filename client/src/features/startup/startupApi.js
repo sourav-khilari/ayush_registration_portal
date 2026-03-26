@@ -50,6 +50,28 @@ export async function saveStartupProfile(startupId, data) {
     const oneLinePitch = data?.oneLinePitch ?? data?.pitch ?? ''
     const sector = data?.sector ?? ''
     const stage = data?.stage ?? ''
+    const fundingAsk =
+      data?.fundingAsk === '' || data?.fundingAsk === null || data?.fundingAsk === undefined
+        ? 0
+        : Number(data.fundingAsk)
+    const equityOfferedPercent =
+      data?.equityOfferedPercent === '' || data?.equityOfferedPercent === null || data?.equityOfferedPercent === undefined
+        ? 0
+        : Number(data.equityOfferedPercent)
+    const marketSizeDescription = data?.marketSizeDescription ?? ''
+    const futurePlan = data?.futurePlan ?? ''
+    const nextMilestone = data?.nextMilestone ?? ''
+    const team = Array.isArray(data?.team)
+      ? data.team.map((member) => ({
+          name: member?.name || '',
+          role: member?.role || '',
+          yearsExperience:
+            member?.yearsExperience === '' || member?.yearsExperience === null || member?.yearsExperience === undefined
+              ? 0
+              : Number(member.yearsExperience),
+          isMedicalExpert: Boolean(member?.isMedicalExpert),
+        }))
+      : []
 
     if (!startupName.trim()) {
       throw new Error('Startup name is required')
@@ -58,6 +80,12 @@ export async function saveStartupProfile(startupId, data) {
     const profilePayload = {
       oneLinePitch,
       stage,
+      fundingAsk,
+      equityOfferedPercent,
+      marketSizeDescription,
+      futurePlan,
+      nextMilestone,
+      team,
     }
 
     const startupPayload = {

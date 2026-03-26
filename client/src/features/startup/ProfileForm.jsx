@@ -15,6 +15,12 @@ export default function ProfileForm({ startupId, initialData, onSaveSuccess }) {
     oneLinePitch: '',
     sector: '',
     stage: '',
+    fundingAsk: '',
+    equityOfferedPercent: '',
+    marketSizeDescription: '',
+    futurePlan: '',
+    nextMilestone: '',
+    team: [],
   })
 
   // UI state
@@ -47,6 +53,28 @@ export default function ProfileForm({ startupId, initialData, onSaveSuccess }) {
         oneLinePitch: initialData.oneLinePitch || initialData.pitch || '',
         sector: initialData.sector || '',
         stage: initialData.stage || '',
+        fundingAsk:
+          initialData.fundingAsk === null || initialData.fundingAsk === undefined
+            ? ''
+            : String(initialData.fundingAsk),
+        equityOfferedPercent:
+          initialData.equityOfferedPercent === null || initialData.equityOfferedPercent === undefined
+            ? ''
+            : String(initialData.equityOfferedPercent),
+        marketSizeDescription: initialData.marketSizeDescription || '',
+        futurePlan: initialData.futurePlan || '',
+        nextMilestone: initialData.nextMilestone || '',
+        team: Array.isArray(initialData.team)
+          ? initialData.team.map((member) => ({
+              name: member?.name || '',
+              role: member?.role || '',
+              yearsExperience:
+                member?.yearsExperience === null || member?.yearsExperience === undefined
+                  ? ''
+                  : String(member.yearsExperience),
+              isMedicalExpert: Boolean(member?.isMedicalExpert),
+            }))
+          : [],
       })
     }
   }, [initialData])
@@ -99,6 +127,43 @@ export default function ProfileForm({ startupId, initialData, onSaveSuccess }) {
     setTouched(prev => ({ ...prev, [name]: true }))
   }
 
+  const addTeamMember = () => {
+    setFormData((prev) => ({
+      ...prev,
+      team: [
+        ...prev.team,
+        {
+          name: '',
+          role: '',
+          yearsExperience: '',
+          isMedicalExpert: false,
+        },
+      ],
+    }))
+  }
+
+  const removeTeamMember = (indexToRemove) => {
+    setFormData((prev) => ({
+      ...prev,
+      team: prev.team.filter((_, memberIndex) => memberIndex !== indexToRemove),
+    }))
+  }
+
+  const updateTeamMember = (indexToUpdate, fieldName, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      team: prev.team.map((member, memberIndex) => {
+        if (memberIndex !== indexToUpdate) return member
+        return {
+          ...member,
+          [fieldName]: value,
+        }
+      }),
+    }))
+    setError(null)
+    setSuccess(false)
+  }
+
   // Handle form submit
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -121,6 +186,26 @@ export default function ProfileForm({ startupId, initialData, onSaveSuccess }) {
         oneLinePitch: formData.oneLinePitch,
         sector: formData.sector,
         stage: formData.stage,
+        fundingAsk:
+          formData.fundingAsk === '' || formData.fundingAsk === null
+            ? 0
+            : Number(formData.fundingAsk),
+        equityOfferedPercent:
+          formData.equityOfferedPercent === '' || formData.equityOfferedPercent === null
+            ? 0
+            : Number(formData.equityOfferedPercent),
+        marketSizeDescription: formData.marketSizeDescription,
+        futurePlan: formData.futurePlan,
+        nextMilestone: formData.nextMilestone,
+        team: formData.team.map((member) => ({
+          name: member.name?.trim() || '',
+          role: member.role?.trim() || '',
+          yearsExperience:
+            member.yearsExperience === '' || member.yearsExperience === null
+              ? 0
+              : Number(member.yearsExperience),
+          isMedicalExpert: Boolean(member.isMedicalExpert),
+        })),
       }
 
       // Call API
@@ -133,6 +218,12 @@ export default function ProfileForm({ startupId, initialData, onSaveSuccess }) {
         oneLinePitch: '',
         sector: '',
         stage: '',
+        fundingAsk: '',
+        equityOfferedPercent: '',
+        marketSizeDescription: '',
+        futurePlan: '',
+        nextMilestone: '',
+        team: [],
       })
 
       // Call callback
@@ -278,6 +369,184 @@ export default function ProfileForm({ startupId, initialData, onSaveSuccess }) {
           )}
         </div>
 
+        {/* Funding Details */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="fundingAsk" className="block text-sm font-medium text-gray-700 mb-2">
+              Funding Required (₹)
+            </label>
+            <input
+              id="fundingAsk"
+              type="number"
+              min="0"
+              name="fundingAsk"
+              value={formData.fundingAsk}
+              onChange={handleChange}
+              placeholder="e.g. 5000000"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ayush-600 outline-none transition"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="equityOfferedPercent" className="block text-sm font-medium text-gray-700 mb-2">
+              Equity Offered (%)
+            </label>
+            <input
+              id="equityOfferedPercent"
+              type="number"
+              min="0"
+              step="0.01"
+              name="equityOfferedPercent"
+              value={formData.equityOfferedPercent}
+              onChange={handleChange}
+              placeholder="e.g. 10"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ayush-600 outline-none transition"
+            />
+          </div>
+        </div>
+
+        {/* Team Members */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-semibold text-gray-800">Team Members</h4>
+            <button
+              type="button"
+              onClick={addTeamMember}
+              className="px-3 py-1.5 text-sm font-medium bg-ayush-50 text-ayush-700 border border-ayush-200 rounded-lg hover:bg-ayush-100 transition"
+            >
+              Add Member
+            </button>
+          </div>
+
+          {formData.team.length === 0 ? (
+            <p className="text-sm text-gray-500 border border-dashed border-gray-300 rounded-lg p-3">
+              No team members added yet.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {formData.team.map((member, memberIndex) => (
+                <div key={`team-member-${memberIndex}`} className="border border-gray-200 rounded-lg p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                      <input
+                        type="text"
+                        value={member.name}
+                        onChange={(event) =>
+                          updateTeamMember(memberIndex, 'name', event.target.value)
+                        }
+                        placeholder="Team member name"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ayush-600 outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                      <input
+                        type="text"
+                        value={member.role}
+                        onChange={(event) =>
+                          updateTeamMember(memberIndex, 'role', event.target.value)
+                        }
+                        placeholder="Role"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ayush-600 outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Years of Experience</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={member.yearsExperience}
+                        onChange={(event) =>
+                          updateTeamMember(memberIndex, 'yearsExperience', event.target.value)
+                        }
+                        placeholder="0"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ayush-600 outline-none"
+                      />
+                    </div>
+
+                    <div className="flex items-center mt-6 md:mt-0">
+                      <label className="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
+                        <input
+                          type="checkbox"
+                          checked={member.isMedicalExpert}
+                          onChange={(event) =>
+                            updateTeamMember(memberIndex, 'isMedicalExpert', event.target.checked)
+                          }
+                          className="rounded border-gray-300 text-ayush-600 focus:ring-ayush-500"
+                        />
+                        Medical Expert
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => removeTeamMember(memberIndex)}
+                      className="px-3 py-1.5 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition"
+                    >
+                      Remove Member
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Market & Vision */}
+        <div className="space-y-4">
+          <h4 className="text-sm font-semibold text-gray-800">Market & Vision</h4>
+
+          <div>
+            <label htmlFor="marketSizeDescription" className="block text-sm font-medium text-gray-700 mb-2">
+              Market Size Description
+            </label>
+            <textarea
+              id="marketSizeDescription"
+              name="marketSizeDescription"
+              value={formData.marketSizeDescription}
+              onChange={handleChange}
+              placeholder="Describe your target market size"
+              rows={3}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ayush-600 outline-none transition resize-none"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="futurePlan" className="block text-sm font-medium text-gray-700 mb-2">
+              Future Plan
+            </label>
+            <textarea
+              id="futurePlan"
+              name="futurePlan"
+              value={formData.futurePlan}
+              onChange={handleChange}
+              placeholder="What is your plan for next 6-12 months"
+              rows={3}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ayush-600 outline-none transition resize-none"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="nextMilestone" className="block text-sm font-medium text-gray-700 mb-2">
+              Next Milestone
+            </label>
+            <input
+              id="nextMilestone"
+              type="text"
+              name="nextMilestone"
+              value={formData.nextMilestone}
+              onChange={handleChange}
+              placeholder="Next major milestone"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ayush-600 outline-none transition"
+            />
+          </div>
+        </div>
+
         {/* Action Buttons */}
         <div className="flex justify-end gap-3 pt-4">
           <button
@@ -288,6 +557,12 @@ export default function ProfileForm({ startupId, initialData, onSaveSuccess }) {
                 oneLinePitch: '',
                 sector: '',
                 stage: '',
+                fundingAsk: '',
+                equityOfferedPercent: '',
+                marketSizeDescription: '',
+                futurePlan: '',
+                nextMilestone: '',
+                team: [],
               })
               setTouched({})
             }}

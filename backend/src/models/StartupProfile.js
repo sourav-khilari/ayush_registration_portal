@@ -37,6 +37,8 @@ const StartupProfileSchema = new mongoose.Schema(
       },
     ],
     marketSizeDescription: String,
+    futurePlan: String,
+    nextMilestone: String,
     visibility: {
       investors: {
         type: Boolean,

@@ -8,6 +8,9 @@ import KPIPreview from './KPIPreview'
 import RevenueUsersChart from './RevenueUsersChart'
 import UnitEconomics from './UnitEconomics'
 import GrowthInsights from './GrowthInsights'
+import TeamSection from './TeamSection'
+import MarketVision from './MarketVision'
+import FundingSection from './FundingSection'
 import ProfilePreview from './ProfilePreview'
 import { getStartupDashboard } from './startupApi'
 import { StartupAPI } from '../../api'
@@ -103,7 +106,7 @@ export default function StartupPage() {
   }
 
   // Render loading state
-  if (loading) {
+  if (loading && !dashboardData) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-ayush-50 to-green-100 flex items-center justify-center px-4">
         <div className="text-center">
@@ -231,6 +234,25 @@ export default function StartupPage() {
               <GrowthInsights
                 insights={dashboardData?.insights}
                 insightsSource={dashboardData?.insightsSource}
+              />
+            </div>
+
+            <div className="mt-6">
+              <TeamSection team={dashboardData?.profile?.team} />
+            </div>
+
+            <div className="mt-6">
+              <MarketVision
+                marketSizeDescription={dashboardData?.profile?.marketSizeDescription}
+                futurePlan={dashboardData?.profile?.futurePlan}
+                nextMilestone={dashboardData?.profile?.nextMilestone}
+              />
+            </div>
+
+            <div className="mt-6">
+              <FundingSection
+                fundingAsk={dashboardData?.profile?.fundingAsk}
+                equityOfferedPercent={dashboardData?.profile?.equityOfferedPercent}
               />
             </div>
           </div>
