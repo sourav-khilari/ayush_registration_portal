@@ -2,7 +2,11 @@ import React from 'react'
 
 export default function GrowthInsights({ insights = [], insightsSource }) {
   const hasInsights = Array.isArray(insights) && insights.length > 0
-  const sourceLabel = insightsSource === 'ai' ? 'AI' : 'Fallback'
+  const sourceLabel = insightsSource === 'openai' || insightsSource === 'ai'
+    ? 'AI'
+    : insightsSource === 'huggingface'
+      ? 'Hugging Face'
+      : 'Fallback'
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6">
