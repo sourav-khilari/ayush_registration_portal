@@ -1,6 +1,6 @@
 import fetch from "node-fetch";
 
-const DEFAULT_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
+const DEFAULT_MODEL = process.env.OPENAI_MODEL || "GPT‑4.1.mini";
 const OPENAI_BASE_URL =
   process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
 
@@ -13,7 +13,7 @@ function sanitizeInput(value) {
 export async function getAIInsight({
   prompt,
   data,
-  model = DEFAULT_MODEL,
+  model = "DEFAULT_MODEL",
   temperature = 0.2,
   maxTokens = 700,
 }) {

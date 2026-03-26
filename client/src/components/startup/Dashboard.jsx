@@ -251,12 +251,12 @@ function Dashboard() {
             </Link>
 
             <Link
-              to="/StartupOwner/complete-profile"
+              to="/StartupOwner/startup-profile"
               className="p-4 bg-ayush-50 hover:bg-ayush-100 rounded-lg text-center transition-colors"
             >
               <FaUser className="text-2xl text-ayush-600 mx-auto mb-2" />
               <span className="text-sm font-medium text-gray-900">
-                Update Profile
+                Startup Profile Editor
               </span>
             </Link>
 

@@ -25,11 +25,17 @@ import InvestorFinancialMatrix from "./components/investor/InvestorFinancialMatr
 import GovDashboard from "./components/gov/GovDashboard";
 import GovStartupDetail from "./components/gov/GovStartupDetail";
 import VideoCall from "./components/common/VideoCall";
+import StartupPage from "./features/startup/StartupPage";
 
 function App() {
   return (
     <AuthProvider>
-      <Router>
+      <Router
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
         <Routes>
           {/* Public Pages */}
           <Route path="/" element={<LandingPage />} />
@@ -114,6 +120,25 @@ function App() {
             element={
               <PrivateRoute>
                 <Dashboard />
+              </PrivateRoute>
+            }
+          />
+
+          {/* New Startup Page with Profile Form & Preview */}
+          <Route
+            path="/StartupOwner/startup-profile"
+            element={
+              <PrivateRoute>
+                <StartupPage />
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/startup-profile"
+            element={
+              <PrivateRoute>
+                <StartupPage />
               </PrivateRoute>
             }
           />
