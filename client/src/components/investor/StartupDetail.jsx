@@ -1,3 +1,4 @@
+import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import {
@@ -12,11 +13,12 @@ import { useAuth } from "../../context/AuthContext";
 import { DocumentAPI, InvestmentAPI, StartupAPI } from "../../api";
 import ChatPanel from "../common/ChatPanel";
 import FinancialMetricsSection from "../startup/FinancialMetricsSection";
+import { sendRequest } from "../../api/meetApi";
 
 export default function StartupDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, token } = useAuth();
 
   const [startup, setStartup] = useState(null);
   const [documents, setDocuments] = useState([]);
@@ -26,7 +28,8 @@ export default function StartupDetail() {
   const getDocumentUrl = (doc) => {
     if (!doc?.fileUrl) return null;
     const apiBase = import.meta.env.VITE_API_BASE || "";
-    const uploadBase = apiBase.replace(/\/api\/?$/, "") || window.location.origin;
+    const uploadBase =
+      apiBase.replace(/\/api\/?$/, "") || window.location.origin;
     return `${uploadBase}${doc.fileUrl.startsWith("/") ? "" : "/"}${doc.fileUrl}`;
   };
 
@@ -106,6 +109,54 @@ export default function StartupDetail() {
       setInvesting(false);
     }
   }
+
+  const handleConnect = async () => {
+    try {
+      const receiverId =
+        startup?.ownerId ||
+        startup?.user_id ||
+        startup?.user ||
+        startup?.createdBy;
+
+      const res = await sendRequest(receiverId, token);
+
+      const requestId = res.data._id;
+
+      alert("Waiting for acceptance...");
+
+      // 👇 START POLLING
+      checkStatus(requestId);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to send request");
+    }
+  };
+  // ✅ ADD HERE (above or below handleConnect)
+  const checkStatus = (requestId) => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await axios.get(`/api/meet/status/${requestId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (res.data.status === "accepted") {
+          clearInterval(interval);
+
+          // ✅ AUTO JOIN
+          navigate(`/call/${res.data.roomId}`);
+        }
+
+        if (res.data.status === "rejected") {
+          clearInterval(interval);
+          alert("Call rejected");
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }, 3000);
+  };
 
   if (loading) {
     return (
@@ -200,7 +251,9 @@ export default function StartupDetail() {
               </div>
               <div className="text-xs text-gray-500 mt-1 flex items-center justify-end">
                 <FaMapMarkerAlt className="mr-1 text-gray-400" />
-                <span>{startup.location || startup.address || "Location N/A"}</span>
+                <span>
+                  {startup.location || startup.address || "Location N/A"}
+                </span>
               </div>
             </div>
           </div>
@@ -312,7 +365,13 @@ export default function StartupDetail() {
                             </a>
                             <a
                               href={docUrl}
-                              download={(doc.document_name || doc.filename || "document").split("/").pop()}
+                              download={(
+                                doc.document_name ||
+                                doc.filename ||
+                                "document"
+                              )
+                                .split("/")
+                                .pop()}
                               className="px-3 py-1 text-xs font-semibold rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200"
                             >
                               Download
@@ -423,13 +482,10 @@ export default function StartupDetail() {
               <ChatPanel startupId={id} currentUser={user} />
               <button
                 type="button"
-                onClick={() => {
-                  const roomName = `startup-${id}`;
-                  navigate(`/call/${roomName}`);
-                }}
+                onClick={handleConnect}
                 className="w-full mt-2 px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700"
               >
-                Start Video Call
+                Request Video Call
               </button>
             </div>
           </div>
@@ -512,4 +568,3 @@ function formatRevenue(value) {
   }
   return `₹${value.toLocaleString("en-IN")}`;
 }
-
