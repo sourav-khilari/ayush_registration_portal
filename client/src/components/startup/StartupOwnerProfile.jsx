@@ -43,6 +43,7 @@ function StartupOwnerProfile() {
 
   useEffect(() => {
     loadData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const loadData = async () => {
@@ -120,7 +121,9 @@ function StartupOwnerProfile() {
       try {
         const updated = await DocumentAPI.list({ startup_id: startup._id })
         setDocuments(Array.isArray(updated?.documents) ? updated.documents : [])
-      } catch (_) {}
+      } catch {
+        void 0
+      }
     }, 4000)
     return () => clearInterval(id)
   }, [startup, documents])
@@ -169,7 +172,9 @@ function StartupOwnerProfile() {
       closed = true
       try {
         ws.close()
-      } catch (_) {}
+      } catch {
+        void 0
+      }
     }
   }, [token, startup?._id])
 

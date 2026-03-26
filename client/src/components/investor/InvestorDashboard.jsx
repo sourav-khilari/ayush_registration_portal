@@ -52,7 +52,9 @@ export default function InvestorDashboard() {
           last = v;
           loadData();
         }
-      } catch (_) {}
+      } catch {
+        void 0;
+      }
     };
     const id = setInterval(tick, 1500);
     const onFocus = () => loadData();

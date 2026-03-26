@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ApplicationAPI, DocumentAPI } from '../../api';
 import { toast } from 'react-toastify';
@@ -12,11 +12,7 @@ function ApplicationView() {
   const [replacingDocId, setReplacingDocId] = useState(null);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    loadApplication();
-  }, [id]);
-
-  const loadApplication = async () => {
+  const loadApplication = useCallback(async () => {
     try {
       setLoading(true);
       // Check if this is a virtual application (from documents without Application record)
@@ -36,7 +32,11 @@ function ApplicationView() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    loadApplication();
+  }, [loadApplication]);
 
   const handleReplaceDocument = async (docId, file) => {
     if (!file) {

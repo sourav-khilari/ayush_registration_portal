@@ -47,7 +47,7 @@ function LandingPage() {
   };
 
   // Home link should always navigate to "/"
-  const handleHomeClick = (e) => {
+  const handleHomeClick = () => {
     // Use Link for normal behavior — but we provide fallback if you ever use <a>
     navigate("/");
     // Optionally scroll to top

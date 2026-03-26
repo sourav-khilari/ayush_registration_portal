@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { AuthAPI } from "../api/index.js";
 
@@ -16,7 +17,7 @@ export function AuthProvider({ children }) {
         const profile = await AuthAPI.profile();
         if (!mounted) return;
         setUser(profile.user);
-      } catch (e) {
+      } catch {
         localStorage.removeItem("token");
         setToken(null);
       } finally {

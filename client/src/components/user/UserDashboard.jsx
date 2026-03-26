@@ -9,18 +9,11 @@ import {
   FaEdit,
   FaHome
 } from 'react-icons/fa'
-import { useAuth } from '../../context/AuthContext'
 import { AuthAPI } from '../../api'
 
 export default function UserDashboard() {
-  const { user } = useAuth()
   const [profile, setProfile] = useState(null)
-  const [form, setForm] = useState({})
-  const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
-  const [showProfile, setShowProfile] = useState(true)
-  const [showUpdate, setShowUpdate] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -29,42 +22,12 @@ export default function UserDashboard() {
         const p = await AuthAPI.profile()
         if (!mounted) return
         setProfile(p)
-        setForm({
-          name: p.name || '',
-          email: p.email || '',
-          phone_number: p.phone_number || '',
-          organization: p.organization || '',
-          investment_sector: p.investment_sector || '',
-          designation: p.designation || '',
-          department: p.department || '',
-          avatar_url: p.avatar_url || '',
-        })
       } catch (e) {
         setError(e.message || 'Failed to load profile')
       }
     })()
     return () => { mounted = false }
   }, [])
-
-  async function handleSave(e) {
-    e.preventDefault()
-    setError('')
-    setSuccess('')
-    if (!form.name?.trim() || !form.email?.trim()) {
-      setError('Name and Email are required')
-      return
-    }
-    setSaving(true)
-    try {
-      const updated = await AuthAPI.updateProfile(form)
-      setSuccess('Profile updated successfully')
-      setProfile((prev) => ({ ...prev, ...form }))
-    } catch (e) {
-      setError(e.message || 'Update failed')
-    } finally {
-      setSaving(false)
-    }
-  }
 
   if (error) return <div className="min-h-screen flex items-center justify-center text-red-600">{error}</div>
   if (!profile) return <div className="min-h-screen flex items-center justify-center">Loading...</div>

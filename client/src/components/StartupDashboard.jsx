@@ -20,7 +20,7 @@
  * - Investor view: /dashboard?mode=investor
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import PropTypes from "prop-types";
 import { useSearchParams } from "react-router-dom";
 import { getDashboard } from "../api/dashboard";
@@ -69,12 +69,7 @@ const StartupDashboard = ({ startupId }) => {
     };
   }, [startupId]);
 
-  useEffect(() => {
-    if (!resolvedStartupId) return;
-    fetchDashboardData();
-  }, [resolvedStartupId, mode]);
-
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -95,7 +90,12 @@ const StartupDashboard = ({ startupId }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [resolvedStartupId, mode]);
+
+  useEffect(() => {
+    if (!resolvedStartupId) return;
+    fetchDashboardData();
+  }, [resolvedStartupId, fetchDashboardData]);
 
   // Handle profile save - re-fetch dashboard data
   const handleProfileSave = () => {

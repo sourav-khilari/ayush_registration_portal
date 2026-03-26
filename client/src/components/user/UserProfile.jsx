@@ -1,10 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useAuth } from '../../context/AuthContext'
 import { AuthAPI } from '../../api'
 
 export default function UserProfile() {
-  const { user } = useAuth()
   const [profile, setProfile] = useState(null)
   const [error, setError] = useState("")
 

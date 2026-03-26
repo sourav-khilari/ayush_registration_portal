@@ -43,7 +43,6 @@ function StartupApplication() {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
-  const [userProfile, setUserProfile] = useState(null);
   const [requirementsState, setRequirementsState] = useState({
     loading: false,
     error: "",
@@ -112,7 +111,6 @@ function StartupApplication() {
 
   useEffect(() => {
     if (user) {
-      setUserProfile(user);
       setFormData((prev) => ({
         ...prev,
         founder_name: user.name || "",
@@ -601,7 +599,7 @@ function StartupApplication() {
             startupId = found._id || found.id || startupId;
           }
         }
-      } catch (err) {
+      } catch {
         // ignore mine failures
       }
 

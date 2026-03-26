@@ -48,6 +48,7 @@ export default function AyushGreenPage() {
         clearInterval(autoRefreshTimerRef.current);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // cleanup any timer when component unmounts

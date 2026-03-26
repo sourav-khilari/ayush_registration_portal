@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { StartupAPI } from '../../api'
 
 function SubmittedApplication() {
-  const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [startup, setStartup] = useState(null)

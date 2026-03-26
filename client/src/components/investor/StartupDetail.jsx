@@ -96,7 +96,9 @@ export default function StartupDetail() {
       // trigger investor dashboard to refresh summary
       try {
         localStorage.setItem("investments_refresh", String(Date.now()));
-      } catch (_) {}
+      } catch {
+        void 0;
+      }
     } catch (e) {
       console.error(e);
       setInvestMessage(e.message || "Failed to create investment.");
