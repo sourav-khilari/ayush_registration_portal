@@ -11,6 +11,7 @@ import GrowthInsights from './GrowthInsights'
 import TeamSection from './TeamSection'
 import MarketVision from './MarketVision'
 import FundingSection from './FundingSection'
+import MediaSection from './MediaSection'
 import ProfilePreview from './ProfilePreview'
 import { getStartupDashboard } from './startupApi'
 import { StartupAPI } from '../../api'
@@ -105,6 +106,45 @@ export default function StartupPage() {
     fetchStartupProfile(startupId)
   }
 
+  const handleMediaUploaded = useCallback((fileUrl, fileType) => {
+    if (!fileUrl) return
+
+    setDashboardData((prev) => {
+      if (!prev) return prev
+
+      const currentProfile = prev.profile || {}
+
+      if (fileType === 'video') {
+        return {
+          ...prev,
+          profile: {
+            ...currentProfile,
+            demoVideoUrl: fileUrl,
+          },
+        }
+      }
+
+      if (fileType === 'image') {
+        const existingImages = Array.isArray(currentProfile.galleryImages)
+          ? currentProfile.galleryImages
+          : []
+        const nextImages = existingImages.includes(fileUrl)
+          ? existingImages
+          : [...existingImages, fileUrl]
+
+        return {
+          ...prev,
+          profile: {
+            ...currentProfile,
+            galleryImages: nextImages,
+          },
+        }
+      }
+
+      return prev
+    })
+  }, [])
+
   // Render loading state
   if (loading && !dashboardData) {
     return (
@@ -168,6 +208,7 @@ export default function StartupPage() {
                 startupId={startupId}
                 initialData={dashboardData?.profile}
                 onSaveSuccess={handleSaveSuccess}
+                onMediaUploaded={handleMediaUploaded}
               />
 
               <MetricsForm
@@ -202,6 +243,14 @@ export default function StartupPage() {
 
           {/* ProfilePreview Component */}
           <ProfilePreview profile={dashboardData?.profile} />
+
+          <div className="mt-6">
+            <MediaSection
+              logoUrl={dashboardData?.profile?.logoUrl}
+              demoVideoUrl={dashboardData?.profile?.demoVideoUrl}
+              galleryImages={dashboardData?.profile?.galleryImages}
+            />
+          </div>
 
           <div className="mt-6 space-y-6">
             <div>

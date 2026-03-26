@@ -39,6 +39,16 @@ const StartupProfileSchema = new mongoose.Schema(
     marketSizeDescription: String,
     futurePlan: String,
     nextMilestone: String,
+    logoUrl: String,
+    demoVideoUrl: String,
+    galleryImages: [String],
+    demoVideoNote: String,
+    galleryImageNotes: [
+      {
+        fileUrl: String,
+        note: String,
+      },
+    ],
     visibility: {
       investors: {
         type: Boolean,

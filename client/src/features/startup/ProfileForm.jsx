@@ -1,6 +1,16 @@
 import React, { useState, useEffect } from 'react'
 import { FaSave, FaTimes } from 'react-icons/fa'
 import { saveStartupProfile } from './startupApi'
+import MediaUpload from './MediaUpload'
+
+const getErrorMessage = (error) => {
+  if (typeof error === 'string') return error
+  if (typeof error?.message === 'string') return error.message
+  if (typeof error?.response?.message === 'string') return error.response.message
+  if (typeof error?.response?.error === 'string') return error.response.error
+  if (error?.response?.error?.message) return error.response.error.message
+  return 'Failed to save profile'
+}
 
 /**
  * ProfileForm - Startup identity profile form
@@ -8,7 +18,7 @@ import { saveStartupProfile } from './startupApi'
  * Fields: name, pitch, sector, stage
  */
 
-export default function ProfileForm({ startupId, initialData, onSaveSuccess }) {
+export default function ProfileForm({ startupId, initialData, onSaveSuccess, onMediaUploaded }) {
   // Form state
   const [formData, setFormData] = useState({
     startupName: '',
@@ -20,6 +30,10 @@ export default function ProfileForm({ startupId, initialData, onSaveSuccess }) {
     marketSizeDescription: '',
     futurePlan: '',
     nextMilestone: '',
+    demoVideoUrl: '',
+    galleryImages: [],
+    demoVideoNote: '',
+    galleryImageNotes: [],
     team: [],
   })
 
@@ -64,6 +78,10 @@ export default function ProfileForm({ startupId, initialData, onSaveSuccess }) {
         marketSizeDescription: initialData.marketSizeDescription || '',
         futurePlan: initialData.futurePlan || '',
         nextMilestone: initialData.nextMilestone || '',
+        demoVideoUrl: initialData.demoVideoUrl || '',
+        galleryImages: Array.isArray(initialData.galleryImages) ? initialData.galleryImages : [],
+        demoVideoNote: initialData.demoVideoNote || '',
+        galleryImageNotes: Array.isArray(initialData.galleryImageNotes) ? initialData.galleryImageNotes : [],
         team: Array.isArray(initialData.team)
           ? initialData.team.map((member) => ({
               name: member?.name || '',
@@ -164,6 +182,46 @@ export default function ProfileForm({ startupId, initialData, onSaveSuccess }) {
     setSuccess(false)
   }
 
+  const handleMediaUploadSuccess = (fileUrl, fileType, note = '') => {
+    if (!fileUrl) return
+
+    setFormData((prev) => {
+      if (fileType === 'video') {
+        return {
+          ...prev,
+          demoVideoUrl: fileUrl,
+          demoVideoNote: note || prev.demoVideoNote,
+        }
+      }
+
+      if (fileType === 'image') {
+        const hasExistingImage = prev.galleryImages.includes(fileUrl)
+        const nextImages = hasExistingImage ? prev.galleryImages : [...prev.galleryImages, fileUrl]
+
+        const cleanedNote = note?.trim() || ''
+        const withoutCurrentNote = prev.galleryImageNotes.filter((item) => item.fileUrl !== fileUrl)
+        const nextNotes = cleanedNote
+          ? [...withoutCurrentNote, { fileUrl, note: cleanedNote }]
+          : withoutCurrentNote
+
+        return {
+          ...prev,
+          galleryImages: nextImages,
+          galleryImageNotes: nextNotes,
+        }
+      }
+
+      return prev
+    })
+
+    if (typeof onMediaUploaded === 'function') {
+      onMediaUploaded(fileUrl, fileType, note)
+    }
+
+    setError(null)
+    setSuccess(false)
+  }
+
   // Handle form submit
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -197,6 +255,10 @@ export default function ProfileForm({ startupId, initialData, onSaveSuccess }) {
         marketSizeDescription: formData.marketSizeDescription,
         futurePlan: formData.futurePlan,
         nextMilestone: formData.nextMilestone,
+        demoVideoUrl: formData.demoVideoUrl,
+        galleryImages: formData.galleryImages,
+        demoVideoNote: formData.demoVideoNote,
+        galleryImageNotes: formData.galleryImageNotes,
         team: formData.team.map((member) => ({
           name: member.name?.trim() || '',
           role: member.role?.trim() || '',
@@ -223,6 +285,10 @@ export default function ProfileForm({ startupId, initialData, onSaveSuccess }) {
         marketSizeDescription: '',
         futurePlan: '',
         nextMilestone: '',
+        demoVideoUrl: '',
+        galleryImages: [],
+        demoVideoNote: '',
+        galleryImageNotes: [],
         team: [],
       })
 
@@ -232,7 +298,7 @@ export default function ProfileForm({ startupId, initialData, onSaveSuccess }) {
       }
     } catch (err) {
       console.error('Error saving profile:', err)
-      setError(err.message || 'Failed to save profile')
+      setError(getErrorMessage(err))
     } finally {
       setLoading(false)
     }
@@ -547,6 +613,22 @@ export default function ProfileForm({ startupId, initialData, onSaveSuccess }) {
           </div>
         </div>
 
+        {/* Media Upload */}
+        <div className="space-y-3">
+          <h4 className="text-sm font-semibold text-gray-800">Media</h4>
+          <MediaUpload startupId={startupId} onUploadSuccess={handleMediaUploadSuccess} />
+          {formData.demoVideoUrl && (
+            <p className="text-xs text-gray-600">
+              Demo video uploaded: {formData.demoVideoUrl}
+            </p>
+          )}
+          {formData.galleryImages.length > 0 && (
+            <p className="text-xs text-gray-600">
+              Images uploaded: {formData.galleryImages.length}
+            </p>
+          )}
+        </div>
+
         {/* Action Buttons */}
         <div className="flex justify-end gap-3 pt-4">
           <button
@@ -562,6 +644,10 @@ export default function ProfileForm({ startupId, initialData, onSaveSuccess }) {
                 marketSizeDescription: '',
                 futurePlan: '',
                 nextMilestone: '',
+                demoVideoUrl: '',
+                galleryImages: [],
+                demoVideoNote: '',
+                galleryImageNotes: [],
                 team: [],
               })
               setTouched({})

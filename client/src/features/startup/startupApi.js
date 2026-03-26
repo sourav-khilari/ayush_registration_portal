@@ -61,6 +61,10 @@ export async function saveStartupProfile(startupId, data) {
     const marketSizeDescription = data?.marketSizeDescription ?? ''
     const futurePlan = data?.futurePlan ?? ''
     const nextMilestone = data?.nextMilestone ?? ''
+    const demoVideoUrl = data?.demoVideoUrl ?? ''
+    const galleryImages = Array.isArray(data?.galleryImages) ? data.galleryImages : []
+    const demoVideoNote = data?.demoVideoNote ?? ''
+    const galleryImageNotes = Array.isArray(data?.galleryImageNotes) ? data.galleryImageNotes : []
     const team = Array.isArray(data?.team)
       ? data.team.map((member) => ({
           name: member?.name || '',
@@ -85,6 +89,10 @@ export async function saveStartupProfile(startupId, data) {
       marketSizeDescription,
       futurePlan,
       nextMilestone,
+      demoVideoUrl,
+      galleryImages,
+      demoVideoNote,
+      galleryImageNotes,
       team,
     }
 

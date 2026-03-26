@@ -8,9 +8,10 @@ import {
   FaChartLine,
   FaBuilding,
   FaMapMarkerAlt,
+  FaImage,
 } from "react-icons/fa";
 import { useAuth } from "../../context/AuthContext";
-import { StartupAPI, InvestmentAPI } from "../../api";
+import { StartupAPI, InvestmentAPI, apiRequest } from "../../api";
 
 export default function InvestorDashboard() {
   const navigate = useNavigate();
@@ -31,6 +32,7 @@ export default function InvestorDashboard() {
     totalInvested: 0,
     activeDeals: 0,
   });
+  const [startupMedia, setStartupMedia] = useState({});
 
   useEffect(() => {
     // Only allow investors to access this dashboard
@@ -75,7 +77,38 @@ export default function InvestorDashboard() {
         InvestmentAPI.my().catch(() => ({ items: [] })), // tolerate if not yet implemented server-side
       ]);
 
-      setStartups(startupRes.items || []);
+      const startupItems = startupRes.items || [];
+      setStartups(startupItems);
+
+      const mediaEntries = await Promise.all(
+        startupItems.map(async (item) => {
+          try {
+            const dashboardRes = await apiRequest(`/dashboard/${item._id}?role=investor`, {
+              method: "GET",
+            });
+            const profile = dashboardRes?.data?.profile || {};
+            return [
+              item._id,
+              {
+                logoUrl: profile.logoUrl || "",
+                demoVideoUrl: profile.demoVideoUrl || "",
+                galleryImages: Array.isArray(profile.galleryImages) ? profile.galleryImages : [],
+              },
+            ];
+          } catch {
+            return [
+              item._id,
+              {
+                logoUrl: "",
+                demoVideoUrl: "",
+                galleryImages: [],
+              },
+            ];
+          }
+        })
+      );
+
+      setStartupMedia(Object.fromEntries(mediaEntries));
 
       const items = myInvestments.items || [];
       const totalInvested = items.reduce(
@@ -336,54 +369,65 @@ export default function InvestorDashboard() {
               No startups found for the selected filters.
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-100">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <Th>Startup</Th>
-                    <Th>Category</Th>
-                    <Th>Location</Th>
-                    <Th>Revenue</Th>
-                    <Th>Status</Th>
-                    <Th></Th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-100">
-                  {startups.map((s) => (
-                    <tr key={s._id} className="hover:bg-ayush-50/50">
-                      <Td>
-                        <div className="font-semibold text-gray-900">
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+              {startups.map((s) => {
+                const media = startupMedia[s._id] || {};
+                const heroImage = media.logoUrl || media.galleryImages?.[0] || "";
+
+                return (
+                  <div
+                    key={s._id}
+                    className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden"
+                  >
+                    <div className="h-44 bg-gray-100 flex items-center justify-center overflow-hidden">
+                      {heroImage ? (
+                        <img
+                          src={heroImage}
+                          alt={s.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="text-gray-400 flex flex-col items-center gap-2">
+                          <FaImage className="text-2xl" />
+                          <span className="text-xs">No Image</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="p-4 space-y-3">
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 line-clamp-1">
                           {s.name}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          Founder: {s.founder_name}
-                        </div>
-                      </Td>
-                      <Td className="capitalize">
-                        {s.startup_type || "—"}
-                      </Td>
-                      <Td className="flex items-center text-gray-700">
-                        <FaMapMarkerAlt className="mr-1 text-gray-400" />
-                        <span>{s.location || "N/A"}</span>
-                      </Td>
-                      <Td>{formatRevenue(s.revenue)}</Td>
-                      <Td>
+                        </h3>
+                        <p className="text-xs text-gray-500 mt-1 line-clamp-1">
+                          Founder: {s.founder_name || "N/A"}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-2 text-sm">
+                        <span className="capitalize text-gray-700">{s.startup_type || "—"}</span>
                         <StatusPill status={s.financial_status} />
-                      </Td>
-                      <Td>
-                        <button
-                          onClick={() =>
-                            navigate(`/investor/startups/${s._id}`)
-                          }
-                          className="px-4 py-2 text-sm font-semibold bg-ayush-600 text-white rounded-lg hover:bg-ayush-700"
-                        >
-                          View Details
-                        </button>
-                      </Td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </div>
+
+                      <div className="text-sm text-gray-700 flex items-center">
+                        <FaMapMarkerAlt className="mr-1 text-gray-400" />
+                        <span className="line-clamp-1">{s.location || s.address || "N/A"}</span>
+                      </div>
+
+                      <div className="text-sm font-semibold text-gray-900">
+                        Revenue: {formatRevenue(s.revenue)}
+                      </div>
+
+                      <button
+                        onClick={() => navigate(`/investor/startups/${s._id}`)}
+                        className="w-full px-4 py-2 text-sm font-semibold bg-ayush-600 text-white rounded-lg hover:bg-ayush-700"
+                      >
+                        Open Read-Only Preview
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -405,25 +449,6 @@ function SummaryCard({ label, value, icon }) {
         <div className="text-xl font-bold text-gray-900 mt-1">{value}</div>
       </div>
     </div>
-  );
-}
-
-function Th({ children }) {
-  return (
-    <th
-      scope="col"
-      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-    >
-      {children}
-    </th>
-  );
-}
-
-function Td({ children, className = "" }) {
-  return (
-    <td className={`px-6 py-4 whitespace-nowrap text-sm ${className}`}>
-      {children}
-    </td>
   );
 }
 

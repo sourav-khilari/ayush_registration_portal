@@ -22,6 +22,7 @@ import investmentRoutes from "./routes/investmentRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js"; // ✅ Dashboard
 import conversationRoutes from "./routes/conversationRoutes.js"; // ✅ Chat/Video
 import meetingRoutes from "./routes/meetingRoutes.js";
+import mediaUploadRoutes from "./routes/mediaUploadRoutes.js";
 
 async function createApp() {
   const app = express();
@@ -35,6 +36,11 @@ async function createApp() {
   app.use(bodyParser.urlencoded({ extended: true }));
 
   // Serve uploaded files statically
+  app.use(
+    "/uploads",
+    express.static(path.join(__dirname, "..", "uploads")),
+  );
+
   app.use(
     "/uploads",
     express.static(
@@ -81,6 +87,7 @@ async function createApp() {
   app.use("/api", dashboardRoutes); // ✅ Dashboard
   app.use("/api/conversations", conversationRoutes); // ✅ Chat/Video
   app.use("/api/meet", meetingRoutes);
+  app.use(mediaUploadRoutes);
   // -------------------
   // Health Check Route
   // -------------------
