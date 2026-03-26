@@ -48,6 +48,10 @@ export function attachSignalingServer(httpServer) {
         .filter(Boolean);
       peers.add(ws);
 
+      console.info(
+        `[ws] joined room=${room} user=${ws.userId} listenOnly=${listenOnly} connected=${peers.size}`,
+      );
+
       // Send join ack + existing peers so client can decide who should create offer.
       safeSend(ws, { type: "joined", room, userId: ws.userId, peers: existingUserIds });
 
@@ -99,9 +103,17 @@ export function attachSignalingServer(httpServer) {
             }
           }
           if (peers.size === 0) rooms.delete(room);
+          console.info(
+            `[ws] left room=${room} user=${ws.userId} listenOnly=${ws.listenOnly} connected=${peers.size}`,
+          );
+        } else {
+          console.info(
+            `[ws] left room=${room} user=${ws.userId} listenOnly=${ws.listenOnly} connected=0`,
+          );
         }
       });
     } catch (e) {
+      console.warn(`[ws] connection rejected: ${e.message}`);
       try {
         ws.send(JSON.stringify({ type: "error", message: e.message }));
       } catch (_) {}

@@ -1,6 +1,7 @@
 import "dotenv/config";
 import mongoose from "mongoose";
 import createApp from "./src/app.js";
+import { attachSignalingServer } from "./src/webrtc/signalingServer.js";
 import {
   handleUnhandledRejection,
   handleUncaughtException,
@@ -27,6 +28,7 @@ mongoose
 
     const app = await createApp();
     server = http.createServer(app);
+    attachSignalingServer(server);
 
     server.on("error", (err) => {
       if (err && err.code === "EADDRINUSE") {
