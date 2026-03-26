@@ -10,10 +10,20 @@ import {
   FaPhone,
 } from "react-icons/fa";
 import { useAuth } from "../../context/AuthContext";
-import { DocumentAPI, InvestmentAPI, StartupAPI } from "../../api";
+import { DocumentAPI, InvestmentAPI, StartupAPI, apiRequest } from "../../api";
 import ChatPanel from "../common/ChatPanel";
 import FinancialMetricsSection from "../startup/FinancialMetricsSection";
 import { sendRequest } from "../../api/meetApi";
+import ProfilePreview from "../../features/startup/ProfilePreview";
+import MediaSection from "../../features/startup/MediaSection";
+import MetricsHistory from "../../features/startup/MetricsHistory";
+import KPIPreview from "../../features/startup/KPIPreview";
+import RevenueUsersChart from "../../features/startup/RevenueUsersChart";
+import UnitEconomics from "../../features/startup/UnitEconomics";
+import GrowthInsights from "../../features/startup/GrowthInsights";
+import TeamSection from "../../features/startup/TeamSection";
+import MarketVision from "../../features/startup/MarketVision";
+import FundingSection from "../../features/startup/FundingSection";
 
 export default function StartupDetail() {
   const { id } = useParams();
@@ -24,6 +34,7 @@ export default function StartupDetail() {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [dashboardPreview, setDashboardPreview] = useState(null);
 
   const getDocumentUrl = (doc) => {
     if (!doc?.fileUrl) return null;
@@ -56,9 +67,15 @@ export default function StartupDetail() {
           StartupAPI.get(id),
           DocumentAPI.list({ startup_id: id }).catch(() => ({ items: [] })),
         ]);
+
+        const dashboardRes = await apiRequest(`/dashboard/${id}?role=investor`, {
+          method: "GET",
+        }).catch(() => null);
+
         if (!mounted) return;
         setStartup(s);
         setDocuments(docRes.items || docRes.documents || []);
+        setDashboardPreview(dashboardRes?.data || null);
       } catch (e) {
         console.error(e);
         setError(e.message || "Failed to load startup");
@@ -324,6 +341,81 @@ export default function StartupDetail() {
                   value={startup.website || "Not provided"}
                 />
               </div>
+            </div>
+
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Startup Dashboard Preview
+                </h2>
+                <span className="text-xs px-2 py-1 rounded bg-amber-100 text-amber-800 font-medium">
+                  Read Only
+                </span>
+              </div>
+
+              {dashboardPreview ? (
+                <div className="space-y-6">
+                  <ProfilePreview
+                    profile={{
+                      ...(dashboardPreview?.profile || {}),
+                      startupName:
+                        dashboardPreview?.profile?.startupName ||
+                        startup?.name ||
+                        "",
+                      sector:
+                        dashboardPreview?.profile?.sector ||
+                        startup?.startup_type ||
+                        "",
+                    }}
+                  />
+
+                  <MediaSection
+                    logoUrl={dashboardPreview?.profile?.logoUrl}
+                    demoVideoUrl={dashboardPreview?.profile?.demoVideoUrl}
+                    galleryImages={dashboardPreview?.profile?.galleryImages}
+                  />
+
+                  <MetricsHistory
+                    revenueSeries={dashboardPreview?.series?.revenueSeries}
+                    usersSeries={dashboardPreview?.series?.usersSeries}
+                  />
+
+                  <KPIPreview kpis={dashboardPreview?.kpis} />
+
+                  {dashboardPreview?.series && (
+                    <RevenueUsersChart
+                      revenueSeries={dashboardPreview?.series?.revenueSeries}
+                      usersSeries={dashboardPreview?.series?.usersSeries}
+                    />
+                  )}
+
+                  {dashboardPreview?.unitEconomics && (
+                    <UnitEconomics unitEconomics={dashboardPreview?.unitEconomics} />
+                  )}
+
+                  <GrowthInsights
+                    insights={dashboardPreview?.insights}
+                    insightsSource={dashboardPreview?.insightsSource}
+                  />
+
+                  <TeamSection team={dashboardPreview?.profile?.team} />
+
+                  <MarketVision
+                    marketSizeDescription={dashboardPreview?.profile?.marketSizeDescription}
+                    futurePlan={dashboardPreview?.profile?.futurePlan}
+                    nextMilestone={dashboardPreview?.profile?.nextMilestone}
+                  />
+
+                  <FundingSection
+                    fundingAsk={dashboardPreview?.profile?.fundingAsk}
+                    equityOfferedPercent={dashboardPreview?.profile?.equityOfferedPercent}
+                  />
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">
+                  Dashboard preview is not available for this startup yet.
+                </p>
+              )}
             </div>
 
             <div className="bg-white rounded-2xl shadow-lg p-6">
