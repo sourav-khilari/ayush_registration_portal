@@ -21,6 +21,7 @@ import productRoutes from "./routes/productRoutes.js";
 import investmentRoutes from "./routes/investmentRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js"; // ✅ Dashboard
 import conversationRoutes from "./routes/conversationRoutes.js"; // ✅ Chat/Video
+import meetingRoutes from "./routes/meetingRoutes.js";
 
 async function createApp() {
   const app = express();
@@ -60,6 +61,7 @@ async function createApp() {
     "YogaPoseFeedback",
     "StartupProfile",
     "MetricEntry",
+    "MeetingRequest",
   ];
 
   for (const modelName of modelNames) {
@@ -78,7 +80,7 @@ async function createApp() {
   app.use("/api/investments", investmentRoutes);
   app.use("/api", dashboardRoutes); // ✅ Dashboard
   app.use("/api/conversations", conversationRoutes); // ✅ Chat/Video
-
+  app.use("/api/meet", meetingRoutes);
   // -------------------
   // Health Check Route
   // -------------------

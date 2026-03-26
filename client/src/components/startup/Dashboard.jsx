@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { StartupAPI } from "../../api";
+import MeetingRequests from "../common/MeetingRequests";
 import {
   FaLeaf,
   FaUser,
@@ -185,6 +186,9 @@ function Dashboard() {
           </div>
         </div>
 
+        {/* Incoming Meeting Requests */}
+        <MeetingRequests />
+
         {/* Status Overview */}
         <div className="bg-white rounded-lg shadow-lg p-8">
           <h3 className="text-2xl font-bold text-gray-900 mb-6">
@@ -210,8 +214,8 @@ function Dashboard() {
                 {startup?.status
                   ? startup.status.replace("_", " ").toUpperCase()
                   : profileComplete
-                  ? "Ready to Apply"
-                  : "Profile Required"}
+                    ? "Ready to Apply"
+                    : "Profile Required"}
               </p>
               {startup?.status_updated_at && (
                 <p className="mt-2 text-xs text-gray-500">
@@ -301,4 +305,3 @@ function Dashboard() {
 }
 
 export default Dashboard;
-
