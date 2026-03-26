@@ -11,6 +11,7 @@
 
 import StartupProfile from "../models/StartupProfile.js";
 import MetricEntry from "../models/MetricEntry.js";
+import { getAIInsightWithFallback } from "../utils/aiInsightService.js";
 
 /**
  * Compute attraction score based on profile and metrics.
@@ -308,6 +309,64 @@ async function assembleDashboardData(startupId, role) {
       profileData.visibility = profile.visibility;
     }
 
+    let insights = generateGrowthInsight(metrics, kpis);
+    let insightsSource = "fallback";
+
+    if (process.env.OPENAI_API_KEY || process.env.HUGGINGFACE_API_TOKEN) {
+      try {
+        const aiPrompt =
+          "Generate maximum 3 concise startup growth insights as bullet points based on the provided KPI and monthly trend data. Focus on revenue trend, user growth momentum, and conversion quality.";
+
+        const aiData = JSON.stringify(
+          {
+            startupId,
+            role,
+            kpis,
+            unitEconomics: computeUnitEconomics(metrics),
+            series,
+          },
+          null,
+          2
+        );
+
+        const aiResult = await getAIInsightWithFallback({
+          prompt: aiPrompt,
+          data: aiData,
+        });
+
+        const parsedInsights = String(aiResult?.insight || "")
+          .split("\n")
+          .map((line) => line.replace(/^\s*[-*\d.)]+\s*/, "").trim())
+          .filter(Boolean)
+          .slice(0, 3);
+
+        if (parsedInsights.length > 0) {
+          insights = parsedInsights;
+          insightsSource = aiResult?.provider || "ai";
+        }
+      } catch (aiError) {
+        console.error("[AI_INSIGHTS_ERROR] Failed to generate AI insights.");
+        console.error("[AI_INSIGHTS_ERROR] Context:", {
+          startupId,
+          role,
+          hasOpenAIKey: Boolean(process.env.OPENAI_API_KEY),
+          hasHuggingFaceKey: Boolean(process.env.HUGGINGFACE_API_TOKEN),
+          model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+          baseUrl: process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
+          hfModel: process.env.HUGGINGFACE_MODEL || "deepseek-ai/DeepSeek-R1:fastest",
+          hfBaseUrl: process.env.HUGGINGFACE_BASE_URL || "https://router.huggingface.co",
+        });
+        console.error("[AI_INSIGHTS_ERROR] Message:", aiError?.message || aiError);
+        if (aiError?.stack) {
+          console.error("[AI_INSIGHTS_ERROR] Stack:", aiError.stack);
+        }
+        if (aiError?.response) {
+          console.error("[AI_INSIGHTS_ERROR] Response:", aiError.response);
+        }
+        console.warn("[AI_INSIGHTS_ERROR] Using fallback insights.");
+      }
+    }
+
     // Assemble final response
     const dashboardData = {
       profile: profileData,
@@ -315,7 +374,8 @@ async function assembleDashboardData(startupId, role) {
       series,
       attractionScore: totalScore,
       scoreBreakdown: breakdown,
-      insights: generateGrowthInsight(metrics, kpis),
+      insights,
+      insightsSource,
       unitEconomics: computeUnitEconomics(metrics),
     };
 
