@@ -244,7 +244,7 @@ function Dashboard() {
           </h3>
           <div className="grid md:grid-cols-5 gap-4">
             <Link
-              to="/startup-dashboard"
+              to="/startup-profile"
               className="p-4 bg-gradient-to-br from-purple-50 to-blue-50 hover:from-purple-100 hover:to-blue-100 rounded-lg text-center transition-colors border border-purple-200"
             >
               <FaChartLine className="text-2xl text-purple-600 mx-auto mb-2" />
@@ -255,7 +255,7 @@ function Dashboard() {
             </Link>
 
             <Link
-              to="/StartupOwner/startup-profile"
+              to="/StartupOwner/complete-profile"
               className="p-4 bg-ayush-50 hover:bg-ayush-100 rounded-lg text-center transition-colors"
             >
               <FaUser className="text-2xl text-ayush-600 mx-auto mb-2" />

@@ -85,7 +85,9 @@ export default function InvestorDashboard() {
         {
           logoUrl: item.logoUrl || "",
           demoVideoUrl: item.demoVideoUrl || "",
-          galleryImages: Array.isArray(item.galleryImages) ? item.galleryImages : [],
+          galleryImages: Array.isArray(item.galleryImages)
+            ? item.galleryImages
+            : [],
         },
       ]);
       setStartupMedia(Object.fromEntries(mediaEntries));
@@ -93,10 +95,10 @@ export default function InvestorDashboard() {
       const items = myInvestments.items || [];
       const totalInvested = items.reduce(
         (sum, inv) => sum + (inv.amount || 0),
-        0
+        0,
       );
       const activeDeals = items.filter(
-        (inv) => inv.status === "pending" || inv.status === "completed"
+        (inv) => inv.status === "pending" || inv.status === "completed",
       ).length;
       setInvestmentSummary({
         totalInvested,
@@ -274,18 +276,14 @@ export default function InvestorDashboard() {
               type="number"
               placeholder="Min Revenue"
               value={filters.minRevenue}
-              onChange={(e) =>
-                handleFilterChange("minRevenue", e.target.value)
-              }
+              onChange={(e) => handleFilterChange("minRevenue", e.target.value)}
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ayush-500"
             />
             <input
               type="number"
               placeholder="Max Revenue"
               value={filters.maxRevenue}
-              onChange={(e) =>
-                handleFilterChange("maxRevenue", e.target.value)
-              }
+              onChange={(e) => handleFilterChange("maxRevenue", e.target.value)}
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ayush-500"
             />
 
@@ -295,9 +293,7 @@ export default function InvestorDashboard() {
                 type="text"
                 placeholder="Location"
                 value={filters.location}
-                onChange={(e) =>
-                  handleFilterChange("location", e.target.value)
-                }
+                onChange={(e) => handleFilterChange("location", e.target.value)}
                 className="flex-1 outline-none text-sm"
               />
             </div>
@@ -352,7 +348,8 @@ export default function InvestorDashboard() {
             <div className="p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
               {startups.map((s) => {
                 const media = startupMedia[s._id] || {};
-                const heroImage = media.logoUrl || media.galleryImages?.[0] || "";
+                const heroImage =
+                  media.logoUrl || media.galleryImages?.[0] || "";
 
                 return (
                   <div
@@ -385,13 +382,17 @@ export default function InvestorDashboard() {
                       </div>
 
                       <div className="flex items-center justify-between gap-2 text-sm">
-                        <span className="capitalize text-gray-700">{s.startup_type || "—"}</span>
+                        <span className="capitalize text-gray-700">
+                          {s.startup_type || "—"}
+                        </span>
                         <StatusPill status={s.financial_status} />
                       </div>
 
                       <div className="text-sm text-gray-700 flex items-center">
                         <FaMapMarkerAlt className="mr-1 text-gray-400" />
-                        <span className="line-clamp-1">{s.location || s.address || "N/A"}</span>
+                        <span className="line-clamp-1">
+                          {s.location || s.address || "N/A"}
+                        </span>
                       </div>
 
                       <div className="text-sm font-semibold text-gray-900">
@@ -469,4 +470,3 @@ function formatRevenue(value) {
   }
   return `₹${value.toLocaleString("en-IN")}`;
 }
-
