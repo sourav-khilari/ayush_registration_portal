@@ -52,7 +52,7 @@ async function handleUploadDocument(req, res) {
     const { fileUrl, username } = await uploadToLocal(
       file.path,
       file.originalname,
-      req?.user?.email || req.user?.name || req.user?.username
+      req?.user?.email || req.user?.name || req.user?.username,
     );
 
     // Step 2: Convert to page images (for OCR)
@@ -62,7 +62,7 @@ async function handleUploadDocument(req, res) {
       pageImages = await processDocumentForImages(
         storedAbsPath,
         file.originalname,
-        username
+        username,
       );
     } catch (err) {
       console.error("Page image processing failed:", err);
@@ -122,7 +122,7 @@ async function handleUploadDocument(req, res) {
         } catch (err) {
           console.error(
             "Failed to send failure email (OCR failed):",
-            err.message
+            err.message,
           );
         }
 
@@ -184,7 +184,7 @@ async function handleUploadDocument(req, res) {
             obj &&
             obj[k] !== undefined &&
             obj[k] !== null &&
-            String(obj[k]).trim() !== ""
+            String(obj[k]).trim() !== "",
         );
       }
 
@@ -331,7 +331,7 @@ async function handleUploadDocument(req, res) {
 
         default:
           console.log(
-            `ℹ️ Verification not supported for document type: ${doc_category_declared}`
+            `ℹ️ Verification not supported for document type: ${doc_category_declared}`,
           );
           doc.verified_status = "rejected";
           await doc.save();
@@ -411,7 +411,7 @@ async function handleUploadDocument(req, res) {
         } catch (err) {
           console.error(
             "Failed to send failure email (auto verification result):",
-            err.message
+            err.message,
           );
         }
       }
@@ -427,7 +427,7 @@ async function handleUploadDocument(req, res) {
       } catch (emailErr) {
         console.error(
           "Failed to send failure email (OCR/verification catch):",
-          emailErr.message
+          emailErr.message,
         );
       }
     }
@@ -486,7 +486,7 @@ async function listDocuments(req, res) {
   const docs = await Document.find(filter)
     .sort({ createdAt: -1 })
     .select(
-      "document_name filename fileUrl file_size doc_category_declared verified_status ocr_status extracted_fields createdAt"
+      "document_name filename fileUrl file_size doc_category_declared verified_status ocr_status extracted_fields createdAt",
     )
     .lean();
 
@@ -565,7 +565,7 @@ async function setDocumentVerificationImpl(req, res) {
       } catch (err) {
         console.error(
           "Failed to send failure email (manual rejection):",
-          err.message
+          err.message,
         );
       }
     }
@@ -605,7 +605,7 @@ async function replaceRejectedDocument(req, res) {
 
   if (doc.verified_status !== "rejected") {
     throw new ValidationError(
-      "Document can only be replaced if it is rejected"
+      "Document can only be replaced if it is rejected",
     );
   }
 
@@ -626,7 +626,7 @@ async function replaceRejectedDocument(req, res) {
     const { fileUrl, username } = await uploadToLocal(
       file.path,
       file.originalname,
-      req?.user?.email || req.user?.name || req.user?.username
+      req?.user?.email || req.user?.name || req.user?.username,
     );
 
     let pageImages = [];
@@ -635,7 +635,7 @@ async function replaceRejectedDocument(req, res) {
       pageImages = await processDocumentForImages(
         storedAbsPath,
         file.originalname,
-        username
+        username,
       );
     } catch (err) {
       console.error("Page image processing failed:", err);
@@ -661,7 +661,7 @@ async function replaceRejectedDocument(req, res) {
 
       const { ocrResults, extractedData } = await processOCRAndExtract(
         pageImages,
-        doc.doc_category_declared
+        doc.doc_category_declared,
       );
 
       if (extractedData.ocr_failed || ocrResults.length === 0) {
@@ -705,7 +705,7 @@ async function handleEmailLookup(req, res) {
   const last4 = String(masked_id).slice(-4);
   const windowMinutes = parseInt(
     process.env.EMAIL_LOOKUP_WINDOW_MINUTES || "10",
-    10
+    10,
   );
   const since = new Date(Date.now() - windowMinutes * 60 * 1000);
 
@@ -718,7 +718,7 @@ async function handleEmailLookup(req, res) {
 
   if (!doc)
     throw new NotFoundError(
-      "No recently verified document found for provided id"
+      "No recently verified document found for provided id",
     );
 
   const lookupBase =
@@ -879,7 +879,7 @@ async function handleOaky(req, res) {
       ? docs
           .map(
             (d) =>
-              `${d.category || d.doc_category || "doc"}: ${d.verified_status || d.status || "unknown"}`
+              `${d.category || d.doc_category || "doc"}: ${d.verified_status || d.status || "unknown"}`,
           )
           .join("\n")
       : "No document details provided.");
@@ -913,12 +913,12 @@ export const getRequirementsHandler = asyncHandler(getRequirements);
 
 // keep the external export name unchanged — but point it to the renamed impl
 export const setDocumentVerificationHandler = asyncHandler(
-  setDocumentVerificationImpl
+  setDocumentVerificationImpl,
 );
 
 export const emailLookupHandler = asyncHandler(handleEmailLookup);
 export const verifyOtpHandler = asyncHandler(handleVerifyOtp);
 export const replaceRejectedDocumentHandler = asyncHandler(
-  replaceRejectedDocument
+  replaceRejectedDocument,
 );
 export const oakyHandler = asyncHandler(handleOaky);
