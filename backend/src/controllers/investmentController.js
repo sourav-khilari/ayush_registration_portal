@@ -1,6 +1,7 @@
 import Investment from "../models/Investment.js";
 import Investor from "../models/Investor.js";
 import Startup from "../models/Startup.js";
+import { sendEmail } from "../utils/sendEmail.js";
 
 /**
  * Ensure there is an Investor document linked to the current user.
@@ -54,6 +55,21 @@ export async function createInvestment(req, res) {
       investment_type,
       meta,
     });
+
+    // Notify startup owner (best-effort)
+    try {
+      await sendEmail({
+        email: startup.email,
+        subject: `New investment interest for ${startup.name}`,
+        message: `An investor submitted an investment of ₹${amount} for your startup ${startup.name}.`,
+        html: `<p>Hello ${startup.founder_name || "Founder"},</p>
+              <p>You received a new investment interest for <strong>${startup.name}</strong>.</p>
+              <p><strong>Amount:</strong> ₹${Number(amount).toLocaleString("en-IN")}<br/>
+                 <strong>Type:</strong> ${investment_type || "—"}<br/>
+                 <strong>Stake %:</strong> ${stake_percentage ?? "—"}</p>
+              <p>Please login to the AYUSH portal to view details.</p>`,
+      });
+    } catch (_) {}
 
     return res
       .status(201)

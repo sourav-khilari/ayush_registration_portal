@@ -19,6 +19,8 @@ import {
   FaTrash,
   FaSave,
   FaLock,
+  FaDownload,
+  FaExclamationTriangle,
 } from "react-icons/fa";
 import { StartupAPI } from "../../api";
 
@@ -52,6 +54,9 @@ export default function FinancialMetricsSection({
   const [saving, setSaving] = useState(false);
   const [barChart, setBarChart] = useState(null);
   const [barChartError, setBarChartError] = useState("");
+  const [alertsData, setAlertsData] = useState([]);
+  const [forecastData, setForecastData] = useState([]);
+  const [loadingInsights, setLoadingInsights] = useState(false);
   const [form, setForm] = useState({
     revenue: "",
     profit_loss: "",
@@ -105,6 +110,57 @@ export default function FinancialMetricsSection({
       mounted = false;
     };
   }, [startup?._id]);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadInsights() {
+      if (!startup?._id) return;
+      setLoadingInsights(true);
+      try {
+        const [alertsRes, forecastRes] = await Promise.all([
+          StartupAPI.financialAlerts(startup._id).catch(() => ({ alerts: [] })),
+          StartupAPI.financialForecast(startup._id).catch(() => ({ forecast: [] })),
+        ]);
+        if (!mounted) return;
+        setAlertsData(Array.isArray(alertsRes?.alerts) ? alertsRes.alerts : []);
+        setForecastData(Array.isArray(forecastRes?.forecast) ? forecastRes.forecast : []);
+      } finally {
+        if (mounted) setLoadingInsights(false);
+      }
+    }
+    loadInsights();
+    return () => {
+      mounted = false;
+    };
+  }, [startup?._id]);
+
+  const handleExport = async (format) => {
+    if (!startup?._id) return;
+    try {
+      const token = localStorage.getItem("token");
+      const apiBase = import.meta.env.VITE_API_BASE || "/api";
+      const resp = await fetch(
+        `${apiBase}/startups/${startup._id}/analytics/export?format=${encodeURIComponent(format)}`,
+        {
+          method: "GET",
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        },
+      );
+      if (!resp.ok) throw new Error(`Export failed (${resp.status})`);
+      const blob = await resp.blob();
+      const ext = format === "pdf" ? "pdf" : "csv";
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `financial-analytics-${startup._id}.${ext}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
@@ -241,13 +297,29 @@ export default function FinancialMetricsSection({
             <FaLock className="mr-2" /> Read-only
           </span>
         ) : !editMode ? (
-          <button
-            type="button"
-            onClick={() => setEditMode(true)}
-            className="text-sm font-semibold px-4 py-2 rounded-lg bg-ayush-600 text-white hover:bg-ayush-700"
-          >
-            Edit Metrics
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => handleExport("csv")}
+              className="text-sm font-semibold px-3 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 inline-flex items-center"
+            >
+              <FaDownload className="mr-2" /> CSV
+            </button>
+            <button
+              type="button"
+              onClick={() => handleExport("pdf")}
+              className="text-sm font-semibold px-3 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 inline-flex items-center"
+            >
+              <FaDownload className="mr-2" /> PDF
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditMode(true)}
+              className="text-sm font-semibold px-4 py-2 rounded-lg bg-ayush-600 text-white hover:bg-ayush-700"
+            >
+              Edit Metrics
+            </button>
+          </div>
         ) : (
           <div className="flex gap-2">
             <button
@@ -264,6 +336,20 @@ export default function FinancialMetricsSection({
               className="inline-flex items-center px-4 py-2 text-sm font-semibold rounded-lg bg-ayush-600 text-white hover:bg-ayush-700 disabled:opacity-60"
             >
               <FaSave className="mr-2" /> {saving ? "Saving…" : "Save"}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleExport("csv")}
+              className="text-sm font-semibold px-3 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 inline-flex items-center"
+            >
+              <FaDownload className="mr-2" /> CSV
+            </button>
+            <button
+              type="button"
+              onClick={() => handleExport("pdf")}
+              className="text-sm font-semibold px-3 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 inline-flex items-center"
+            >
+              <FaDownload className="mr-2" /> PDF
             </button>
           </div>
         )}
@@ -417,6 +503,42 @@ export default function FinancialMetricsSection({
         </div>
       ) : (
         <>
+          <div className="grid md:grid-cols-2 gap-4 mb-6">
+            <div className="p-4 rounded-xl bg-amber-50 border border-amber-100">
+              <div className="text-xs uppercase tracking-wide text-amber-700">Alerts</div>
+              {loadingInsights ? (
+                <p className="text-sm text-amber-800 mt-2">Checking financial alerts…</p>
+              ) : alertsData.length ? (
+                <ul className="mt-2 space-y-2">
+                  {alertsData.map((a, idx) => (
+                    <li key={`${a.code}-${idx}`} className="text-sm text-amber-900 flex items-start">
+                      <FaExclamationTriangle className="mr-2 mt-0.5" />
+                      <span>
+                        <strong>{a.title}:</strong> {a.message}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-emerald-700 mt-2">No critical alerts.</p>
+              )}
+            </div>
+            <div className="p-4 rounded-xl bg-blue-50 border border-blue-100">
+              <div className="text-xs uppercase tracking-wide text-blue-700">Runway Forecast (6 months)</div>
+              {forecastData.length ? (
+                <div className="mt-2 space-y-1">
+                  {forecastData.slice(0, 3).map((f) => (
+                    <p key={f.month} className="text-sm text-blue-900">
+                      M{f.month}: Rev {formatCurrency(f.projected_revenue)} | Burn {formatCurrency(f.projected_burn)} | Net {formatCurrency(f.projected_net)}
+                    </p>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-blue-800 mt-2">Forecast unavailable.</p>
+              )}
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
             <MetricCard label="Revenue" value={formatCurrency(startup?.revenue)} />
             <MetricCard label="Profit / Loss" value={formatCurrency(startup?.profit_loss)} />

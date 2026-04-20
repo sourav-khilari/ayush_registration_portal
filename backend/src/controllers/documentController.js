@@ -418,7 +418,8 @@ async function handleUploadDocument(req, res) {
     } catch (err) {
       console.error("OCR or Verification error:", err);
       doc.ocr_status = "failed";
-      doc.verified_status = "failed";
+      // Keep verification status within enum; OCR failure is not a verification result.
+      doc.verified_status = "error";
       await doc.save();
 
       // send failure email for OCR/verification error

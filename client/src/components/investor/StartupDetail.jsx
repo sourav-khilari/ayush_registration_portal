@@ -51,6 +51,9 @@ export default function StartupDetail() {
   });
   const [investing, setInvesting] = useState(false);
   const [investMessage, setInvestMessage] = useState("");
+  const [meetingTitle, setMeetingTitle] = useState("");
+  const [meetingSlots, setMeetingSlots] = useState(["", "", ""]);
+  const [requestingMeeting, setRequestingMeeting] = useState(false);
 
   useEffect(() => {
     // Restrict access: only investors can view this page
@@ -135,17 +138,36 @@ export default function StartupDetail() {
         startup?.user ||
         startup?.createdBy;
 
-      const res = await sendRequest(receiverId, token);
+      const slots = meetingSlots.filter(Boolean);
+      if (!slots.length) {
+        alert("Please select at least one meeting slot");
+        return;
+      }
+
+      setRequestingMeeting(true);
+      const res = await sendRequest(
+        {
+          receiverId,
+          startupId: id,
+          title: meetingTitle || `Meeting with ${startup?.name || "startup"}`,
+          proposed_slots: slots,
+          duration_minutes: 30,
+          timezone: "Asia/Kolkata",
+        },
+        token,
+      );
 
       const requestId = res.data._id;
 
-      alert("Waiting for acceptance...");
+      alert("Meeting request sent. Founder will accept a slot. You will receive an email calendar invite.");
 
       // 👇 START POLLING
       checkStatus(requestId);
     } catch (err) {
       console.error(err);
       alert("Failed to send request");
+    } finally {
+      setRequestingMeeting(false);
     }
   };
   // ✅ ADD HERE (above or below handleConnect)
@@ -160,9 +182,9 @@ export default function StartupDetail() {
 
         if (res.data.status === "accepted") {
           clearInterval(interval);
-
-          // ✅ AUTO JOIN
-          navigate(`/call/${res.data.roomId}`);
+          const meetLink = res.data.googleMeetLink || "https://meet.google.com/new";
+          alert(`Meeting accepted. Join using Google Meet link sent to email.\n${meetLink}`);
+          window.open(meetLink, "_blank", "noopener,noreferrer");
         }
 
         if (res.data.status === "rejected") {
@@ -572,12 +594,43 @@ export default function StartupDetail() {
                 Connect with Founder
               </h2>
               <ChatPanel startupId={id} currentUser={user} />
+              <div className="border border-gray-200 rounded-lg p-3">
+                <div className="text-sm font-semibold text-gray-900 mb-2">
+                  Schedule a meeting (propose time slots)
+                </div>
+                <input
+                  type="text"
+                  value={meetingTitle}
+                  onChange={(e) => setMeetingTitle(e.target.value)}
+                  placeholder="Meeting title (optional)"
+                  className="w-full mb-2 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                />
+                {meetingSlots.map((v, idx) => (
+                  <input
+                    key={idx}
+                    type="datetime-local"
+                    value={v}
+                    onChange={(e) =>
+                      setMeetingSlots((prev) => {
+                        const next = [...prev];
+                        next[idx] = e.target.value;
+                        return next;
+                      })
+                    }
+                    className="w-full mb-2 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  />
+                ))}
+                <p className="text-[11px] text-gray-500">
+                  Founder will accept one slot. You’ll get an email calendar invite (.ics).
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={handleConnect}
-                className="w-full mt-2 px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700"
+                disabled={requestingMeeting}
+                className="w-full mt-2 px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700 disabled:opacity-60"
               >
-                Request Video Call
+                {requestingMeeting ? "Sending..." : "Request Meeting"}
               </button>
             </div>
           </div>

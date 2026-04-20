@@ -1,6 +1,141 @@
 // src/controllers/startupController.js
 import Startup from "../models/Startup.js";
 import { sendEmail } from "../utils/sendEmail.js";
+import Document from "../models/Document.js";
+import { generateStartupCertificatePdf } from "../utils/certificate.js";
+import PDFDocument from "pdfkit";
+
+function toNum(v, d = 0) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : d;
+}
+
+function normalizeRevenueSeries(startup) {
+  const monthly = Array.isArray(startup.revenue_monthly)
+    ? startup.revenue_monthly
+        .filter((r) => r?.period && r?.value != null)
+        .map((r) => ({ label: String(r.period), value: toNum(r.value, 0) }))
+        .sort((a, b) => a.label.localeCompare(b.label))
+    : [];
+
+  if (monthly.length) return monthly;
+
+  const yearly = Array.isArray(startup.revenue_history)
+    ? startup.revenue_history
+        .filter((r) => r?.year != null && r?.value != null)
+        .map((r) => ({ label: String(r.year), value: toNum(r.value, 0) }))
+        .sort((a, b) => a.label.localeCompare(b.label))
+    : [];
+
+  if (yearly.length) return yearly;
+  if (startup.revenue != null) return [{ label: "current", value: toNum(startup.revenue, 0) }];
+  return [];
+}
+
+function computeFinancialInsights(startup) {
+  const revenueSeries = normalizeRevenueSeries(startup);
+  const latestRevenue = revenueSeries.length
+    ? toNum(revenueSeries[revenueSeries.length - 1].value, 0)
+    : toNum(startup.revenue, 0);
+
+  const prevRevenue =
+    revenueSeries.length > 1 ? toNum(revenueSeries[revenueSeries.length - 2].value, 0) : null;
+  const revenueGrowthPct =
+    prevRevenue && prevRevenue > 0
+      ? ((latestRevenue - prevRevenue) / prevRevenue) * 100
+      : null;
+
+  const yearlyExpenses = toNum(startup.expenses, 0);
+  const monthlyBurn =
+    toNum(startup.burn_rate, 0) > 0 ? toNum(startup.burn_rate, 0) : yearlyExpenses / 12;
+  const fundingRaised = toNum(startup.funding_raised, 0);
+  const runwayMonths =
+    monthlyBurn > 0 && fundingRaised > 0 ? Number((fundingRaised / monthlyBurn).toFixed(1)) : null;
+
+  const profitLoss = toNum(startup.profit_loss, 0);
+  const expenseToRevenuePct =
+    latestRevenue > 0 ? Number(((yearlyExpenses / latestRevenue) * 100).toFixed(1)) : null;
+
+  const alerts = [];
+  if (runwayMonths != null && runwayMonths < 3) {
+    alerts.push({
+      type: "critical",
+      code: "runway_low",
+      title: "Runway below 3 months",
+      message: `Projected runway is ${runwayMonths} months.`,
+    });
+  }
+  if (revenueGrowthPct != null && revenueGrowthPct < 0) {
+    alerts.push({
+      type: "warning",
+      code: "revenue_drop",
+      title: "Revenue drop detected",
+      message: `Revenue changed ${revenueGrowthPct.toFixed(1)}% from previous period.`,
+    });
+  }
+  if (expenseToRevenuePct != null && expenseToRevenuePct > 80) {
+    alerts.push({
+      type: "warning",
+      code: "expenses_spike",
+      title: "Expenses are high versus revenue",
+      message: `Expenses are ${expenseToRevenuePct}% of revenue.`,
+    });
+  }
+  if (profitLoss < 0 && latestRevenue > 0) {
+    alerts.push({
+      type: "info",
+      code: "negative_cash_flow",
+      title: "Negative cash flow",
+      message: "Profit/Loss is currently negative.",
+    });
+  }
+
+  const growthFactor =
+    revenueGrowthPct == null ? 1 : Math.max(0.2, 1 + revenueGrowthPct / 100);
+  const forecast = [];
+  let projectedRevenue = latestRevenue || 0;
+  for (let i = 1; i <= 6; i += 1) {
+    projectedRevenue = Number((projectedRevenue * growthFactor).toFixed(2));
+    const projectedBurn = Number(monthlyBurn.toFixed(2));
+    const net = Number((projectedRevenue - projectedBurn).toFixed(2));
+    forecast.push({
+      month: i,
+      projected_revenue: projectedRevenue,
+      projected_burn: projectedBurn,
+      projected_net: net,
+    });
+  }
+
+  return {
+    latestRevenue,
+    prevRevenue,
+    revenueGrowthPct,
+    yearlyExpenses,
+    monthlyBurn,
+    fundingRaised,
+    runwayMonths,
+    profitLoss,
+    expenseToRevenuePct,
+    alerts,
+    forecast,
+  };
+}
+
+function ensureFinanceAccess(req, startup) {
+  const role = req.user?.role;
+  const isAdmin = role === "admin";
+  const isGov = role === "gov_official" && req.user?.role_verified === true;
+  const isInvestor = role === "investor";
+  const isOwner = String(startup.user_id) === String(req.user?._id);
+
+  if (!isAdmin && !isGov && !isInvestor && !isOwner) {
+    return { ok: false, status: 403, message: "Forbidden" };
+  }
+  if (isInvestor && startup.status !== "approved") {
+    return { ok: false, status: 403, message: "Forbidden: startup not approved" };
+  }
+  return { ok: true };
+}
 
 async function createStartup(req, res) {
   try {
@@ -92,6 +227,170 @@ async function getProfitExpenseChart(req, res) {
   }
 }
 
+async function getFinancialForecast(req, res) {
+  try {
+    const startup = await Startup.findById(req.params.id)
+      .select(
+        "user_id status revenue revenue_history revenue_monthly expenses burn_rate funding_raised profit_loss",
+      )
+      .lean();
+    if (!startup) return res.status(404).json({ message: "Startup not found" });
+
+    const access = ensureFinanceAccess(req, startup);
+    if (!access.ok) return res.status(access.status).json({ message: access.message });
+
+    const insights = computeFinancialInsights(startup);
+    return res.json({
+      success: true,
+      forecast: insights.forecast,
+      runway_months: insights.runwayMonths,
+      monthly_burn: insights.monthlyBurn,
+      revenue_growth_pct: insights.revenueGrowthPct,
+    });
+  } catch (err) {
+    return res.status(500).json({ message: "Failed to fetch forecast", error: err.message });
+  }
+}
+
+async function getFinancialAlerts(req, res) {
+  try {
+    const startup = await Startup.findById(req.params.id)
+      .select(
+        "user_id status revenue revenue_history revenue_monthly expenses burn_rate funding_raised profit_loss",
+      )
+      .lean();
+    if (!startup) return res.status(404).json({ message: "Startup not found" });
+
+    const access = ensureFinanceAccess(req, startup);
+    if (!access.ok) return res.status(access.status).json({ message: access.message });
+
+    const insights = computeFinancialInsights(startup);
+    return res.json({
+      success: true,
+      alerts: insights.alerts,
+      summary: {
+        runway_months: insights.runwayMonths,
+        monthly_burn: insights.monthlyBurn,
+        revenue_growth_pct: insights.revenueGrowthPct,
+      },
+    });
+  } catch (err) {
+    return res.status(500).json({ message: "Failed to fetch alerts", error: err.message });
+  }
+}
+
+function buildCsv(startup, insights) {
+  const rows = [
+    ["metric", "value"],
+    ["startup_name", startup.name || ""],
+    ["status", startup.status || ""],
+    ["revenue_latest", String(insights.latestRevenue ?? "")],
+    ["profit_loss", String(insights.profitLoss ?? "")],
+    ["expenses_yearly", String(insights.yearlyExpenses ?? "")],
+    ["monthly_burn", String(insights.monthlyBurn ?? "")],
+    ["funding_raised", String(insights.fundingRaised ?? "")],
+    ["runway_months", String(insights.runwayMonths ?? "")],
+    ["revenue_growth_pct", String(insights.revenueGrowthPct ?? "")],
+    ["expense_to_revenue_pct", String(insights.expenseToRevenuePct ?? "")],
+  ];
+  const header = "alert_code,alert_type,title,message";
+  const alertsLines = insights.alerts.map((a) =>
+    [a.code, a.type, a.title, a.message]
+      .map((x) => `"${String(x || "").replace(/"/g, '""')}"`)
+      .join(","),
+  );
+  const base = rows
+    .map((r) => r.map((x) => `"${String(x || "").replace(/"/g, '""')}"`).join(","))
+    .join("\n");
+  return `${base}\n\n${header}\n${alertsLines.join("\n")}\n`;
+}
+
+function buildPdfBuffer(startup, insights) {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ size: "A4", margin: 40 });
+    const chunks = [];
+    doc.on("data", (c) => chunks.push(c));
+    doc.on("end", () => resolve(Buffer.concat(chunks)));
+    doc.on("error", reject);
+
+    doc.fontSize(18).text("AYUSH Financial Analytics Report", { align: "center" });
+    doc.moveDown(0.5);
+    doc.fontSize(11).text(`Startup: ${startup.name || "N/A"}`);
+    doc.text(`Status: ${startup.status || "N/A"}`);
+    doc.text(`Generated: ${new Date().toLocaleString()}`);
+    doc.moveDown();
+
+    const lines = [
+      ["Latest Revenue", insights.latestRevenue],
+      ["Profit / Loss", insights.profitLoss],
+      ["Yearly Expenses", insights.yearlyExpenses],
+      ["Monthly Burn", insights.monthlyBurn],
+      ["Funding Raised", insights.fundingRaised],
+      ["Runway (months)", insights.runwayMonths],
+      ["Revenue Growth %", insights.revenueGrowthPct],
+      ["Expense / Revenue %", insights.expenseToRevenuePct],
+    ];
+    lines.forEach(([k, v]) => doc.text(`${k}: ${v ?? "N/A"}`));
+
+    doc.moveDown();
+    doc.fontSize(13).text("Forecast (6 months)");
+    doc.fontSize(10);
+    insights.forecast.forEach((f) => {
+      doc.text(
+        `Month ${f.month}: Revenue ${f.projected_revenue}, Burn ${f.projected_burn}, Net ${f.projected_net}`,
+      );
+    });
+
+    doc.moveDown();
+    doc.fontSize(13).text("Alerts");
+    doc.fontSize(10);
+    if (!insights.alerts.length) doc.text("No active alerts.");
+    insights.alerts.forEach((a) => doc.text(`- [${a.type}] ${a.title}: ${a.message}`));
+    doc.end();
+  });
+}
+
+async function exportFinancialAnalytics(req, res) {
+  try {
+    const format = String(req.query.format || "csv").toLowerCase();
+    if (!["csv", "pdf"].includes(format)) {
+      return res.status(400).json({ message: "format must be csv or pdf" });
+    }
+
+    const startup = await Startup.findById(req.params.id)
+      .select(
+        "name user_id status revenue revenue_history revenue_monthly expenses burn_rate funding_raised profit_loss",
+      )
+      .lean();
+    if (!startup) return res.status(404).json({ message: "Startup not found" });
+
+    const access = ensureFinanceAccess(req, startup);
+    if (!access.ok) return res.status(access.status).json({ message: access.message });
+
+    const insights = computeFinancialInsights(startup);
+
+    if (format === "csv") {
+      const csv = buildCsv(startup, insights);
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="financial-analytics-${startup._id}.csv"`,
+      );
+      return res.status(200).send(csv);
+    }
+
+    const pdf = await buildPdfBuffer(startup, insights);
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="financial-analytics-${startup._id}.pdf"`,
+    );
+    return res.status(200).send(pdf);
+  } catch (err) {
+    return res.status(500).json({ message: "Failed to export analytics", error: err.message });
+  }
+}
+
 async function updateStartup(req, res) {
   const s = await Startup.findById(req.params.id);
   if (!s) return res.status(404).json({ message: "Not found" });
@@ -150,6 +449,44 @@ async function updateStartupStatusByOfficial(req, res) {
     startup.status = status;
     startup.status_updated_at = new Date();
     await startup.save();
+
+    // Generate certificate on approval (best-effort, idempotent)
+    if (status === "approved" && !startup.certificate_url) {
+      try {
+        const cert = await generateStartupCertificatePdf(startup);
+        startup.certificate_id = cert.certificateId;
+        startup.certificate_hash = cert.certificateHash;
+        startup.certificate_url = cert.certificateUrl;
+        startup.certificate_issued_at = cert.issuedAt;
+        await startup.save();
+
+        // Email certificate to startup owner (best-effort)
+        try {
+          await sendEmail({
+            email: startup.email,
+            subject: `AYUSH Certificate Issued: ${startup.name}`,
+            message: `Dear ${startup.founder_name}, your startup "${startup.name}" has been approved. Your registration certificate is attached.`,
+            html: `<p>Dear ${startup.founder_name},</p>
+                  <p>Your startup <strong>${startup.name}</strong> has been <strong>APPROVED</strong>.</p>
+                  <p>Your AYUSH registration certificate is attached to this email.</p>
+                  <p><strong>Certificate ID:</strong> ${cert.certificateId}<br/>
+                     <strong>Verification Hash:</strong> ${cert.certificateHash}</p>
+                  <p>Regards,<br/>AYUSH Portal</p>`,
+            attachments: [
+              {
+                filename: `AYUSH-Certificate-${startup.name}.pdf`,
+                path: cert.filePath,
+                contentType: "application/pdf",
+              },
+            ],
+          });
+        } catch (emailErr) {
+          console.error("Failed to send certificate email:", emailErr);
+        }
+      } catch (certErr) {
+        console.error("Certificate generation failed:", certErr);
+      }
+    }
 
     // Notify startup owner via email (best-effort)
     try {
@@ -271,7 +608,32 @@ async function listStartupsForInvestors(req, res) {
       )
       .lean();
 
-    return res.json({ items });
+    // Add a hero image URL (derived from uploaded documents) for investor cards.
+    const ids = items.map((s) => s._id).filter(Boolean);
+    let heroByStartup = {};
+    if (ids.length) {
+      const docs = await Document.find({
+        startup_id: { $in: ids },
+      })
+        .sort({ createdAt: -1 })
+        .select("startup_id fileUrl page_images createdAt")
+        .lean();
+
+      for (const d of docs) {
+        const sid = String(d.startup_id || "");
+        if (!sid || heroByStartup[sid]) continue;
+        const page0 = Array.isArray(d.page_images) && d.page_images.length ? d.page_images[0] : null;
+        const url = page0?.url || d.fileUrl || "";
+        if (url) heroByStartup[sid] = url;
+      }
+    }
+
+    const enriched = items.map((s) => ({
+      ...s,
+      heroImageUrl: heroByStartup[String(s._id)] || "",
+    }));
+
+    return res.json({ items: enriched });
   } catch (err) {
     return res
       .status(500)
@@ -289,4 +651,7 @@ export {
   listStartupsForOfficials,
   listStartupsForInvestors,
   updateStartupStatusByOfficial,
+  getFinancialForecast,
+  getFinancialAlerts,
+  exportFinancialAnalytics,
 };

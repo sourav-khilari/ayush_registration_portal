@@ -2,6 +2,7 @@
 import Conversation from "../models/Conversation.js";
 import Startup from "../models/Startup.js";
 import User from "../models/User.js";
+import { sendEmail } from "../utils/sendEmail.js";
 import {
   asyncHandler,
   ValidationError,
@@ -131,6 +132,31 @@ async function postMessageToConversation(req, res) {
     text: text.trim(),
   });
   await convo.save();
+
+  // Email notify the other participant (best-effort)
+  try {
+    const otherId = (convo.participants || []).find(
+      (p) => String(p) !== String(user._id),
+    );
+    if (otherId) {
+      const other = await User.findById(otherId).select("email name").lean();
+      const senderName = user?.name || user?.email || "User";
+      const startup = await Startup.findById(convo.startup_id).select("name").lean();
+      if (other?.email) {
+        await sendEmail({
+          email: other.email,
+          subject: `New message on AYUSH${startup?.name ? `: ${startup.name}` : ""}`,
+          message: `${senderName}: ${text.trim()}`,
+          html: `<p>Hello ${other.name || "User"},</p>
+                <p>You have a new message from <strong>${senderName}</strong>${startup?.name ? ` regarding <strong>${startup.name}</strong>` : ""}.</p>
+                <blockquote style="margin:12px 0;padding:10px;border-left:3px solid #e2e8f0;background:#f8fafc;">
+                  ${String(text.trim()).replace(/</g, "&lt;").replace(/>/g, "&gt;")}
+                </blockquote>
+                <p>Please login to the portal to reply.</p>`,
+        });
+      }
+    }
+  } catch (_) {}
 
   return res.status(201).json({ success: true, conversation: convo });
 }

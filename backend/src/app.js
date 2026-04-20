@@ -48,6 +48,12 @@ async function createApp() {
     ),
   );
 
+  // Serve generated certificates statically
+  app.use(
+    "/certificates",
+    express.static(path.join(__dirname, "..", "public/certificates")),
+  );
+
   // -------------------
   // Load models to register them with Mongoose
   // -------------------

@@ -53,6 +53,11 @@ const StartupSchema = new mongoose.Schema(
     funding_raised: { type: Number }, // Total funding raised in INR
     burn_rate: { type: Number }, // Monthly burn rate in INR
     valuation: { type: Number }, // Optional valuation in INR
+    // Certificate fields (generated on approval)
+    certificate_id: { type: String, index: true },
+    certificate_hash: { type: String },
+    certificate_url: { type: String },
+    certificate_issued_at: { type: Date },
     tags: [{ type: String }],
     products: [{ type: mongoose.Schema.Types.ObjectId, ref: "Product" }],
     applications: [

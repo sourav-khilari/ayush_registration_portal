@@ -80,13 +80,23 @@ export default function InvestorDashboard() {
       const startupItems = startupRes.items || [];
       setStartups(startupItems);
 
+      const toAbsoluteUploadUrl = (maybePath) => {
+        if (!maybePath) return "";
+        const s = String(maybePath);
+        if (s.startsWith("http://") || s.startsWith("https://")) return s;
+        const apiBase = import.meta.env.VITE_API_BASE || "";
+        const uploadBase = apiBase.replace(/\/api\/?$/, "") || window.location.origin;
+        return `${uploadBase}${s.startsWith("/") ? "" : "/"}${s}`;
+      };
+
       const mediaEntries = startupItems.map((item) => [
         item._id,
         {
-          logoUrl: item.logoUrl || "",
+          // Prefer backend-derived hero image; fallback to any explicit media fields.
+          logoUrl: toAbsoluteUploadUrl(item.heroImageUrl || item.logoUrl || ""),
           demoVideoUrl: item.demoVideoUrl || "",
           galleryImages: Array.isArray(item.galleryImages)
-            ? item.galleryImages
+            ? item.galleryImages.map(toAbsoluteUploadUrl)
             : [],
         },
       ]);

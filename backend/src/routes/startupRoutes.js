@@ -13,6 +13,9 @@ router.get("/investor", auth, ctr.listStartupsForInvestors);
 
 // Separate API for bar graph (profit vs expense)
 router.get("/:id/charts/profit-expense", auth, ctr.getProfitExpenseChart);
+router.get("/:id/analytics/forecast", auth, ctr.getFinancialForecast);
+router.get("/:id/analytics/alerts", auth, ctr.getFinancialAlerts);
+router.get("/:id/analytics/export", auth, ctr.exportFinancialAnalytics);
 
 // Government officials/admins can update startup status (approve/reject/etc.)
 router.patch("/:id/status", auth, ctr.updateStartupStatusByOfficial);

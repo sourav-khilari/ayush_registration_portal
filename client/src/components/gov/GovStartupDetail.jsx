@@ -10,6 +10,7 @@ import {
 } from "react-icons/fa";
 import { useAuth } from "../../context/AuthContext";
 import { StartupAPI, DocumentAPI } from "../../api";
+import FinancialMetricsSection from "../startup/FinancialMetricsSection";
 
 export default function GovStartupDetail() {
   const { id } = useParams();
@@ -131,6 +132,8 @@ export default function GovStartupDetail() {
             )}
           </div>
         </div>
+
+        <FinancialMetricsSection startup={startup} editable={false} />
 
         <div className="bg-white rounded-2xl shadow-lg p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">

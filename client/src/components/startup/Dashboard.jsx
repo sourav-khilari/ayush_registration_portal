@@ -14,6 +14,7 @@ import {
   FaExclamationTriangle,
   FaArrowRight,
   FaHome,
+  FaDownload,
 } from "react-icons/fa";
 
 function Dashboard() {
@@ -43,6 +44,16 @@ function Dashboard() {
     }
     loadStartup();
   }, []);
+
+  const getCertificateUrl = () => {
+    const certPath = startup?.certificate_url;
+    if (!certPath) return "";
+    const s = String(certPath);
+    if (s.startsWith("http://") || s.startsWith("https://")) return s;
+    const apiBase = import.meta.env.VITE_API_BASE || "";
+    const base = apiBase.replace(/\/api\/?$/, "") || window.location.origin;
+    return `${base}${s.startsWith("/") ? "" : "/"}${s}`;
+  };
 
   const handleCompleteProfile = () => {
     navigate("/StartupOwner/complete-profile");
@@ -222,6 +233,25 @@ function Dashboard() {
                   Last decision:{" "}
                   {new Date(startup.status_updated_at).toLocaleDateString()}
                 </p>
+              )}
+
+              {startup?.status === "approved" && startup?.certificate_url && (
+                <div className="mt-4">
+                  <a
+                    href={getCertificateUrl()}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700"
+                  >
+                    <FaDownload className="mr-2" />
+                    Download Certificate
+                  </a>
+                  {startup?.certificate_id && (
+                    <p className="mt-2 text-[11px] text-gray-500">
+                      Certificate ID: {startup.certificate_id}
+                    </p>
+                  )}
+                </div>
               )}
             </div>
 

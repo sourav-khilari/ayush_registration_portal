@@ -27,7 +27,7 @@ import {
 
 function StartupOwnerProfile() {
   const navigate = useNavigate()
-  const { user, token } = useAuth()
+  const { user } = useAuth()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [startups, setStartups] = useState([])
@@ -39,7 +39,6 @@ function StartupOwnerProfile() {
   const [chatList, setChatList] = useState([])
   const [chatLoading, setChatLoading] = useState(false)
   const [selectedConversationId, setSelectedConversationId] = useState(null)
-  const [incomingCall, setIncomingCall] = useState(null) // { room, from }
 
   useEffect(() => {
     loadData()
@@ -112,6 +111,16 @@ function StartupOwnerProfile() {
     return `${uploadBase}${doc.fileUrl.startsWith('/') ? '' : '/'}${doc.fileUrl}`
   }
 
+  const getCertificateUrl = () => {
+    const certPath = startup?.certificate_url
+    if (!certPath) return null
+    const s = String(certPath)
+    if (s.startsWith("http://") || s.startsWith("https://")) return s
+    const apiBase = import.meta.env.VITE_API_BASE || ""
+    const base = apiBase.replace(/\/api\/?$/, "") || window.location.origin
+    return `${base}${s.startsWith("/") ? "" : "/"}${s}`
+  }
+
   // Poll documents while any OCR is processing
   useEffect(() => {
     if (!startup || !documents || documents.length === 0) return
@@ -135,48 +144,6 @@ function StartupOwnerProfile() {
     // No auto-refresh here (manual refresh only) to avoid polling every 5 seconds.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startup?._id])
-
-  // Listen for incoming call requests (no camera/mic here; just a websocket listener)
-  useEffect(() => {
-    if (!token || !startup?._id) return
-    const roomName = `startup-${startup._id}`
-    const wsUrl = `${window.location.protocol === "https:" ? "wss" : "ws"}://${
-      window.location.hostname
-    }:5002/ws?token=${encodeURIComponent(token)}&room=${encodeURIComponent(roomName)}&listen=1`
-
-    const ws = new WebSocket(wsUrl)
-    let closed = false
-
-    ws.onmessage = (ev) => {
-      let msg
-      try {
-        msg = JSON.parse(ev.data)
-      } catch {
-        return
-      }
-      if (msg.type === "call_request") {
-        // Don't show as incoming if we initiated from this same device later
-        setIncomingCall({ room: roomName, from: msg.from || null })
-      }
-      if (msg.type === "call_cancel") {
-        setIncomingCall(null)
-      }
-    }
-
-    ws.onerror = () => {
-      // keep silent; call is optional
-    }
-
-    return () => {
-      if (closed) return
-      closed = true
-      try {
-        ws.close()
-      } catch {
-        void 0
-      }
-    }
-  }, [token, startup?._id])
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -687,6 +654,25 @@ function StartupOwnerProfile() {
                     </span>
                   </div>
                 )}
+
+                {startup.status === "approved" && startup.certificate_url && (
+                  <div className="pt-2">
+                    <a
+                      href={getCertificateUrl()}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-full inline-flex items-center justify-center px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700"
+                    >
+                      <FaDownload className="mr-2" />
+                      Download Certificate
+                    </a>
+                    {startup.certificate_id && (
+                      <p className="mt-2 text-[11px] text-gray-500 text-center">
+                        Certificate ID: {startup.certificate_id}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -709,41 +695,11 @@ function StartupOwnerProfile() {
               </div>
             </div>
 
-            {/* Chat & Video with Investors */}
+            {/* Chat with Investors */}
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Connect with Investors
               </h3>
-              {incomingCall?.room && (
-                <div className="mb-3 p-3 rounded-lg border border-green-200 bg-green-50">
-                  <div className="text-sm font-semibold text-green-900">
-                    Incoming video call
-                  </div>
-                  <div className="text-xs text-green-800 mt-0.5">
-                    Room: {incomingCall.room}
-                  </div>
-                  <div className="flex gap-2 mt-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const r = incomingCall.room
-                        setIncomingCall(null)
-                        navigate(`/call/${r}`)
-                      }}
-                      className="px-3 py-1.5 rounded bg-green-600 text-white text-xs font-semibold hover:bg-green-700"
-                    >
-                      Answer
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setIncomingCall(null)}
-                      className="px-3 py-1.5 rounded bg-gray-200 text-gray-800 text-xs font-semibold hover:bg-gray-300"
-                    >
-                      Dismiss
-                    </button>
-                  </div>
-                </div>
-              )}
               {!startup ? (
                 <p className="text-sm text-gray-500">Select a startup to view chats.</p>
               ) : chatLoading ? (
@@ -774,18 +730,6 @@ function StartupOwnerProfile() {
                     title="Chat"
                   />
                 </>
-              )}
-              {startup && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const roomName = `startup-${startup._id}`
-                    navigate(`/call/${roomName}`)
-                  }}
-                  className="w-full mt-3 px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700"
-                >
-                  Join Video Call Room
-                </button>
               )}
             </div>
           </div>

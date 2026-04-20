@@ -3,10 +3,10 @@ import axios from "axios";
 const API = "/api/meet";
 
 // Send request
-export const sendRequest = (receiverId, token) => {
+export const sendRequest = (payload, token) => {
   return axios.post(
     `${API}/request`,
-    { receiverId },
+    payload,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -25,10 +25,10 @@ export const getRequests = (token) => {
 };
 
 // Accept request
-export const acceptRequest = (id, token) => {
+export const acceptRequest = (id, slotIndex, token) => {
   return axios.post(
     `${API}/accept/${id}`,
-    {},
+    { slotIndex },
     {
       headers: {
         Authorization: `Bearer ${token}`,

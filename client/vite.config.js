@@ -15,6 +15,11 @@ export default defineConfig({
         target: 'http://localhost:5002',
         changeOrigin: true,
         secure: false,
+      },
+      '/certificates': {
+        target: 'http://localhost:5002',
+        changeOrigin: true,
+        secure: false,
       }
     }
   }
