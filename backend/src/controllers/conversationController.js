@@ -10,6 +10,35 @@ import {
   AppError,
 } from "../middleware/errorHandler.js";
 
+function countUnread(messages = [], userId) {
+  const me = String(userId);
+  return messages.filter((m) => {
+    const isMine = String(m.sender) === me;
+    const seen = (m.seenBy || []).some((id) => String(id) === me);
+    return !isMine && !seen;
+  }).length;
+}
+
+function mapListItem(c, userId) {
+  const otherParticipant =
+    (c.participants || []).find((p) => String(p._id) !== String(userId)) ||
+    null;
+  const lastMessage = c.messages?.length
+    ? c.messages[c.messages.length - 1]
+    : null;
+  return {
+    _id: c._id,
+    startup: c.startup_id || null,
+    otherParticipant,
+    updatedAt: c.updatedAt,
+    lastMessage,
+    unreadCount: countUnread(c.messages || [], userId),
+    blockedByMe: (c.blocked_by || []).some(
+      (id) => String(id) === String(userId),
+    ),
+  };
+}
+
 async function assertStartupAndAccess(startup_id, user) {
   const startup = await Startup.findById(startup_id).select("user_id name");
   if (!startup) throw new NotFoundError("Startup");
@@ -19,7 +48,7 @@ async function assertStartupAndAccess(startup_id, user) {
   if (!isOwner && !isInvestor) {
     throw new AppError(
       "Only investors and the startup owner can access this chat",
-      403
+      403,
     );
   }
   return { startup, ownerId, isOwner, isInvestor };
@@ -32,13 +61,13 @@ async function getMyConversationForStartup(req, res) {
 
   const { ownerId, isInvestor, isOwner } = await assertStartupAndAccess(
     startup_id,
-    user
+    user,
   );
 
   if (isOwner) {
     throw new AppError(
       "Startup owner must select an investor conversation",
-      400
+      400,
     );
   }
   if (!isInvestor) throw new AppError("Forbidden", 403);
@@ -46,7 +75,10 @@ async function getMyConversationForStartup(req, res) {
   const ids = [String(ownerId), String(user._id)].sort();
   const participants_key = ids.join("_");
 
-  let convo = await Conversation.findOne({ startup_id, participants_key }).lean();
+  let convo = await Conversation.findOne({
+    startup_id,
+    participants_key,
+  }).lean();
   if (!convo) {
     try {
       const created = await Conversation.create({
@@ -57,7 +89,10 @@ async function getMyConversationForStartup(req, res) {
       convo = created.toObject();
     } catch (e) {
       // In case of race / unique index, fetch again
-      convo = await Conversation.findOne({ startup_id, participants_key }).lean();
+      convo = await Conversation.findOne({
+        startup_id,
+        participants_key,
+      }).lean();
       if (!convo) throw e;
     }
   }
@@ -97,6 +132,41 @@ async function listConversationsForStartup(req, res) {
   return res.json({ success: true, items });
 }
 
+// Current user: list all conversations (for notifications)
+async function listMyConversations(req, res) {
+  const user = req.user;
+
+  const convos = await Conversation.find({ participants: user._id })
+    .sort({ updatedAt: -1 })
+    .populate({ path: "participants", select: "_id name email role" })
+    .populate({
+      path: "startup_id",
+      select: "_id name status certificate_url certificate_id user_id",
+    })
+    .lean();
+
+  const q = String(req.query.q || "")
+    .trim()
+    .toLowerCase();
+  let items = convos.map((c) => mapListItem(c, user._id));
+  if (q) {
+    items = items.filter((i) => {
+      const startupName = String(i.startup?.name || "").toLowerCase();
+      const otherName = String(i.otherParticipant?.name || "").toLowerCase();
+      const otherEmail = String(i.otherParticipant?.email || "").toLowerCase();
+      const preview = String(i.lastMessage?.text || "").toLowerCase();
+      return (
+        startupName.includes(q) ||
+        otherName.includes(q) ||
+        otherEmail.includes(q) ||
+        preview.includes(q)
+      );
+    });
+  }
+
+  return res.json({ success: true, items });
+}
+
 // Get a conversation by ID (only participants)
 async function getConversationById(req, res) {
   const { id } = req.params;
@@ -104,71 +174,155 @@ async function getConversationById(req, res) {
   const convo = await Conversation.findById(id).lean();
   if (!convo) throw new NotFoundError("Conversation");
   const isParticipant = (convo.participants || []).some(
-    (p) => String(p) === String(user._id)
+    (p) => String(p) === String(user._id),
   );
   if (!isParticipant) throw new AppError("Forbidden", 403);
-  return res.json({ success: true, conversation: convo });
+  const unreadCount = countUnread(convo.messages || [], user._id);
+  return res.json({ success: true, conversation: convo, unreadCount });
 }
 
 // Send message to a specific conversation (only participants)
 async function postMessageToConversation(req, res) {
   const { id } = req.params;
-  const { text } = req.body || {};
+  const { text, attachment } = req.body || {};
   const user = req.user;
 
-  if (!text || !text.trim()) throw new ValidationError("Message text is required");
+  if ((!text || !String(text).trim()) && !attachment?.url) {
+    throw new ValidationError("Message text or attachment is required");
+  }
 
   const convo = await Conversation.findById(id);
   if (!convo) throw new NotFoundError("Conversation");
 
   const isParticipant = (convo.participants || []).some(
-    (p) => String(p) === String(user._id)
+    (p) => String(p) === String(user._id),
   );
   if (!isParticipant) throw new AppError("Forbidden", 403);
+  if ((convo.blocked_by || []).some((u) => String(u) !== String(user._id))) {
+    throw new AppError("You cannot send messages in this conversation", 403);
+  }
 
   convo.messages.push({
     sender: user._id,
     sender_role: user.role,
-    text: text.trim(),
+    text: String(text || "").trim(),
+    attachment: attachment?.url
+      ? {
+          url: attachment.url,
+          name: attachment.name || "attachment",
+          mimeType: attachment.mimeType || "application/octet-stream",
+          size: Number(attachment.size || 0),
+        }
+      : undefined,
+    seenBy: [user._id],
   });
   await convo.save();
+  const latest = convo.messages[convo.messages.length - 1];
 
-  // Email notify the other participant (best-effort)
-  try {
-    const otherId = (convo.participants || []).find(
-      (p) => String(p) !== String(user._id),
-    );
-    if (otherId) {
-      const other = await User.findById(otherId).select("email name").lean();
-      const senderName = user?.name || user?.email || "User";
-      const startup = await Startup.findById(convo.startup_id).select("name").lean();
-      if (other?.email) {
-        await sendEmail({
-          email: other.email,
-          subject: `New message on AYUSH${startup?.name ? `: ${startup.name}` : ""}`,
-          message: `${senderName}: ${text.trim()}`,
-          html: `<p>Hello ${other.name || "User"},</p>
-                <p>You have a new message from <strong>${senderName}</strong>${startup?.name ? ` regarding <strong>${startup.name}</strong>` : ""}.</p>
-                <blockquote style="margin:12px 0;padding:10px;border-left:3px solid #e2e8f0;background:#f8fafc;">
-                  ${String(text.trim()).replace(/</g, "&lt;").replace(/>/g, "&gt;")}
-                </blockquote>
-                <p>Please login to the portal to reply.</p>`,
-        });
-      }
+  // Realtime fanout for message + sidebar updates
+  const io = req.app?.get("io");
+  if (io) {
+    io.to(`conversation:${String(convo._id)}`).emit("chat:new_message", {
+      conversationId: String(convo._id),
+      message: latest,
+    });
+    for (const participantId of convo.participants || []) {
+      io.to(`user:${String(participantId)}`).emit("chat:sidebar_refresh", {
+        conversationId: String(convo._id),
+      });
     }
-  } catch (_) {}
+  }
 
   return res.status(201).json({ success: true, conversation: convo });
 }
 
+async function markConversationSeen(req, res) {
+  const { id } = req.params;
+  const user = req.user;
+  const convo = await Conversation.findById(id);
+  if (!convo) throw new NotFoundError("Conversation");
+  const isParticipant = (convo.participants || []).some(
+    (p) => String(p) === String(user._id),
+  );
+  if (!isParticipant) throw new AppError("Forbidden", 403);
+
+  convo.messages.forEach((m) => {
+    if (String(m.sender) !== String(user._id)) {
+      const alreadySeen = (m.seenBy || []).some(
+        (s) => String(s) === String(user._id),
+      );
+      if (!alreadySeen) m.seenBy = [...(m.seenBy || []), user._id];
+    }
+  });
+  await convo.save();
+
+  const io = req.app?.get("io");
+  if (io) {
+    io.to(`conversation:${String(convo._id)}`).emit("chat:seen", {
+      conversationId: String(convo._id),
+      seenBy: String(user._id),
+      at: new Date().toISOString(),
+    });
+  }
+
+  return res.json({ success: true });
+}
+
+async function toggleBlockConversation(req, res) {
+  const { id } = req.params;
+  const user = req.user;
+  const { blocked } = req.body || {};
+  const convo = await Conversation.findById(id);
+  if (!convo) throw new NotFoundError("Conversation");
+  const isParticipant = (convo.participants || []).some(
+    (p) => String(p) === String(user._id),
+  );
+  if (!isParticipant) throw new AppError("Forbidden", 403);
+
+  const myId = String(user._id);
+  const existing = (convo.blocked_by || []).map((u) => String(u));
+  const next = Boolean(blocked)
+    ? Array.from(new Set([...existing, myId]))
+    : existing.filter((u) => u !== myId);
+  convo.blocked_by = next;
+  await convo.save();
+  return res.json({ success: true, blockedBy: convo.blocked_by });
+}
+
+async function reportConversation(req, res) {
+  const { id } = req.params;
+  const user = req.user;
+  const { reason } = req.body || {};
+  if (!reason || !String(reason).trim()) {
+    throw new ValidationError("Report reason is required");
+  }
+  const convo = await Conversation.findById(id);
+  if (!convo) throw new NotFoundError("Conversation");
+  const isParticipant = (convo.participants || []).some(
+    (p) => String(p) === String(user._id),
+  );
+  if (!isParticipant) throw new AppError("Forbidden", 403);
+  convo.reports = [
+    ...(convo.reports || []),
+    { by: user._id, reason: String(reason).trim() },
+  ];
+  await convo.save();
+  return res.json({ success: true });
+}
+
 export const getMyConversationForStartupHandler = asyncHandler(
-  getMyConversationForStartup
+  getMyConversationForStartup,
 );
 export const listConversationsForStartupHandler = asyncHandler(
-  listConversationsForStartup
+  listConversationsForStartup,
 );
+export const listMyConversationsHandler = asyncHandler(listMyConversations);
 export const getConversationByIdHandler = asyncHandler(getConversationById);
 export const postMessageToConversationHandler = asyncHandler(
-  postMessageToConversation
+  postMessageToConversation,
 );
-
+export const markConversationSeenHandler = asyncHandler(markConversationSeen);
+export const toggleBlockConversationHandler = asyncHandler(
+  toggleBlockConversation,
+);
+export const reportConversationHandler = asyncHandler(reportConversation);

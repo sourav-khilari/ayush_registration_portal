@@ -53,6 +53,10 @@ async function createApp() {
     "/certificates",
     express.static(path.join(__dirname, "..", "public/certificates")),
   );
+  app.use(
+    "/chat_uploads",
+    express.static(path.join(__dirname, "..", "public/chat_uploads")),
+  );
 
   // -------------------
   // Load models to register them with Mongoose

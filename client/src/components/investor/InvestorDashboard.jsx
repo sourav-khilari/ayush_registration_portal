@@ -9,9 +9,10 @@ import {
   FaBuilding,
   FaMapMarkerAlt,
   FaImage,
+  FaBell,
 } from "react-icons/fa";
 import { useAuth } from "../../context/AuthContext";
-import { StartupAPI, InvestmentAPI } from "../../api";
+import { StartupAPI, InvestmentAPI, ConversationAPI } from "../../api";
 
 export default function InvestorDashboard() {
   const navigate = useNavigate();
@@ -33,6 +34,7 @@ export default function InvestorDashboard() {
     activeDeals: 0,
   });
   const [startupMedia, setStartupMedia] = useState({});
+  const [chatNotifications, setChatNotifications] = useState(0);
 
   useEffect(() => {
     // Only allow investors to access this dashboard
@@ -67,6 +69,20 @@ export default function InvestorDashboard() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    async function loadNotifications() {
+      try {
+        const res = await ConversationAPI.listMine();
+        const items = Array.isArray(res?.items) ? res.items : [];
+        const unread = items.reduce((sum, item) => sum + Number(item?.unreadCount || 0), 0);
+        setChatNotifications(unread);
+      } catch {
+        setChatNotifications(0);
+      }
+    }
+    if (user?.role === "investor") loadNotifications();
+  }, [user]);
 
   async function loadData(customFilters) {
     setLoading(true);
@@ -160,8 +176,8 @@ export default function InvestorDashboard() {
 
   if (error && !loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="bg-white rounded-lg shadow p-8 max-w-md text-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-8 max-w-md text-center border border-gray-100 dark:border-gray-800">
           <p className="text-red-600 mb-4">{error}</p>
           <button
             onClick={() => loadData()}
@@ -175,29 +191,43 @@ export default function InvestorDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-ayush-50 to-green-100">
+    <div className="app-shell">
       {/* Top navigation */}
-      <nav className="bg-white shadow-lg sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <nav className="top-nav">
+        <div className="container-page">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
               <FaLeaf className="text-ayush-600 text-2xl" />
-              <span className="text-xl font-bold text-gray-900">AYUSH</span>
-              <span className="ml-4 text-sm text-gray-500 hidden sm:inline">
+              <span className="text-xl font-bold text-gray-900 dark:text-gray-100">AYUSH</span>
+              <span className="ml-4 text-sm text-gray-500 dark:text-gray-400 hidden sm:inline">
                 Investor Portal
               </span>
             </div>
             <div className="flex items-center space-x-4">
               <Link
                 to="/"
-                className="text-gray-700 hover:text-ayush-600 transition-colors flex items-center"
+                className="text-gray-700 dark:text-gray-200 hover:text-ayush-600 transition-colors flex items-center"
               >
                 <FaHome className="mr-2" />
                 Home
               </Link>
-              <div className="hidden sm:block text-gray-700">
+              <div className="hidden sm:block text-gray-700 dark:text-gray-200">
                 {user ? `Welcome, ${user.name}` : "Welcome"}
               </div>
+              <button
+                type="button"
+                onClick={() => navigate("/messages")}
+                className="btn-secondary"
+                title="Message notifications"
+              >
+                <FaBell className="mr-2" />
+                Chat
+                {chatNotifications > 0 && (
+                  <span className="ml-2 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[10px] font-bold">
+                    {chatNotifications}
+                  </span>
+                )}
+              </button>
               <button
                 onClick={logout}
                 className="text-sm text-red-600 hover:text-red-700"
@@ -210,15 +240,15 @@ export default function InvestorDashboard() {
       </nav>
 
       {/* Main content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="container-page section-wrap">
         {/* Header + summary cards */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
+        <div className="ui-card p-6 mb-8 fade-in-up">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">
                 Investor Dashboard
               </h1>
-              <p className="text-gray-600 mt-1">
+              <p className="text-gray-600 dark:text-gray-300 mt-1">
                 Discover approved AYUSH startups and track your investments.
               </p>
             </div>
@@ -244,10 +274,7 @@ export default function InvestorDashboard() {
         </div>
 
         {/* Filters */}
-        <form
-          onSubmit={handleApplyFilters}
-          className="bg-white rounded-2xl shadow-lg p-6 mb-8"
-        >
+        <form onSubmit={handleApplyFilters} className="ui-card p-6 mb-8">
           <div className="flex items-center mb-4 gap-2">
             <FaFilter className="text-ayush-600" />
             <h2 className="text-lg font-semibold text-gray-900">
@@ -258,7 +285,7 @@ export default function InvestorDashboard() {
             <select
               value={filters.category}
               onChange={(e) => handleFilterChange("category", e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ayush-500"
+              className="ui-select"
             >
               <option value="">Category</option>
               <option value="ayurveda">Ayurveda</option>
@@ -274,7 +301,7 @@ export default function InvestorDashboard() {
               onChange={(e) =>
                 handleFilterChange("profitStatus", e.target.value)
               }
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ayush-500"
+              className="ui-select"
             >
               <option value="">Profit / Loss</option>
               <option value="profit">Profit</option>
@@ -287,14 +314,14 @@ export default function InvestorDashboard() {
               placeholder="Min Revenue"
               value={filters.minRevenue}
               onChange={(e) => handleFilterChange("minRevenue", e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ayush-500"
+              className="ui-input"
             />
             <input
               type="number"
               placeholder="Max Revenue"
               value={filters.maxRevenue}
               onChange={(e) => handleFilterChange("maxRevenue", e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ayush-500"
+              className="ui-input"
             />
 
             <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 text-sm focus-within:ring-2 focus-within:ring-ayush-500">
@@ -310,28 +337,28 @@ export default function InvestorDashboard() {
           </div>
 
           <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-            <div className="w-full md:w-2/3 flex items-center border border-gray-300 rounded-lg px-3 py-2 text-sm focus-within:ring-2 focus-within:ring-ayush-500 bg-gray-50">
+            <div className="w-full md:w-2/3 flex items-center border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-sm focus-within:ring-2 focus-within:ring-ayush-500 bg-gray-50 dark:bg-gray-900">
               <FaSearch className="text-gray-400 mr-2" />
               <input
                 type="text"
                 placeholder="Search by startup name"
                 value={filters.q}
                 onChange={(e) => handleFilterChange("q", e.target.value)}
-                className="flex-1 outline-none bg-transparent"
+                className="flex-1 outline-none bg-transparent text-gray-900 dark:text-gray-100"
               />
             </div>
 
             <div className="flex gap-3 w-full md:w-auto">
               <button
                 type="submit"
-                className="flex-1 md:flex-none px-4 py-2 bg-ayush-600 text-white rounded-lg text-sm font-semibold hover:bg-ayush-700"
+                className="btn-primary flex-1 md:flex-none"
               >
                 Apply Filters
               </button>
               <button
                 type="button"
                 onClick={handleClearFilters}
-                className="flex-1 md:flex-none px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50"
+                className="btn-secondary flex-1 md:flex-none"
               >
                 Clear
               </button>
@@ -340,7 +367,7 @@ export default function InvestorDashboard() {
         </form>
 
         {/* Startup list */}
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+        <div className="ui-card overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-900">
               Registered Startups

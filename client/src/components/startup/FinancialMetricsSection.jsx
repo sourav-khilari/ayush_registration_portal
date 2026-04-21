@@ -49,6 +49,7 @@ export default function FinancialMetricsSection({
   startup,
   onSaved,
   editable = true,
+  showReadOnlyExports = false,
 }) {
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -293,9 +294,29 @@ export default function FinancialMetricsSection({
         </div>
 
         {!canEdit ? (
-          <span className="inline-flex items-center text-xs font-semibold px-3 py-1 rounded-full bg-gray-100 text-gray-700">
-            <FaLock className="mr-2" /> Read-only
-          </span>
+          <div className="flex items-center gap-2">
+            {showReadOnlyExports && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => handleExport("csv")}
+                  className="text-sm font-semibold px-3 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 inline-flex items-center"
+                >
+                  <FaDownload className="mr-2" /> CSV
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleExport("pdf")}
+                  className="text-sm font-semibold px-3 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 inline-flex items-center"
+                >
+                  <FaDownload className="mr-2" /> PDF
+                </button>
+              </>
+            )}
+            <span className="inline-flex items-center text-xs font-semibold px-3 py-1 rounded-full bg-gray-100 text-gray-700">
+              <FaLock className="mr-2" /> Read-only
+            </span>
+          </div>
         ) : !editMode ? (
           <div className="flex items-center gap-2">
             <button

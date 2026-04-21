@@ -4,10 +4,17 @@ const MessageSchema = new mongoose.Schema(
   {
     sender: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     sender_role: { type: String },
-    text: { type: String, required: true },
+    text: { type: String, default: "" },
+    attachment: {
+      url: { type: String },
+      name: { type: String },
+      mimeType: { type: String },
+      size: { type: Number },
+    },
+    seenBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     createdAt: { type: Date, default: Date.now },
   },
-  { _id: false }
+  { _id: true }
 );
 
 const ConversationSchema = new mongoose.Schema(
@@ -21,6 +28,14 @@ const ConversationSchema = new mongoose.Schema(
     participants_key: { type: String, index: true },
     participants: [
       { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    ],
+    blocked_by: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    reports: [
+      {
+        by: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+        reason: { type: String, required: true },
+        createdAt: { type: Date, default: Date.now },
+      },
     ],
     messages: [MessageSchema],
   },

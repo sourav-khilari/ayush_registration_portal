@@ -121,7 +121,11 @@ export default function InvestorFinancialMatrix() {
           </button>
         </div>
 
-        <FinancialMetricsSection startup={startup} editable={false} />
+        <FinancialMetricsSection
+          startup={startup}
+          editable={false}
+          showReadOnlyExports
+        />
       </div>
     </div>
   );

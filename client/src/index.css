@@ -2,4 +2,112 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
+  body {
+    @apply bg-gray-50 text-gray-900 transition-colors duration-300;
+  }
+
+  .dark body {
+    @apply bg-gray-950 text-gray-100;
+  }
+
+  * {
+    @apply antialiased;
+  }
+}
+
+@layer components {
+  .app-shell {
+    @apply min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50 dark:from-gray-950 dark:via-gray-950 dark:to-gray-900;
+  }
+
+  .top-nav {
+    @apply sticky top-0 z-50 border-b border-white/60 dark:border-gray-800/80 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg shadow-sm;
+  }
+
+  .container-page {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .section-wrap {
+    @apply py-8;
+  }
+
+  .ui-card {
+    @apply rounded-2xl border border-gray-200/70 dark:border-gray-800 bg-white/85 dark:bg-gray-900/85 shadow-sm hover:shadow-md transition-all duration-300;
+  }
+
+  .ui-card-glass {
+    @apply rounded-2xl border border-white/70 dark:border-gray-700/70 bg-white/60 dark:bg-gray-900/60 backdrop-blur-xl shadow-lg;
+  }
+
+  .ui-title {
+    @apply text-2xl md:text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100;
+  }
+
+  .ui-subtitle {
+    @apply text-sm md:text-base text-gray-600 dark:text-gray-300;
+  }
+
+  .ui-input {
+    @apply w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 outline-none focus:ring-2 focus:ring-ayush-500/40 focus:border-ayush-500 transition;
+  }
+
+  .ui-select {
+    @apply ui-input;
+  }
+
+  .btn-base {
+    @apply inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900;
+  }
+
+  .btn-primary {
+    @apply btn-base bg-ayush-600 text-white hover:bg-ayush-700 focus-visible:ring-ayush-500 shadow-sm hover:shadow;
+  }
+
+  .btn-secondary {
+    @apply btn-base bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700;
+  }
+
+  .btn-ghost {
+    @apply btn-base bg-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800;
+  }
+
+  .status-pill {
+    @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium;
+  }
+
+  .fade-in-up {
+    animation: fadeInUp 0.45s ease-out;
+  }
+
+  .hover-lift {
+    @apply transition-transform duration-300 hover:-translate-y-0.5;
+  }
+
+  .modal-overlay {
+    @apply fixed inset-0 bg-black/40 backdrop-blur-sm z-[90];
+  }
+
+  .modal-card {
+    @apply ui-card-glass max-w-xl mx-auto mt-24 p-6;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 

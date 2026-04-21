@@ -1,6 +1,5 @@
-import axios from "axios";
 import React, { useEffect, useState } from "react";
-import { useNavigate, useParams, Link } from "react-router-dom";
+import { useNavigate, useParams, Link, useLocation } from "react-router-dom";
 import {
   FaLeaf,
   FaHome,
@@ -8,12 +7,11 @@ import {
   FaGlobe,
   FaEnvelope,
   FaPhone,
+  FaDownload,
 } from "react-icons/fa";
 import { useAuth } from "../../context/AuthContext";
-import { DocumentAPI, InvestmentAPI, StartupAPI, apiRequest } from "../../api";
-import ChatPanel from "../common/ChatPanel";
+import { ConversationAPI, DocumentAPI, InvestmentAPI, StartupAPI, apiRequest } from "../../api";
 import FinancialMetricsSection from "../startup/FinancialMetricsSection";
-import { sendRequest } from "../../api/meetApi";
 import ProfilePreview from "../../features/startup/ProfilePreview";
 import MediaSection from "../../features/startup/MediaSection";
 import MetricsHistory from "../../features/startup/MetricsHistory";
@@ -28,7 +26,8 @@ import FundingSection from "../../features/startup/FundingSection";
 export default function StartupDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, logout, token } = useAuth();
+  const location = useLocation();
+  const { user, logout } = useAuth();
 
   const [startup, setStartup] = useState(null);
   const [documents, setDocuments] = useState([]);
@@ -44,6 +43,16 @@ export default function StartupDetail() {
     return `${uploadBase}${doc.fileUrl.startsWith("/") ? "" : "/"}${doc.fileUrl}`;
   };
 
+  const getCertificateUrl = () => {
+    const certPath = startup?.certificate_url;
+    if (!certPath) return null;
+    const s = String(certPath);
+    if (s.startsWith("http://") || s.startsWith("https://")) return s;
+    const apiBase = import.meta.env.VITE_API_BASE || "";
+    const base = apiBase.replace(/\/api\/?$/, "") || window.location.origin;
+    return `${base}${s.startsWith("/") ? "" : "/"}${s}`;
+  };
+
   const [investmentForm, setInvestmentForm] = useState({
     amount: "",
     stake_percentage: "",
@@ -51,9 +60,8 @@ export default function StartupDetail() {
   });
   const [investing, setInvesting] = useState(false);
   const [investMessage, setInvestMessage] = useState("");
-  const [meetingTitle, setMeetingTitle] = useState("");
-  const [meetingSlots, setMeetingSlots] = useState(["", "", ""]);
-  const [requestingMeeting, setRequestingMeeting] = useState(false);
+  // Meeting scheduling is handled in /messages chat workspace
+  const [chatSectionEl, setChatSectionEl] = useState(null);
 
   useEffect(() => {
     // Restrict access: only investors can view this page
@@ -91,6 +99,14 @@ export default function StartupDetail() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, user]);
+
+  useEffect(() => {
+    if (!chatSectionEl) return;
+    const params = new URLSearchParams(location.search);
+    if (params.get("chat") === "1") {
+      chatSectionEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [location.search, chatSectionEl]);
 
   async function handleInvest(e) {
     e.preventDefault();
@@ -130,72 +146,7 @@ export default function StartupDetail() {
     }
   }
 
-  const handleConnect = async () => {
-    try {
-      const receiverId =
-        startup?.ownerId ||
-        startup?.user_id ||
-        startup?.user ||
-        startup?.createdBy;
-
-      const slots = meetingSlots.filter(Boolean);
-      if (!slots.length) {
-        alert("Please select at least one meeting slot");
-        return;
-      }
-
-      setRequestingMeeting(true);
-      const res = await sendRequest(
-        {
-          receiverId,
-          startupId: id,
-          title: meetingTitle || `Meeting with ${startup?.name || "startup"}`,
-          proposed_slots: slots,
-          duration_minutes: 30,
-          timezone: "Asia/Kolkata",
-        },
-        token,
-      );
-
-      const requestId = res.data._id;
-
-      alert("Meeting request sent. Founder will accept a slot. You will receive an email calendar invite.");
-
-      // 👇 START POLLING
-      checkStatus(requestId);
-    } catch (err) {
-      console.error(err);
-      alert("Failed to send request");
-    } finally {
-      setRequestingMeeting(false);
-    }
-  };
-  // ✅ ADD HERE (above or below handleConnect)
-  const checkStatus = (requestId) => {
-    const interval = setInterval(async () => {
-      try {
-        const res = await axios.get(`/api/meet/status/${requestId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (res.data.status === "accepted") {
-          clearInterval(interval);
-          const meetLink = res.data.googleMeetLink || "https://meet.google.com/new";
-          alert(`Meeting accepted. Join using Google Meet link sent to email.\n${meetLink}`);
-          window.open(meetLink, "_blank", "noopener,noreferrer");
-        }
-
-        if (res.data.status === "rejected") {
-          clearInterval(interval);
-          alert("Call rejected");
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    }, 3000);
-  };
+  // (removed) meeting scheduling UI/polling from this page
 
   if (loading) {
     return (
@@ -294,6 +245,17 @@ export default function StartupDetail() {
                   {startup.location || startup.address || "Location N/A"}
                 </span>
               </div>
+              {startup?.status === "approved" && startup?.certificate_url && (
+                <a
+                  href={getCertificateUrl()}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-2 inline-flex items-center px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs font-semibold hover:bg-green-700"
+                >
+                  <FaDownload className="mr-2" />
+                  Download Certificate
+                </a>
+              )}
             </div>
           </div>
         </div>
@@ -502,7 +464,11 @@ export default function StartupDetail() {
 
           {/* Right: Financial chart + Invest card */}
           <div className="space-y-6">
-            <FinancialMetricsSection startup={startup} editable={false} />
+            <FinancialMetricsSection
+              startup={startup}
+              editable={false}
+              showReadOnlyExports
+            />
 
             <div className="bg-white rounded-2xl shadow-lg p-6">
               <div className="flex items-center justify-between mb-2">
@@ -589,49 +555,27 @@ export default function StartupDetail() {
             </div>
 
             {/* Chat + Video section */}
-            <div className="bg-white rounded-2xl shadow-lg p-6 space-y-4">
+            <div
+              className="bg-white rounded-2xl shadow-lg p-6 space-y-4"
+              ref={setChatSectionEl}
+            >
               <h2 className="text-lg font-semibold text-gray-900">
                 Connect with Founder
               </h2>
-              <ChatPanel startupId={id} currentUser={user} />
-              <div className="border border-gray-200 rounded-lg p-3">
-                <div className="text-sm font-semibold text-gray-900 mb-2">
-                  Schedule a meeting (propose time slots)
-                </div>
-                <input
-                  type="text"
-                  value={meetingTitle}
-                  onChange={(e) => setMeetingTitle(e.target.value)}
-                  placeholder="Meeting title (optional)"
-                  className="w-full mb-2 border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                />
-                {meetingSlots.map((v, idx) => (
-                  <input
-                    key={idx}
-                    type="datetime-local"
-                    value={v}
-                    onChange={(e) =>
-                      setMeetingSlots((prev) => {
-                        const next = [...prev];
-                        next[idx] = e.target.value;
-                        return next;
-                      })
-                    }
-                    className="w-full mb-2 border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                  />
-                ))}
-                <p className="text-[11px] text-gray-500">
-                  Founder will accept one slot. You’ll get an email calendar invite (.ics).
-                </p>
-              </div>
               <button
                 type="button"
-                onClick={handleConnect}
-                disabled={requestingMeeting}
-                className="w-full mt-2 px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700 disabled:opacity-60"
+                onClick={async () => {
+                  const convo = await ConversationAPI.getMineForStartup(id);
+                  const convoId = convo?.conversation?._id;
+                  navigate(`/messages${convoId ? `?conversationId=${encodeURIComponent(convoId)}` : ""}`);
+                }}
+                className="w-full btn-primary"
               >
-                {requestingMeeting ? "Sending..." : "Request Meeting"}
+                Open Full Chat Workspace
               </button>
+              <p className="text-sm text-gray-600">
+                Schedule meetings from the chat workspace.
+              </p>
             </div>
           </div>
         </div>

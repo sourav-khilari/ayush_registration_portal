@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { StartupAPI, DocumentAPI, ConversationAPI } from '../../api'
 import FinancialMetricsSection from './FinancialMetricsSection'
-import ChatPanel from '../common/ChatPanel'
 import { 
   FaUser, 
   FaBuilding, 
@@ -27,6 +26,7 @@ import {
 
 function StartupOwnerProfile() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { user } = useAuth()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -39,6 +39,14 @@ function StartupOwnerProfile() {
   const [chatList, setChatList] = useState([])
   const [chatLoading, setChatLoading] = useState(false)
   const [selectedConversationId, setSelectedConversationId] = useState(null)
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const startupIdFromQuery = params.get("startupId")
+    const conversationIdFromQuery = params.get("conversationId")
+    if (startupIdFromQuery) setSelectedStartupId(startupIdFromQuery)
+    if (conversationIdFromQuery) setSelectedConversationId(conversationIdFromQuery)
+  }, [location.search])
 
   useEffect(() => {
     loadData()
@@ -724,11 +732,14 @@ function StartupOwnerProfile() {
                       </option>
                     ))}
                   </select>
-                  <ChatPanel
-                    conversationId={selectedConversationId}
-                    currentUser={user}
-                    title="Chat"
-                  />
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/messages?conversationId=${encodeURIComponent(selectedConversationId || "")}`)}
+                    className="w-full btn-primary"
+                    disabled={!selectedConversationId}
+                  >
+                    Open Full Chat Workspace
+                  </button>
                 </>
               )}
             </div>

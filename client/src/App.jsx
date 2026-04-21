@@ -25,6 +25,9 @@ import InvestorFinancialMatrix from "./components/investor/InvestorFinancialMatr
 import GovDashboard from "./components/gov/GovDashboard";
 import GovStartupDetail from "./components/gov/GovStartupDetail";
 import StartupPage from "./features/startup/StartupPage";
+import NotificationsPage from "./components/common/NotificationsPage";
+import ThemeToggle from "./components/common/ThemeToggle";
+import MessagesWorkspace from "./components/common/MessagesWorkspace";
 
 function App() {
   return (
@@ -179,6 +182,23 @@ function App() {
             }
           />
 
+          <Route
+            path="/notifications"
+            element={
+              <PrivateRoute>
+                <NotificationsPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/messages"
+            element={
+              <PrivateRoute>
+                <MessagesWorkspace />
+              </PrivateRoute>
+            }
+          />
+
           {/* Government Official / Admin Routes */}
           <Route
             path="/gov/dashboard"
@@ -224,6 +244,7 @@ function App() {
           />
 
         </Routes>
+        <ThemeToggle />
       </Router>
     </AuthProvider>
   );

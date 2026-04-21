@@ -2,6 +2,7 @@ import "dotenv/config";
 import mongoose from "mongoose";
 import createApp from "./src/app.js";
 import { attachSignalingServer } from "./src/webrtc/signalingServer.js";
+import { attachChatSocket } from "./src/realtime/chatSocket.js";
 import {
   handleUnhandledRejection,
   handleUncaughtException,
@@ -29,6 +30,8 @@ mongoose
     const app = await createApp();
     server = http.createServer(app);
     attachSignalingServer(server);
+    const io = attachChatSocket(server);
+    app.set("io", io);
 
     server.on("error", (err) => {
       if (err && err.code === "EADDRINUSE") {

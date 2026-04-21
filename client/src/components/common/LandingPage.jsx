@@ -55,24 +55,24 @@ function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-ayush-50 to-green-100">
+    <div className="app-shell">
       {/* Navigation */}
-      <nav className="bg-white shadow-lg sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <nav className="top-nav">
+        <div className="container-page">
           <div className="flex justify-between items-center h-16">
             <div
               className="flex items-center space-x-2 cursor-pointer"
               onClick={() => handleHomeClick()}
             >
               <FaLeaf className="text-ayush-600 text-2xl" />
-              <span className="text-xl font-bold text-gray-900">AYUSH</span>
+              <span className="text-xl font-bold text-gray-900 dark:text-gray-100">AYUSH</span>
             </div>
 
             <div className="hidden md:flex space-x-8">
               {/* Home always goes to "/" */}
               <button
                 onClick={() => handleHomeClick()}
-                className="text-gray-700 hover:text-ayush-600 transition-colors"
+                className="btn-ghost"
               >
                 Home
               </button>
@@ -80,21 +80,21 @@ function LandingPage() {
               {/* These will navigate to landing page then scroll to the id */}
               <button
                 onClick={() => navigateToSection("about")}
-                className="text-gray-700 hover:text-ayush-600 transition-colors"
+                className="btn-ghost"
               >
                 About
               </button>
 
               <button
                 onClick={() => navigateToSection("services")}
-                className="text-gray-700 hover:text-ayush-600 transition-colors"
+                className="btn-ghost"
               >
                 Services
               </button>
 
               <button
                 onClick={() => navigateToSection("contact")}
-                className="text-gray-700 hover:text-ayush-600 transition-colors"
+                className="btn-ghost"
               >
                 Contact
               </button>
@@ -105,13 +105,13 @@ function LandingPage() {
                 <>
                   <Link
                     to="/signup"
-                    className="px-4 py-2 border border-ayush-600 text-ayush-600 rounded hover:bg-ayush-50 transition-colors"
+                    className="btn-secondary"
                   >
                     Sign Up
                   </Link>
                   <Link
                     to="/login"
-                    className="px-4 py-2 border border-ayush-600 text-ayush-600 rounded hover:bg-ayush-50 transition-colors"
+                    className="btn-primary"
                   >
                     Login
                   </Link>
@@ -131,7 +131,7 @@ function LandingPage() {
                           : "/user/dashboard"
                       )
                     }
-                    className="px-4 py-2 border border-ayush-600 text-ayush-600 rounded hover:bg-ayush-50 transition-colors"
+                    className="btn-secondary"
                   >
                     Dashboard
                   </button>
@@ -140,7 +140,7 @@ function LandingPage() {
                       logout?.(); // call logout if provided by context
                       navigate("/"); // ensure user is returned to landing page
                     }}
-                    className="px-4 py-2 border border-red-600 text-red-600 rounded hover:bg-red-50 transition-colors"
+                    className="btn-secondary"
                   >
                     Logout
                   </button>
@@ -149,7 +149,7 @@ function LandingPage() {
 
               <Link
                 to="/webscrap"
-                className="hover:text-white transition-colors text-gray-700"
+                className="hover:text-ayush-500 transition-colors text-gray-700 dark:text-gray-200"
               >
                 Webscrap Data
               </Link>
@@ -175,7 +175,7 @@ function LandingPage() {
 
         {/* Content */}
         <div className="relative z-10 text-center px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-          <div className="bg-white bg-opacity-95 backdrop-blur-sm rounded-2xl p-8 md:p-12 shadow-2xl">
+          <div className="ui-card-glass fade-in-up p-8 md:p-12">
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
               Welcome to <span className="text-ayush-600">AYUSH</span>
             </h1>
@@ -187,13 +187,13 @@ function LandingPage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
                 onClick={handleStartRegistration}
-                className="btn-primary text-lg px-8 py-4 inline-block"
+                className="btn-primary text-lg px-8 py-4 inline-block hover-lift"
               >
                 Start Registration <FaArrowRight className="inline ml-2" />
               </button>
               <button
                 onClick={() => navigateToSection("about")}
-                className="btn-secondary text-lg px-8 py-4"
+                className="btn-secondary text-lg px-8 py-4 hover-lift"
               >
                 Learn More
               </button>

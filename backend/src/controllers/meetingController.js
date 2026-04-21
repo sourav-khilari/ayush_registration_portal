@@ -7,8 +7,8 @@ import { buildICSInvite } from "../utils/ics.js";
 // Create request
 export const createRequest = async (req, res) => {
   try {
-    if (req.user.role !== "investor") {
-      return res.status(403).json({ message: "Only investors can request meetings" });
+    if (req.user.role !== "investor" && req.user.role !== "startup_owner") {
+      return res.status(403).json({ message: "Only investors and startup owners can request meetings" });
     }
 
     const { receiverId, startupId, proposed_slots, title, agenda, duration_minutes, timezone } = req.body || {};
@@ -22,6 +22,25 @@ export const createRequest = async (req, res) => {
 
     const startup = await Startup.findById(startupId).select("name user_id email founder_name").lean();
     if (!startup) return res.status(404).json({ message: "Startup not found" });
+
+    // Role-based validation:
+    // - Investor can request only the startup owner
+    // - Startup owner can request only an investor
+    if (req.user.role === "investor") {
+      if (String(receiverId) !== String(startup.user_id)) {
+        return res.status(403).json({ message: "Investor can request meeting only with the startup owner" });
+      }
+    }
+    if (req.user.role === "startup_owner") {
+      if (String(req.user.id) !== String(startup.user_id)) {
+        return res.status(403).json({ message: "Startup owner can request meetings only for own startup" });
+      }
+      const receiver = await User.findById(receiverId).select("role").lean();
+      if (!receiver) return res.status(404).json({ message: "Receiver not found" });
+      if (receiver.role !== "investor") {
+        return res.status(403).json({ message: "Startup owner can request meeting only with an investor" });
+      }
+    }
 
     // Keep internal room id for tracking
     const roomId = `meet-${startupId}-${Date.now()}`;
@@ -38,7 +57,7 @@ export const createRequest = async (req, res) => {
       proposed_slots: proposed_slots.map((s) => new Date(s)),
     });
 
-    // Notify startup owner via email (best-effort) with proposed slots
+    // Notify receiver via email (best-effort) with proposed slots
     try {
       const receiver = await User.findById(receiverId).select("name email").lean();
       const slotLines = request.proposed_slots
@@ -51,7 +70,7 @@ export const createRequest = async (req, res) => {
           subject: `Meeting request for ${startup.name}`,
           message: `You have received a meeting request.`,
           html: `<p>Hello ${receiver.name || "Founder"},</p>
-                <p><strong>${req.user.name || "An investor"}</strong> requested a meeting for <strong>${startup.name}</strong>.</p>
+                <p><strong>${req.user.name || "A user"}</strong> requested a meeting for <strong>${startup.name}</strong>.</p>
                 <p><strong>Proposed time slots:</strong><br/>${slotLines}</p>
                 <p>Please login to AYUSH portal to accept a slot.</p>`,
         });

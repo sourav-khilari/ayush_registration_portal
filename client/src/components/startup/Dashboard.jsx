@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { StartupAPI } from "../../api";
-import MeetingRequests from "../common/MeetingRequests";
+import { StartupAPI, ConversationAPI } from "../../api";
 import {
   FaLeaf,
   FaUser,
@@ -15,6 +14,7 @@ import {
   FaArrowRight,
   FaHome,
   FaDownload,
+  FaBell,
 } from "react-icons/fa";
 
 function Dashboard() {
@@ -23,6 +23,7 @@ function Dashboard() {
   const [userProfile, setUserProfile] = useState(null);
   const [profileComplete, setProfileComplete] = useState(false);
   const [startup, setStartup] = useState(null);
+  const [chatNotifications, setChatNotifications] = useState(0);
 
   useEffect(() => {
     if (user) {
@@ -45,6 +46,20 @@ function Dashboard() {
     loadStartup();
   }, []);
 
+  useEffect(() => {
+    async function loadNotifications() {
+      try {
+        const convoRes = await ConversationAPI.listMine();
+        const items = Array.isArray(convoRes?.items) ? convoRes.items : [];
+        const unread = items.reduce((sum, item) => sum + Number(item?.unreadCount || 0), 0);
+        setChatNotifications(unread);
+      } catch {
+        setChatNotifications(0);
+      }
+    }
+    if (user) loadNotifications();
+  }, [user]);
+
   const getCertificateUrl = () => {
     const certPath = startup?.certificate_url;
     if (!certPath) return "";
@@ -64,26 +79,40 @@ function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="app-shell">
       {/* Navigation */}
-      <nav className="bg-white shadow-lg sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <nav className="top-nav">
+        <div className="container-page">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
               <FaLeaf className="text-ayush-600 text-2xl" />
-              <span className="text-xl font-bold text-gray-900">AYUSH</span>
+              <span className="text-xl font-bold text-gray-900 dark:text-gray-100">AYUSH</span>
             </div>
             <div className="flex items-center space-x-4">
               <Link
                 to="/"
-                className="text-gray-700 hover:text-ayush-600 transition-colors flex items-center"
+                className="text-gray-700 dark:text-gray-200 hover:text-ayush-600 transition-colors flex items-center"
               >
                 <FaHome className="mr-2" />
                 Home
               </Link>
-              <div className="text-gray-700">
+              <div className="text-gray-700 dark:text-gray-200">
                 {userProfile ? `Welcome, ${userProfile.name}` : "Welcome"}
               </div>
+              <button
+                type="button"
+                onClick={() => navigate("/messages")}
+                className="btn-secondary"
+                title="Open chats"
+              >
+                <FaBell className="mr-2" />
+                Chat
+                {chatNotifications > 0 && (
+                  <span className="ml-2 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[10px] font-bold">
+                    {chatNotifications}
+                  </span>
+                )}
+              </button>
               <button onClick={logout} className="text-sm text-red-600">
                 Logout
               </button>
@@ -93,9 +122,9 @@ function Dashboard() {
       </nav>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="container-page section-wrap">
         {/* Welcome Section */}
-        <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
+        <div className="ui-card p-8 mb-8 fade-in-up">
           <div className="text-center">
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               Startup Owner Dashboard
@@ -127,7 +156,7 @@ function Dashboard() {
         {/* Action Cards */}
         <div className="grid md:grid-cols-2 gap-8 mb-8">
           {/* Complete Profile Card */}
-          <div className="bg-white rounded-lg shadow-lg p-8">
+          <div className="ui-card p-8 hover-lift">
             <div className="text-center">
               <div className="mb-6">
                 {profileComplete ? (
@@ -162,7 +191,7 @@ function Dashboard() {
           </div>
 
           {/* Apply for Startup Card */}
-          <div className="bg-white rounded-lg shadow-lg p-8">
+          <div className="ui-card p-8 hover-lift">
             <div className="text-center">
               <div className="mb-6">
                 <FaRocket className="text-6xl text-ayush-600 mx-auto" />
@@ -197,11 +226,8 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* Incoming Meeting Requests */}
-        <MeetingRequests />
-
         {/* Status Overview */}
-        <div className="bg-white rounded-lg shadow-lg p-8">
+        <div className="ui-card p-8">
           <h3 className="text-2xl font-bold text-gray-900 mb-6">
             Application Status
           </h3>
@@ -268,7 +294,7 @@ function Dashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className="mt-8 bg-white rounded-lg shadow-lg p-8">
+        <div className="mt-8 ui-card p-8">
           <h3 className="text-2xl font-bold text-gray-900 mb-6">
             Quick Actions
           </h3>
