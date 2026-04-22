@@ -150,10 +150,10 @@ export default function StartupDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-ayush-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading startup details…</p>
+          <p className="text-gray-600 dark:text-gray-300">Loading startup details…</p>
         </div>
       </div>
     );
@@ -161,8 +161,8 @@ export default function StartupDetail() {
 
   if (error || !startup) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="bg-white rounded-lg shadow p-8 max-w-md text-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-8 max-w-md text-center border border-transparent dark:border-gray-800">
           <p className="text-red-600 mb-4">
             {error || "Startup not found or inaccessible."}
           </p>
@@ -178,27 +178,27 @@ export default function StartupDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-ayush-50 to-green-100">
+    <div className="min-h-screen bg-gradient-to-br from-ayush-50 to-green-100 dark:from-gray-950 dark:to-gray-900">
       {/* Top nav */}
-      <nav className="bg-white shadow-lg sticky top-0 z-40">
+      <nav className="bg-white dark:bg-gray-900 shadow-lg sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
               <FaLeaf className="text-ayush-600 text-2xl" />
-              <span className="text-xl font-bold text-gray-900">AYUSH</span>
-              <span className="ml-4 text-sm text-gray-500 hidden sm:inline">
+              <span className="text-xl font-bold text-gray-900 dark:text-gray-100">AYUSH</span>
+              <span className="ml-4 text-sm text-gray-500 dark:text-gray-400 hidden sm:inline">
                 Investor Portal
               </span>
             </div>
             <div className="flex items-center space-x-4">
               <Link
                 to="/"
-                className="text-gray-700 hover:text-ayush-600 transition-colors flex items-center"
+                className="text-gray-700 dark:text-gray-200 hover:text-ayush-600 transition-colors flex items-center"
               >
                 <FaHome className="mr-2" />
                 Home
               </Link>
-              <div className="hidden sm:block text-gray-700">
+              <div className="hidden sm:block text-gray-700 dark:text-gray-200">
                 {user ? `Welcome, ${user.name}` : "Welcome"}
               </div>
               <button
@@ -215,10 +215,10 @@ export default function StartupDetail() {
       {/* Main content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 mb-6 border border-transparent dark:border-gray-800">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">
                 {startup.name}
               </h1>
               <div className="flex flex-wrap items-center gap-2 mt-2">
@@ -235,11 +235,11 @@ export default function StartupDetail() {
               </div>
             </div>
             <div className="text-right">
-              <div className="text-xs text-gray-500">Latest Revenue</div>
-              <div className="text-xl font-bold text-gray-900">
+              <div className="text-xs text-gray-500 dark:text-gray-400">Latest Revenue</div>
+              <div className="text-xl font-bold text-gray-900 dark:text-gray-100">
                 {formatRevenue(startup.revenue)}
               </div>
-              <div className="text-xs text-gray-500 mt-1 flex items-center justify-end">
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center justify-end">
                 <FaMapMarkerAlt className="mr-1 text-gray-400" />
                 <span>
                   {startup.location || startup.address || "Location N/A"}
@@ -263,11 +263,11 @@ export default function StartupDetail() {
         <div className="grid lg:grid-cols-3 gap-6 mb-8">
           {/* Left: Company details */}
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-3">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 border border-transparent dark:border-gray-800">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">
                 Company Overview
               </h2>
-              <p className="text-gray-700 mb-3">
+              <p className="text-gray-700 dark:text-gray-200 mb-3">
                 {startup.description || "No description provided."}
               </p>
               <div className="grid md:grid-cols-3 gap-4 mt-4">
@@ -299,8 +299,8 @@ export default function StartupDetail() {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-3">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 border border-transparent dark:border-gray-800">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">
                 Contact Information
               </h2>
               <div className="grid md:grid-cols-2 gap-4">
@@ -327,9 +327,9 @@ export default function StartupDetail() {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-lg p-6">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 border border-transparent dark:border-gray-800">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                   Startup Dashboard Preview
                 </h2>
                 <span className="text-xs px-2 py-1 rounded bg-amber-100 text-amber-800 font-medium">
@@ -396,22 +396,22 @@ export default function StartupDetail() {
                   />
                 </div>
               ) : (
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
                   Dashboard preview is not available for this startup yet.
                 </p>
               )}
             </div>
 
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 border border-transparent dark:border-gray-800">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                 Documents
               </h2>
               {documents.length === 0 ? (
-                <p className="text-gray-500 text-sm">
+                <p className="text-gray-500 dark:text-gray-400 text-sm">
                   No documents are available for this startup.
                 </p>
               ) : (
-                <ul className="divide-y divide-gray-100">
+                <ul className="divide-y divide-gray-100 dark:divide-gray-800">
                   {documents.map((doc) => {
                     const docUrl = getDocumentUrl(doc);
                     return (
@@ -420,11 +420,11 @@ export default function StartupDetail() {
                         className="py-3 flex items-center justify-between"
                       >
                         <div>
-                          <div className="text-sm font-medium text-gray-900">
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                             {doc.document_name || doc.filename || "Document"}
                           </div>
                           {doc.doc_category_declared && (
-                            <div className="text-xs text-gray-500">
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
                               {doc.doc_category_declared.replace("_", " ")}
                             </div>
                           )}
@@ -448,7 +448,7 @@ export default function StartupDetail() {
                               )
                                 .split("/")
                                 .pop()}
-                              className="px-3 py-1 text-xs font-semibold rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200"
+                              className="px-3 py-1 text-xs font-semibold rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
                             >
                               Download
                             </a>
@@ -470,9 +470,9 @@ export default function StartupDetail() {
               showReadOnlyExports
             />
 
-            <div className="bg-white rounded-2xl shadow-lg p-6">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 border border-transparent dark:border-gray-800">
               <div className="flex items-center justify-between mb-2">
-                <h2 className="text-lg font-semibold text-gray-900">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                   Invest in this Startup
                 </h2>
                 <button
@@ -487,7 +487,7 @@ export default function StartupDetail() {
               </div>
               <form onSubmit={handleInvest} className="space-y-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
                     Amount (₹)
                   </label>
                   <input
@@ -501,12 +501,12 @@ export default function StartupDetail() {
                         amount: e.target.value,
                       }))
                     }
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ayush-500"
+                    className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ayush-500"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
                     Stake Percentage (optional)
                   </label>
                   <input
@@ -521,11 +521,11 @@ export default function StartupDetail() {
                         stake_percentage: e.target.value,
                       }))
                     }
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ayush-500"
+                    className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ayush-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
                     Investment Type (optional)
                   </label>
                   <input
@@ -538,7 +538,7 @@ export default function StartupDetail() {
                         investment_type: e.target.value,
                       }))
                     }
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ayush-500"
+                    className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ayush-500"
                   />
                 </div>
                 <button
@@ -549,17 +549,17 @@ export default function StartupDetail() {
                   {investing ? "Submitting..." : "Invest Now"}
                 </button>
                 {investMessage && (
-                  <p className="text-xs text-gray-700 mt-2">{investMessage}</p>
+                  <p className="text-xs text-gray-700 dark:text-gray-300 mt-2">{investMessage}</p>
                 )}
               </form>
             </div>
 
             {/* Chat + Video section */}
             <div
-              className="bg-white rounded-2xl shadow-lg p-6 space-y-4"
+              className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 space-y-4 border border-transparent dark:border-gray-800"
               ref={setChatSectionEl}
             >
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 Connect with Founder
               </h2>
               <button
@@ -573,7 +573,7 @@ export default function StartupDetail() {
               >
                 Open Full Chat Workspace
               </button>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
                 Schedule meetings from the chat workspace.
               </p>
             </div>
@@ -582,7 +582,7 @@ export default function StartupDetail() {
 
         <button
           onClick={() => navigate("/investor/dashboard")}
-          className="inline-flex items-center text-sm text-gray-600 hover:text-ayush-700"
+          className="inline-flex items-center text-sm text-gray-600 dark:text-gray-300 hover:text-ayush-700"
         >
           ← Back to Investor Dashboard
         </button>
@@ -593,11 +593,11 @@ export default function StartupDetail() {
 
 function InfoMetric({ label, children }) {
   return (
-    <div className="p-3 rounded-lg bg-gray-50">
-      <div className="text-xs text-gray-500 uppercase tracking-wide">
+    <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
+      <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
         {label}
       </div>
-      <div className="mt-1 text-sm font-medium text-gray-900">{children}</div>
+      <div className="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">{children}</div>
     </div>
   );
 }
@@ -607,10 +607,10 @@ function InfoRow({ icon, label, value }) {
     <div className="flex items-start gap-3">
       <div className="mt-1">{icon}</div>
       <div>
-        <div className="text-xs text-gray-500 uppercase tracking-wide">
+        <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
           {label}
         </div>
-        <div className="text-sm text-gray-900">{value}</div>
+        <div className="text-sm text-gray-900 dark:text-gray-100">{value}</div>
       </div>
     </div>
   );

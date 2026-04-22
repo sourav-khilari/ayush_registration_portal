@@ -14,6 +14,7 @@ import {
   FaPhone,
   FaEnvelope,
   FaMapMarkerAlt,
+  FaExternalLinkAlt,
 } from "react-icons/fa";
 
 function LandingPage() {
@@ -101,6 +102,14 @@ function LandingPage() {
             </div>
 
             <div className="flex items-center space-x-3">
+              <a
+                href="https://y-pose.vercel.app/"
+                target="_blank"
+                rel="noreferrer"
+                className="btn-secondary"
+              >
+                Yoga Practice <FaExternalLinkAlt className="ml-2" />
+              </a>
               {!token ? (
                 <>
                   <Link
@@ -210,55 +219,55 @@ function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section className="py-16 bg-white">
+      <section className="py-16 bg-white dark:bg-gray-950">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">
               Why Choose AYUSH Portal?
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
               Comprehensive support for traditional medicine startups with
               modern technology
             </p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="text-center p-6 rounded-lg bg-ayush-50 hover:bg-ayush-100 transition-colors">
+            <div className="text-center p-6 rounded-lg bg-ayush-50 dark:bg-gray-900 dark:hover:bg-gray-800 hover:bg-ayush-100 transition-colors">
               <FaUserMd className="text-4xl text-ayush-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
                 Expert Guidance
               </h3>
-              <p className="text-gray-600">
+              <p className="text-gray-600 dark:text-gray-300">
                 Get mentorship from industry experts in traditional medicine
               </p>
             </div>
 
-            <div className="text-center p-6 rounded-lg bg-ayush-50 hover:bg-ayush-100 transition-colors">
+            <div className="text-center p-6 rounded-lg bg-ayush-50 dark:bg-gray-900 dark:hover:bg-gray-800 hover:bg-ayush-100 transition-colors">
               <FaChartLine className="text-4xl text-ayush-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
                 Growth Tracking
               </h3>
-              <p className="text-gray-600">
+              <p className="text-gray-600 dark:text-gray-300">
                 Monitor your startup's progress with detailed analytics
               </p>
             </div>
 
-            <div className="text-center p-6 rounded-lg bg-ayush-50 hover:bg-ayush-100 transition-colors">
+            <div className="text-center p-6 rounded-lg bg-ayush-50 dark:bg-gray-900 dark:hover:bg-gray-800 hover:bg-ayush-100 transition-colors">
               <FaShieldAlt className="text-4xl text-ayush-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
                 Secure Platform
               </h3>
-              <p className="text-gray-600">
+              <p className="text-gray-600 dark:text-gray-300">
                 Your data is protected with enterprise-grade security
               </p>
             </div>
 
-            <div className="text-center p-6 rounded-lg bg-ayush-50 hover:bg-ayush-100 transition-colors">
+            <div className="text-center p-6 rounded-lg bg-ayush-50 dark:bg-gray-900 dark:hover:bg-gray-800 hover:bg-ayush-100 transition-colors">
               <FaRocket className="text-4xl text-ayush-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
                 Fast Processing
               </h3>
-              <p className="text-gray-600">
+              <p className="text-gray-600 dark:text-gray-300">
                 Quick registration and approval process
               </p>
             </div>
@@ -267,14 +276,14 @@ function LandingPage() {
       </section>
 
       {/* About Section */}
-      <section id="about" className="py-16 bg-gray-50">
+      <section id="about" className="py-16 bg-gray-50 dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-6">
                 About AYUSH Startup Portal
               </h2>
-              <p className="text-lg text-gray-600 mb-6">
+              <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
                 The AYUSH Startup Registration Portal is a comprehensive
                 platform designed to support and nurture startups in the field
                 of traditional Indian medicine systems including Ayurveda, Yoga,
@@ -283,38 +292,38 @@ function LandingPage() {
               <div className="space-y-4">
                 <div className="flex items-center">
                   <FaCheckCircle className="text-ayush-600 mr-3" />
-                  <span className="text-gray-700">
+                  <span className="text-gray-700 dark:text-gray-200">
                     Streamlined registration process
                   </span>
                 </div>
                 <div className="flex items-center">
                   <FaCheckCircle className="text-ayush-600 mr-3" />
-                  <span className="text-gray-700">
+                  <span className="text-gray-700 dark:text-gray-200">
                     Access to funding opportunities
                   </span>
                 </div>
                 <div className="flex items-center">
                   <FaCheckCircle className="text-ayush-600 mr-3" />
-                  <span className="text-gray-700">
+                  <span className="text-gray-700 dark:text-gray-200">
                     Networking with industry leaders
                   </span>
                 </div>
                 <div className="flex items-center">
                   <FaCheckCircle className="text-ayush-600 mr-3" />
-                  <span className="text-gray-700">
+                  <span className="text-gray-700 dark:text-gray-200">
                     Compliance and regulatory support
                   </span>
                 </div>
               </div>
             </div>
             <div className="relative">
-              <div className="bg-white p-8 rounded-lg shadow-lg">
+              <div className="bg-white dark:bg-gray-950 p-8 rounded-lg shadow-lg border border-transparent dark:border-gray-800">
                 <div className="text-center">
                   <FaUsers className="text-6xl text-ayush-600 mx-auto mb-4" />
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
                     Join 1000+ Startups
                   </h3>
-                  <p className="text-gray-600 mb-6">
+                  <p className="text-gray-600 dark:text-gray-300 mb-6">
                     Already registered and growing in the AYUSH ecosystem
                   </p>
                   <div className="grid grid-cols-2 gap-4 text-center">
@@ -322,7 +331,7 @@ function LandingPage() {
                       <div className="text-3xl font-bold text-ayush-600">
                         500+
                       </div>
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-gray-600 dark:text-gray-300">
                         Active Startups
                       </div>
                     </div>
@@ -330,7 +339,7 @@ function LandingPage() {
                       <div className="text-3xl font-bold text-ayush-600">
                         ₹50Cr+
                       </div>
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-gray-600 dark:text-gray-300">
                         Funding Raised
                       </div>
                     </div>
@@ -351,60 +360,60 @@ function LandingPage() {
       </section>
 
       {/* Services Section */}
-      <section id="services" className="py-16 bg-white">
+      <section id="services" className="py-16 bg-white dark:bg-gray-950">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">
               Our Services
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
               Comprehensive support for your AYUSH startup journey
             </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-gradient-to-br from-ayush-50 to-green-50 p-8 rounded-lg">
+            <div className="bg-gradient-to-br from-ayush-50 to-green-50 dark:from-gray-900 dark:to-gray-800 p-8 rounded-lg border border-transparent dark:border-gray-800">
               <FaRocket className="text-3xl text-ayush-600 mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">
                 Startup Registration
               </h3>
-              <p className="text-gray-600 mb-4">
+              <p className="text-gray-600 dark:text-gray-300 mb-4">
                 Complete registration process with step-by-step guidance and
                 document verification.
               </p>
-              <ul className="space-y-2 text-sm text-gray-600">
+              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
                 <li>• Business plan review</li>
                 <li>• Legal compliance check</li>
                 <li>• Document verification</li>
               </ul>
             </div>
 
-            <div className="bg-gradient-to-br from-ayush-50 to-green-50 p-8 rounded-lg">
+            <div className="bg-gradient-to-br from-ayush-50 to-green-50 dark:from-gray-900 dark:to-gray-800 p-8 rounded-lg border border-transparent dark:border-gray-800">
               <FaChartLine className="text-3xl text-ayush-600 mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">
                 Growth Analytics
               </h3>
-              <p className="text-gray-600 mb-4">
+              <p className="text-gray-600 dark:text-gray-300 mb-4">
                 Track your startup's performance with detailed analytics and
                 insights.
               </p>
-              <ul className="space-y-2 text-sm text-gray-600">
+              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
                 <li>• Performance metrics</li>
                 <li>• Market analysis</li>
                 <li>• Growth recommendations</li>
               </ul>
             </div>
 
-            <div className="bg-gradient-to-br from-ayush-50 to-green-50 p-8 rounded-lg">
+            <div className="bg-gradient-to-br from-ayush-50 to-green-50 dark:from-gray-900 dark:to-gray-800 p-8 rounded-lg border border-transparent dark:border-gray-800">
               <FaUsers className="text-3xl text-ayush-600 mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">
                 Community Support
               </h3>
-              <p className="text-gray-600 mb-4">
+              <p className="text-gray-600 dark:text-gray-300 mb-4">
                 Connect with fellow entrepreneurs and industry experts in the
                 AYUSH ecosystem.
               </p>
-              <ul className="space-y-2 text-sm text-gray-600">
+              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
                 <li>• Networking events</li>
                 <li>• Mentorship programs</li>
                 <li>• Peer learning</li>
@@ -414,62 +423,97 @@ function LandingPage() {
         </div>
       </section>
 
+      {/* Yoga Practice Section */}
+      <section className="py-16 bg-gray-50 dark:bg-gray-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+              Practice Yoga Poses
+            </h2>
+            <p className="text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+              Use our integrated Yoga Pose Detection tool to practice posture accuracy and improve your sessions.
+            </p>
+          </div>
+          <div className="ui-card p-3 md:p-4">
+            <div className="w-full h-[520px] rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800">
+              <iframe
+                title="Yoga Pose Detection Practice"
+                src="https://y-pose.vercel.app/"
+                className="w-full h-full"
+                loading="lazy"
+                allow="camera; microphone"
+              />
+            </div>
+            <div className="mt-4 flex justify-center">
+              <a
+                href="https://y-pose.vercel.app/"
+                target="_blank"
+                rel="noreferrer"
+                className="btn-secondary"
+              >
+                Open Yoga Pose Detection <FaExternalLinkAlt className="ml-2" />
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Testimonials */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-16 bg-gray-50 dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">
               What Our Startups Say
             </h2>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-white p-6 rounded-lg shadow-lg">
+            <div className="bg-white dark:bg-gray-950 p-6 rounded-lg shadow-lg border border-transparent dark:border-gray-800">
               <div className="flex mb-4">
                 {[...Array(5)].map((_, i) => (
                   <FaStar key={i} className="text-yellow-400" />
                 ))}
               </div>
-              <p className="text-gray-600 mb-4">
+              <p className="text-gray-600 dark:text-gray-300 mb-4">
                 "The AYUSH portal made our registration process so smooth. The
                 guidance and support we received was exceptional."
               </p>
-              <div className="font-semibold text-gray-900">
+              <div className="font-semibold text-gray-900 dark:text-gray-100">
                 Dr. Priya Sharma
               </div>
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-gray-500 dark:text-gray-400">
                 Ayurveda Wellness Startup
               </div>
             </div>
 
-            <div className="bg-white p-6 rounded-lg shadow-lg">
+            <div className="bg-white dark:bg-gray-950 p-6 rounded-lg shadow-lg border border-transparent dark:border-gray-800">
               <div className="flex mb-4">
                 {[...Array(5)].map((_, i) => (
                   <FaStar key={i} className="text-yellow-400" />
                 ))}
               </div>
-              <p className="text-gray-600 mb-4">
+              <p className="text-gray-600 dark:text-gray-300 mb-4">
                 "Excellent platform for traditional medicine startups. The
                 networking opportunities have been invaluable for our growth."
               </p>
-              <div className="font-semibold text-gray-900">Rajesh Kumar</div>
-              <div className="text-sm text-gray-500">Yoga Tech Solutions</div>
+              <div className="font-semibold text-gray-900 dark:text-gray-100">Rajesh Kumar</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">Yoga Tech Solutions</div>
             </div>
 
-            <div className="bg-white p-6 rounded-lg shadow-lg">
+            <div className="bg-white dark:bg-gray-950 p-6 rounded-lg shadow-lg border border-transparent dark:border-gray-800">
               <div className="flex mb-4">
                 {[...Array(5)].map((_, i) => (
                   <FaStar key={i} className="text-yellow-400" />
                 ))}
               </div>
-              <p className="text-gray-600 mb-4">
+              <p className="text-gray-600 dark:text-gray-300 mb-4">
                 "The analytics and tracking features help us understand our
                 progress and make data-driven decisions."
               </p>
-              <div className="font-semibold text-gray-900">
+              <div className="font-semibold text-gray-900 dark:text-gray-100">
                 Dr. Anjali Patel
               </div>
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-gray-500 dark:text-gray-400">
                 Homeopathy Innovations
               </div>
             </div>

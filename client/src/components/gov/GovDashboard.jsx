@@ -118,27 +118,27 @@ export default function GovDashboard() {
   const isAdmin = user?.role === "admin";
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Top navigation */}
-      <nav className="bg-white shadow-lg sticky top-0 z-40">
+      <nav className="bg-white dark:bg-gray-900 shadow-lg sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
               <FaLeaf className="text-ayush-600 text-2xl" />
-              <span className="text-xl font-bold text-gray-900">AYUSH</span>
-              <span className="ml-4 text-sm text-gray-500 hidden sm:inline">
+              <span className="text-xl font-bold text-gray-900 dark:text-gray-100">AYUSH</span>
+              <span className="ml-4 text-sm text-gray-500 dark:text-gray-400 hidden sm:inline">
                 Government Dashboard
               </span>
             </div>
             <div className="flex items-center space-x-4">
               <Link
                 to="/"
-                className="text-gray-700 hover:text-ayush-600 transition-colors flex items-center"
+                className="text-gray-700 dark:text-gray-200 hover:text-ayush-600 transition-colors flex items-center"
               >
                 <FaHome className="mr-2" />
                 Home
               </Link>
-              <div className="hidden sm:block text-gray-700">
+              <div className="hidden sm:block text-gray-700 dark:text-gray-200">
                 {user ? `Welcome, ${user.name}` : "Welcome"}
               </div>
               <button
@@ -156,13 +156,13 @@ export default function GovDashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Admin Section: Verify Government Officials */}
         {isAdmin && (
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 mb-6 border border-transparent dark:border-gray-800">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
                   Admin Panel - Verify Government Officials
                 </h1>
-                <p className="text-gray-600">
+                <p className="text-gray-600 dark:text-gray-300">
                   Verify government officials to grant them access to approve/reject startups.
                 </p>
               </div>
@@ -192,8 +192,8 @@ export default function GovDashboard() {
                       <p className="text-gray-500 text-center py-4">No government officials found.</p>
                     ) : (
                       <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-100">
-                          <thead className="bg-gray-50">
+                        <table className="min-w-full divide-y divide-gray-100 dark:divide-gray-800">
+                          <thead className="bg-gray-50 dark:bg-gray-800/60">
                             <tr>
                               <Th>Name</Th>
                               <Th>Email</Th>
@@ -202,7 +202,7 @@ export default function GovDashboard() {
                               <Th>Actions</Th>
                             </tr>
                           </thead>
-                          <tbody className="bg-white divide-y divide-gray-100">
+                          <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-100 dark:divide-gray-800">
                             {govOfficials.map((official) => (
                               <tr key={official._id}>
                                 <Td className="font-medium">{official.name}</Td>
@@ -253,11 +253,11 @@ export default function GovDashboard() {
           </div>
         )}
 
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 mb-6 border border-transparent dark:border-gray-800">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
             Startup Approvals
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-gray-300">
             Review newly submitted AYUSH startups and update their status.
           </p>
 
@@ -266,7 +266,7 @@ export default function GovDashboard() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ayush-500"
+                className="border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ayush-500"
               >
                 <option value="">All Statuses</option>
                 <option value="pending">Pending</option>
@@ -277,14 +277,14 @@ export default function GovDashboard() {
               </select>
             </div>
 
-            <div className="w-full md:w-1/2 flex items-center border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 focus-within:ring-2 focus-within:ring-ayush-500">
-              <FaSearch className="text-gray-400 mr-2" />
+            <div className="w-full md:w-1/2 flex items-center border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 focus-within:ring-2 focus-within:ring-ayush-500">
+              <FaSearch className="text-gray-400 dark:text-gray-500 mr-2" />
               <input
                 type="text"
                 placeholder="Search by startup name, founder, email or phone"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="flex-1 outline-none bg-transparent"
+                className="flex-1 outline-none bg-transparent text-gray-900 dark:text-gray-100"
               />
             </div>
           </div>
@@ -301,9 +301,9 @@ export default function GovDashboard() {
           </div>
         )}
 
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg overflow-hidden border border-transparent dark:border-gray-800">
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
               Startups ({items.length})
             </h2>
             {loading && (
@@ -317,8 +317,8 @@ export default function GovDashboard() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-100">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-100 dark:divide-gray-800">
+                <thead className="bg-gray-50 dark:bg-gray-800/60">
                   <tr>
                     <Th>Name</Th>
                     <Th>Founder</Th>
@@ -328,7 +328,7 @@ export default function GovDashboard() {
                     <Th></Th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-100">
+                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-100 dark:divide-gray-800">
                   {items.map((s) => (
                     <tr key={s._id}>
                       <Td>
@@ -399,7 +399,7 @@ function Th({ children }) {
   return (
     <th
       scope="col"
-      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
     >
       {children}
     </th>
@@ -408,7 +408,7 @@ function Th({ children }) {
 
 function Td({ children }) {
   return (
-    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
+    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">
       {children}
     </td>
   );

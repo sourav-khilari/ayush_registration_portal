@@ -205,10 +205,10 @@ function StartupOwnerProfile() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-ayush-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading profile...</p>
+          <p className="text-gray-600 dark:text-gray-300">Loading profile...</p>
         </div>
       </div>
     )
@@ -216,7 +216,7 @@ function StartupOwnerProfile() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
         <div className="text-center">
           <FaExclamationTriangle className="text-red-500 text-4xl mx-auto mb-4" />
           <p className="text-red-600 mb-4">{error}</p>
@@ -228,7 +228,7 @@ function StartupOwnerProfile() {
 
   if (!startup) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
         <div className="text-center">
           <FaBuilding className="text-gray-400 text-4xl mx-auto mb-4" />
           <p className="text-gray-600 mb-4">No startup application found</p>
@@ -241,18 +241,18 @@ function StartupOwnerProfile() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Navigation */}
-      <nav className="bg-white shadow-sm border-b">
+      <nav className="bg-white dark:bg-gray-900 shadow-sm border-b dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
               <FaLeaf className="text-ayush-600 text-2xl" />
-              <span className="text-xl font-bold text-gray-900">AYUSH</span>
+              <span className="text-xl font-bold text-gray-900 dark:text-gray-100">AYUSH</span>
             </div>
             <button 
               onClick={() => navigate('/StartupOwner/dashboard')}
-              className="text-gray-700 hover:text-ayush-600 transition-colors flex items-center"
+              className="text-gray-700 dark:text-gray-200 hover:text-ayush-600 transition-colors flex items-center"
             >
               <FaArrowLeft className="mr-2" />
               Back to Dashboard
@@ -266,13 +266,13 @@ function StartupOwnerProfile() {
           {/* Profile Information */}
           <div className="lg:col-span-2 space-y-6">
             {/* Application Header */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-6 border border-transparent dark:border-gray-800">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900">Startup Owner Profile</h1>
-                  <p className="text-gray-600">Manage your startups and documents</p>
+                  <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Startup Owner Profile</h1>
+                  <p className="text-gray-600 dark:text-gray-300">Manage your startups and documents</p>
                   {startups.length > 1 && (
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       You have {startups.length} startups. Switch between them to see previous and new documents.
                     </p>
                   )}
@@ -313,7 +313,7 @@ function StartupOwnerProfile() {
                           console.error("Failed to load documents for selected startup", e2)
                         }
                       }}
-                      className="ml-4 px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-ayush-500"
+                      className="ml-4 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ayush-500"
                     >
                       {startups.map((s) => (
                         <option key={s._id} value={s._id}>
@@ -329,7 +329,7 @@ function StartupOwnerProfile() {
                     </button>
                   ) : (
                     <div className="flex space-x-2">
-                      <button onClick={() => setEditMode(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+                      <button onClick={() => setEditMode(false)} className="px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800">
                         <FaTimes className="mr-2" />
                         Cancel
                       </button>
@@ -344,8 +344,8 @@ function StartupOwnerProfile() {
             </div>
 
             {/* Personal Information Card */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-6 border border-transparent dark:border-gray-800">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-6 flex items-center">
                 <FaUser className="mr-3 text-ayush-600" />
                 Personal Information
               </h2>
@@ -531,8 +531,8 @@ function StartupOwnerProfile() {
             </div>
 
             {/* Uploaded Documents Card */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-6 border border-transparent dark:border-gray-800">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-6 flex items-center">
                 <FaFileAlt className="mr-3 text-ayush-600" />
                 Submitted Documents
               </h2>
@@ -547,13 +547,13 @@ function StartupOwnerProfile() {
                   {documents.map((doc, index) => {
                     const docUrl = getDocumentUrl(doc)
                     return (
-                    <div key={doc._id || index} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                    <div key={doc._id || index} className="border border-gray-200 dark:border-gray-800 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
                           <FaFileAlt className="text-gray-400" />
                           <div>
-                            <p className="font-medium text-gray-900">{doc.document_name || doc.filename || `Document ${index + 1}`}</p>
-                            <p className="text-sm text-gray-500">
+                            <p className="font-medium text-gray-900 dark:text-gray-100">{doc.document_name || doc.filename || `Document ${index + 1}`}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
                               Uploaded: {new Date(doc.createdAt || Date.now()).toLocaleDateString()}
                             </p>
                           </div>
@@ -588,19 +588,19 @@ function StartupOwnerProfile() {
                         <p className="mt-2 text-sm text-red-600">{doc.rejection_reason}</p>
                       )}
                       {doc.ocr_text && (
-                        <div className="mt-3 p-3 bg-gray-50 rounded border border-gray-200">
-                          <p className="text-xs uppercase text-gray-500 mb-1">Extracted Text</p>
-                          <pre className="whitespace-pre-wrap text-sm text-gray-800">{doc.ocr_text}</pre>
+                        <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
+                          <p className="text-xs uppercase text-gray-500 dark:text-gray-400 mb-1">Extracted Text</p>
+                          <pre className="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200">{doc.ocr_text}</pre>
                         </div>
                       )}
                       {doc.extracted_fields && Object.keys(doc.extracted_fields || {}).length > 0 && (
-                        <div className="mt-3 p-3 bg-white rounded border border-gray-200">
-                          <p className="text-xs uppercase text-gray-500 mb-2">Extracted Fields</p>
+                        <div className="mt-3 p-3 bg-white dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700">
+                          <p className="text-xs uppercase text-gray-500 dark:text-gray-400 mb-2">Extracted Fields</p>
                           <div className="grid md:grid-cols-2 gap-2">
                             {Object.entries(doc.extracted_fields).map(([k, v]) => (
                               <div key={k} className="text-sm">
-                                <span className="text-gray-600 mr-2">{k}:</span>
-                                <span className="text-gray-900 font-medium">{(v && typeof v === 'object' && v.value !== undefined) ? String(v.value) : String(v)}</span>
+                                <span className="text-gray-600 dark:text-gray-300 mr-2">{k}:</span>
+                                <span className="text-gray-900 dark:text-gray-100 font-medium">{(v && typeof v === 'object' && v.value !== undefined) ? String(v.value) : String(v)}</span>
                               </div>
                             ))}
                           </div>
@@ -613,11 +613,11 @@ function StartupOwnerProfile() {
             </div>
 
             {/* Link to standalone Financial Dashboard */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-3">
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-6 border border-transparent dark:border-gray-800">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">
                 Financial Dashboard
               </h2>
-              <p className="text-sm text-gray-600 mb-4">
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
                 View and manage detailed financial metrics for your startup in a dedicated dashboard.
               </p>
               <button
@@ -632,8 +632,8 @@ function StartupOwnerProfile() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Application Status Card */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Application Status</h3>
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-6 border border-transparent dark:border-gray-800">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Application Status</h3>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Status</span>
@@ -685,8 +685,8 @@ function StartupOwnerProfile() {
             </div>
 
             {/* Quick Actions Card */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-6 border border-transparent dark:border-gray-800">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Quick Actions</h3>
               <div className="space-y-3">
                 <button 
                   onClick={() => navigate('/StartupOwner/startup-application')}
@@ -704,8 +704,8 @@ function StartupOwnerProfile() {
             </div>
 
             {/* Chat with Investors */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-6 border border-transparent dark:border-gray-800">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                 Connect with Investors
               </h3>
               {!startup ? (

@@ -58,10 +58,10 @@ export default function GovStartupDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-ayush-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading startup details…</p>
+          <p className="text-gray-600 dark:text-gray-300">Loading startup details…</p>
         </div>
       </div>
     );
@@ -69,8 +69,8 @@ export default function GovStartupDetail() {
 
   if (error || !startup) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="bg-white rounded-lg shadow p-8 max-w-md text-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-8 max-w-md text-center border border-transparent dark:border-gray-800">
           <p className="text-red-600 mb-4">{error || "Startup not found."}</p>
           <button
             onClick={() => navigate("/gov/dashboard")}
@@ -84,22 +84,22 @@ export default function GovStartupDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-lg sticky top-0 z-40">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+      <nav className="bg-white dark:bg-gray-900 shadow-lg sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
               <FaLeaf className="text-ayush-600 text-2xl" />
-              <span className="text-xl font-bold text-gray-900">AYUSH</span>
-              <span className="ml-4 text-sm text-gray-500 hidden sm:inline">
+              <span className="text-xl font-bold text-gray-900 dark:text-gray-100">AYUSH</span>
+              <span className="ml-4 text-sm text-gray-500 dark:text-gray-400 hidden sm:inline">
                 Government Dashboard
               </span>
             </div>
             <div className="flex items-center space-x-4">
-              <Link to="/" className="text-gray-700 hover:text-ayush-600 flex items-center">
+              <Link to="/" className="text-gray-700 dark:text-gray-200 hover:text-ayush-600 flex items-center">
                 <FaHome className="mr-2" /> Home
               </Link>
-              <span className="hidden sm:block text-gray-700">{user?.name}</span>
+              <span className="hidden sm:block text-gray-700 dark:text-gray-200">{user?.name}</span>
               <button onClick={logout} className="text-sm text-red-600 hover:text-red-700">
                 Logout
               </button>
@@ -111,14 +111,14 @@ export default function GovStartupDetail() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <button
           onClick={() => navigate("/gov/dashboard")}
-          className="inline-flex items-center text-sm text-gray-600 hover:text-ayush-700 mb-6"
+          className="inline-flex items-center text-sm text-gray-600 dark:text-gray-300 hover:text-ayush-700 mb-6"
         >
           <FaArrowLeft className="mr-2" /> Back to Dashboard
         </button>
 
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">{startup.name}</h1>
-          <p className="text-gray-600 mt-1">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 mb-6 border border-transparent dark:border-gray-800">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{startup.name}</h1>
+          <p className="text-gray-600 dark:text-gray-300 mt-1">
             {startup.founder_name} • {startup.email}
           </p>
           <div className="mt-2 flex gap-2">
@@ -126,7 +126,7 @@ export default function GovStartupDetail() {
               {startup.status?.replace("_", " ") || "—"}
             </span>
             {startup.startup_type && (
-              <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+              <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
                 {startup.startup_type}
               </span>
             )}
@@ -135,25 +135,25 @@ export default function GovStartupDetail() {
 
         <FinancialMetricsSection startup={startup} editable={false} />
 
-        <div className="bg-white rounded-2xl shadow-lg p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 border border-transparent dark:border-gray-800">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
             <FaFileAlt className="mr-2 text-ayush-600" />
             Documents
           </h2>
           {documents.length === 0 ? (
-            <p className="text-gray-500 text-sm">No documents available for this startup.</p>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">No documents available for this startup.</p>
           ) : (
-            <ul className="divide-y divide-gray-100">
+            <ul className="divide-y divide-gray-100 dark:divide-gray-800">
               {documents.map((doc) => {
                 const docUrl = getDocumentUrl(doc);
                 return (
                   <li key={doc._id} className="py-3 flex items-center justify-between">
                     <div>
-                      <div className="text-sm font-medium text-gray-900">
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {doc.document_name || doc.filename || "Document"}
                       </div>
                       {doc.doc_category_declared && (
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
                           {doc.doc_category_declared.replace("_", " ")}
                         </div>
                       )}
@@ -171,7 +171,7 @@ export default function GovStartupDetail() {
                         <a
                           href={docUrl}
                           download={(doc.document_name || doc.filename || "document").split("/").pop()}
-                          className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
                         >
                           <FaDownload className="mr-1" /> Download
                         </a>

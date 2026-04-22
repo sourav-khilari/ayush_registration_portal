@@ -20,23 +20,23 @@ export default function UserProfileView() {
     return () => { mounted = false }
   }, [])
 
-  if (error) return <div className="min-h-screen flex items-center justify-center text-red-600">{error}</div>
-  if (!profile) return <div className="min-h-screen flex items-center justify-center">Loading...</div>
+  if (error) return <div className="min-h-screen flex items-center justify-center text-red-600 dark:bg-gray-950">{error}</div>
+  if (!profile) return <div className="min-h-screen flex items-center justify-center dark:bg-gray-950 dark:text-gray-100">Loading...</div>
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-lg sticky top-0 z-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+      <nav className="bg-white dark:bg-gray-900 shadow-lg sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="text-xl font-bold text-gray-900">AYUSH</div>
+            <div className="text-xl font-bold text-gray-900 dark:text-gray-100">AYUSH</div>
             <Link to="/user/dashboard" className="text-ayush-600">Back to Dashboard</Link>
           </div>
         </div>
       </nav>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-6">Profile Details</h1>
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg p-8 border border-transparent dark:border-gray-800">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Profile Details</h1>
           <div className="grid sm:grid-cols-2 gap-4 text-sm">
             <Field label="Name" value={profile.name} />
             <Field label="Email" value={profile.email} />
@@ -60,8 +60,8 @@ export default function UserProfileView() {
 function Field({ label, value }) {
   return (
     <div>
-      <div className="text-gray-500">{label}</div>
-      <div className="text-gray-900">{value || '-'}</div>
+      <div className="text-gray-500 dark:text-gray-400">{label}</div>
+      <div className="text-gray-900 dark:text-gray-100">{value || '-'}</div>
     </div>
   )
 }

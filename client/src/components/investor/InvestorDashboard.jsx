@@ -277,7 +277,7 @@ export default function InvestorDashboard() {
         <form onSubmit={handleApplyFilters} className="ui-card p-6 mb-8">
           <div className="flex items-center mb-4 gap-2">
             <FaFilter className="text-ayush-600" />
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
               Filter Startups
             </h2>
           </div>
@@ -324,14 +324,14 @@ export default function InvestorDashboard() {
               className="ui-input"
             />
 
-            <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 text-sm focus-within:ring-2 focus-within:ring-ayush-500">
-              <FaMapMarkerAlt className="text-gray-400 mr-2" />
+            <div className="flex items-center border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus-within:ring-2 focus-within:ring-ayush-500 bg-white dark:bg-gray-900">
+              <FaMapMarkerAlt className="text-gray-400 dark:text-gray-500 mr-2" />
               <input
                 type="text"
                 placeholder="Location"
                 value={filters.location}
                 onChange={(e) => handleFilterChange("location", e.target.value)}
-                className="flex-1 outline-none text-sm"
+                className="flex-1 outline-none text-sm bg-transparent text-gray-900 dark:text-gray-100"
               />
             </div>
           </div>
@@ -368,8 +368,8 @@ export default function InvestorDashboard() {
 
         {/* Startup list */}
         <div className="ui-card overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
               Registered Startups
             </h2>
             {loading && (
@@ -391,9 +391,9 @@ export default function InvestorDashboard() {
                 return (
                   <div
                     key={s._id}
-                    className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden"
+                    className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm overflow-hidden"
                   >
-                    <div className="h-44 bg-gray-100 flex items-center justify-center overflow-hidden">
+                    <div className="h-44 bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden">
                       {heroImage ? (
                         <img
                           src={heroImage}
@@ -401,7 +401,7 @@ export default function InvestorDashboard() {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="text-gray-400 flex flex-col items-center gap-2">
+                        <div className="text-gray-400 dark:text-gray-500 flex flex-col items-center gap-2">
                           <FaImage className="text-2xl" />
                           <span className="text-xs">No Image</span>
                         </div>
@@ -410,29 +410,29 @@ export default function InvestorDashboard() {
 
                     <div className="p-4 space-y-3">
                       <div>
-                        <h3 className="text-lg font-semibold text-gray-900 line-clamp-1">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 line-clamp-1">
                           {s.name}
                         </h3>
-                        <p className="text-xs text-gray-500 mt-1 line-clamp-1">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-1">
                           Founder: {s.founder_name || "N/A"}
                         </p>
                       </div>
 
                       <div className="flex items-center justify-between gap-2 text-sm">
-                        <span className="capitalize text-gray-700">
+                        <span className="capitalize text-gray-700 dark:text-gray-200">
                           {s.startup_type || "—"}
                         </span>
                         <StatusPill status={s.financial_status} />
                       </div>
 
-                      <div className="text-sm text-gray-700 flex items-center">
-                        <FaMapMarkerAlt className="mr-1 text-gray-400" />
+                      <div className="text-sm text-gray-700 dark:text-gray-200 flex items-center">
+                        <FaMapMarkerAlt className="mr-1 text-gray-400 dark:text-gray-500" />
                         <span className="line-clamp-1">
                           {s.location || s.address || "N/A"}
                         </span>
                       </div>
 
-                      <div className="text-sm font-semibold text-gray-900">
+                      <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                         Revenue: {formatRevenue(s.revenue)}
                       </div>
 
@@ -456,15 +456,15 @@ export default function InvestorDashboard() {
 
 function SummaryCard({ label, value, icon }) {
   return (
-    <div className="flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r from-ayush-50 to-green-50 border border-ayush-100">
-      <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm">
+    <div className="flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r from-ayush-50 to-green-50 dark:from-gray-900 dark:to-gray-800 border border-ayush-100 dark:border-gray-800">
+      <div className="w-10 h-10 rounded-full bg-white dark:bg-gray-700 flex items-center justify-center shadow-sm">
         {icon}
       </div>
       <div>
-        <div className="text-xs uppercase tracking-wide text-gray-500">
+        <div className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
           {label}
         </div>
-        <div className="text-xl font-bold text-gray-900 mt-1">{value}</div>
+        <div className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">{value}</div>
       </div>
     </div>
   );

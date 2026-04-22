@@ -17,6 +17,10 @@ import { sendRequest } from "../../api/meetApi";
 import { acceptRequest, rejectRequest } from "../../api/meetApi";
 
 const MEET_PREFIX = "__MEET_REQ__:";
+const getMeetingRequestId = (text) =>
+  String(text || "").startsWith(MEET_PREFIX)
+    ? String(text).slice(MEET_PREFIX.length).split("|")[0]
+    : "";
 
 const QUICK_EMOJIS = [":)", ":D", "<3", ":+1:", ":rocket:", ":idea:"];
 
@@ -35,6 +39,8 @@ export default function MessagesWorkspace() {
   const [meetingTitle, setMeetingTitle] = useState("");
   const [meetingSlots, setMeetingSlots] = useState(["", "", ""]);
   const [sendingMeeting, setSendingMeeting] = useState(false);
+  const [meetingActionLoading, setMeetingActionLoading] = useState({});
+  const [resolvedMeetingRequests, setResolvedMeetingRequests] = useState({});
   const socketRef = useRef(null);
   const scrollRef = useRef(null);
 
@@ -267,7 +273,10 @@ export default function MessagesWorkspace() {
       .split("|");
     const requestId = parts[0];
     const title = decodeURIComponent(parts[1] || "Meeting");
+    if (!requestId) return;
+    if (meetingActionLoading[requestId] || resolvedMeetingRequests[requestId]) return;
     try {
+      setMeetingActionLoading((prev) => ({ ...prev, [requestId]: true }));
       if (action === "accept") {
         const res = await acceptRequest(requestId, slotIndex, token);
         const link =
@@ -278,15 +287,19 @@ export default function MessagesWorkspace() {
           active._id,
           `Meeting accepted: ${title}\nJoin link: ${link}\nInvitation email has been sent.`,
         );
+        setResolvedMeetingRequests((prev) => ({ ...prev, [requestId]: "accepted" }));
       } else {
         await rejectRequest(requestId, token);
         await ConversationAPI.sendMessageToConversation(
           active._id,
           `? Meeting rejected: ${title}`,
         );
+        setResolvedMeetingRequests((prev) => ({ ...prev, [requestId]: "rejected" }));
       }
     } catch (e) {
       setError(e?.message || "Meeting action failed");
+    } finally {
+      setMeetingActionLoading((prev) => ({ ...prev, [requestId]: false }));
     }
   }
 
@@ -427,9 +440,17 @@ export default function MessagesWorkspace() {
                           className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm shadow-sm ${isSelf ? "bg-ayush-600 text-white rounded-br-md" : "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 rounded-bl-md"}`}
                         >
                           {isMeetCard ? (
+                            (() => {
+                              const requestId = getMeetingRequestId(m.text);
+                              const disabled =
+                                !!meetingActionLoading[requestId] ||
+                                !!resolvedMeetingRequests[requestId];
+                              return (
                             <MeetingCard
                               text={m.text}
-                              canRespond={!isSelf}
+                              canRespond={!isSelf && !disabled}
+                              actionDisabled={disabled}
+                              actionState={resolvedMeetingRequests[requestId] || null}
                               onAccept={(idx) =>
                                 handleMeetingAction(m.text, "accept", idx)
                               }
@@ -437,6 +458,8 @@ export default function MessagesWorkspace() {
                                 handleMeetingAction(m.text, "reject", 0)
                               }
                             />
+                              );
+                            })()
                           ) : m.text ? (
                             <p className="whitespace-pre-wrap">{m.text}</p>
                           ) : null}
@@ -575,7 +598,14 @@ export default function MessagesWorkspace() {
   );
 }
 
-function MeetingCard({ text, canRespond, onAccept, onReject }) {
+function MeetingCard({
+  text,
+  canRespond,
+  onAccept,
+  onReject,
+  actionDisabled = false,
+  actionState = null,
+}) {
   const raw = String(text || "");
   const parts = raw.replace(MEET_PREFIX, "").split("|");
   const requestId = parts[0] || "";
@@ -603,7 +633,8 @@ function MeetingCard({ text, canRespond, onAccept, onReject }) {
             <button
               key={idx}
               type="button"
-              className="btn-secondary px-3 py-2"
+              className="btn-secondary px-3 py-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              disabled={actionDisabled}
               onClick={() => onAccept(idx)}
             >
               Accept slot {idx + 1}
@@ -611,12 +642,18 @@ function MeetingCard({ text, canRespond, onAccept, onReject }) {
           ))}
           <button
             type="button"
-            className="btn-secondary px-3 py-2"
+            className="btn-secondary px-3 py-2 disabled:opacity-60 disabled:cursor-not-allowed"
+            disabled={actionDisabled}
             onClick={onReject}
           >
             Reject
           </button>
         </div>
+      )}
+      {actionState && (
+        <p className="text-xs opacity-80">
+          {actionState === "accepted" ? "Slot accepted" : "Request rejected"}
+        </p>
       )}
     </div>
   );

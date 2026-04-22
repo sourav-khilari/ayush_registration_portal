@@ -20,20 +20,20 @@ export default function UserProfile() {
     return () => { mounted = false }
   }, [])
 
-  if (error) return <div className="min-h-screen flex items-center justify-center text-red-600">{error}</div>
-  if (!profile) return <div className="min-h-screen flex items-center justify-center">Loading...</div>
+  if (error) return <div className="min-h-screen flex items-center justify-center text-red-600 dark:bg-gray-950">{error}</div>
+  if (!profile) return <div className="min-h-screen flex items-center justify-center dark:bg-gray-950 dark:text-gray-100">Loading...</div>
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-ayush-50 to-green-100">
-      <nav className="bg-white/90 backdrop-blur shadow">
+    <div className="min-h-screen bg-gradient-to-br from-ayush-50 to-green-100 dark:from-gray-950 dark:to-gray-900">
+      <nav className="bg-white/90 dark:bg-gray-900/90 backdrop-blur shadow">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="font-bold text-gray-900">AYUSH</div>
+          <div className="font-bold text-gray-900 dark:text-gray-100">AYUSH</div>
           <Link to="/" className="text-ayush-600">Home</Link>
         </div>
       </nav>
       <div className="max-w-5xl mx-auto p-6">
-        <h1 className="text-3xl font-bold mb-4 text-gray-900">User Profile</h1>
-        <div className="bg-white/90 backdrop-blur rounded-2xl shadow-xl p-6 grid md:grid-cols-2 gap-6 border border-ayush-100">
+        <h1 className="text-3xl font-bold mb-4 text-gray-900 dark:text-gray-100">User Profile</h1>
+        <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur rounded-2xl shadow-xl p-6 grid md:grid-cols-2 gap-6 border border-ayush-100 dark:border-gray-800">
           <Field label="Name" value={profile.name} />
           <Field label="Email" value={profile.email} />
           <Field label="Phone" value={profile.phone_number} />
@@ -55,8 +55,8 @@ export default function UserProfile() {
 function Field({ label, value }) {
   return (
     <div>
-      <div className="text-sm text-gray-500">{label}</div>
-      <div className="text-gray-900">{value || '-'}</div>
+      <div className="text-sm text-gray-500 dark:text-gray-400">{label}</div>
+      <div className="text-gray-900 dark:text-gray-100">{value || '-'}</div>
     </div>
   )
 }

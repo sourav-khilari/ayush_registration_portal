@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ApplicationAPI, DocumentAPI } from '../../api';
 import { toast } from 'react-toastify';
+import ApplicationTracker from './ApplicationTracker';
 
 function ApplicationView() {
   const { id } = useParams();
@@ -175,6 +176,8 @@ function ApplicationView() {
             </div>
           )}
         </div>
+
+        <ApplicationTracker application={application} requirements={requirements} />
 
         {/* Documents Section */}
         <div className="bg-white rounded-lg shadow-md p-6">

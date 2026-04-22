@@ -59,19 +59,19 @@ export default function UserProfileEdit() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-lg sticky top-0 z-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+      <nav className="bg-white dark:bg-gray-900 shadow-lg sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="text-xl font-bold text-gray-900">AYUSH</div>
+            <div className="text-xl font-bold text-gray-900 dark:text-gray-100">AYUSH</div>
             <Link to="/user/dashboard" className="text-ayush-600">Back to Dashboard</Link>
           </div>
         </div>
       </nav>
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-6">Edit Profile</h1>
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg p-8 border border-transparent dark:border-gray-800">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Edit Profile</h1>
           {error && <div className="mb-4 text-red-600 text-sm">{error}</div>}
           <form onSubmit={handleSave} className="grid gap-4">
             <Field label="Name">
@@ -112,7 +112,7 @@ export default function UserProfileEdit() {
 function Field({ label, children }) {
   return (
     <div>
-      <label className="block text-sm font-medium mb-1">{label}</label>
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">{label}</label>
       {children}
     </div>
   )
@@ -126,7 +126,7 @@ function Input({ value, onChange, type = 'text', required = false, disabled = fa
       onChange={(e)=>onChange(e.target.value)}
       required={required}
       disabled={disabled}
-      className={`w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ayush-500 ${disabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
+      className={`w-full border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ayush-500 ${disabled ? 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-not-allowed' : ''}`}
     />
   )
 }

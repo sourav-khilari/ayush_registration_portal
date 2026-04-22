@@ -54,6 +54,7 @@ export default function MeetingRequests() {
                 {(req.proposed_slots || []).slice(0, 5).map((s, idx) => (
                   <button
                     key={idx}
+                    type="button"
                     onClick={() => handleAccept(req._id, idx)}
                     className="block text-left w-full bg-green-50 hover:bg-green-100 text-green-800 px-2 py-1 rounded text-xs"
                     title="Accept this slot"
@@ -67,6 +68,7 @@ export default function MeetingRequests() {
 
           <div>
             <button
+              type="button"
               onClick={() => handleReject(req._id)}
               className="bg-red-500 text-white px-3 py-1 rounded"
             >

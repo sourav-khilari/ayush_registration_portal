@@ -68,6 +68,26 @@ function ApplicationsList() {
     return summary;
   };
 
+  const getTrackerSummary = (app, docSummary) => {
+    const submitted = Boolean(app.submitted_at);
+    const verified = docSummary.total > 0 && docSummary.pending === 0 && docSummary.rejected === 0;
+    const decided = app.status === 'approved' || app.status === 'rejected';
+    const completedSteps = [submitted, verified, decided].filter(Boolean).length;
+    const progress = Math.round((completedSteps / 3) * 100);
+
+    let eta = 'ETA after submission';
+    if (decided) {
+      eta = 'Decision completed';
+    } else if (submitted) {
+      const base = new Date(app.submitted_at);
+      const days = verified ? 7 : 21;
+      base.setDate(base.getDate() + days);
+      eta = `ETA ${base.toLocaleDateString()}`;
+    }
+
+    return { progress, eta };
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -113,6 +133,7 @@ function ApplicationsList() {
             {applications.map((app) => {
               const docSummary = getDocumentStatusSummary(app.documents);
               const hasRejected = docSummary.rejected > 0;
+              const tracker = getTrackerSummary(app, docSummary);
 
               const isVirtual = app.isVirtual || (app._id && app._id.startsWith('virtual_'));
               
@@ -187,6 +208,20 @@ function ApplicationsList() {
                           </span>
                         </div>
                       )}
+
+                      <div className="mt-4">
+                        <div className="flex items-center justify-between text-sm mb-1">
+                          <span className="text-gray-600">Tracker Progress</span>
+                          <span className="font-medium text-gray-700">{tracker.progress}%</span>
+                        </div>
+                        <div className="h-2 rounded-full bg-gray-200 overflow-hidden">
+                          <div
+                            className="h-2 bg-ayush-500"
+                            style={{ width: `${tracker.progress}%` }}
+                          />
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">{tracker.eta}</p>
+                      </div>
 
                       {app.reviewer_comment && (
                         <div className="mt-3 p-3 bg-blue-50 rounded-md">

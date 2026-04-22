@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { StartupAPI, RequirementsAPI, DocumentAPI, ApplicationAPI } from "../../api";
+import {
+  StartupAPI,
+  RequirementsAPI,
+  DocumentAPI,
+  ApplicationAPI,
+} from "../../api";
 import {
   FaLeaf,
   FaRocket,
@@ -149,11 +154,11 @@ function StartupApplication() {
     Promise.all([
       RequirementsAPI.get(
         normalizeSector(formData.sector),
-        formData.application_type
+        formData.application_type,
       ),
       RequirementsAPI.getCommon(
         normalizeSector(formData.sector),
-        formData.application_type
+        formData.application_type,
       ),
     ])
       .then(([sectorRes, commonRes]) => {
@@ -275,7 +280,7 @@ function StartupApplication() {
               console.log("📨 OTP pending set to true, email:", emailRes.email);
             } else {
               setVerificationError(
-                `Email lookup failed: ${emailRes?.message || "unknown error"}`
+                `Email lookup failed: ${emailRes?.message || "unknown error"}`,
               );
               console.error("❌ Email lookup failed:", emailRes);
             }
@@ -285,13 +290,13 @@ function StartupApplication() {
           }
         } else {
           setVerificationError(
-            "Could not extract Aadhaar last 4 digits from response"
+            "Could not extract Aadhaar last 4 digits from response",
           );
           console.error(
             "❌ Could not extract last4. ocr_text:",
             res?.document?.ocr_text,
             "Full response:",
-            res
+            res,
           );
           setAadhaarVerified(false);
         }
@@ -299,13 +304,13 @@ function StartupApplication() {
         setVerificationError(
           `Aadhaar verification failed: ${
             res?.document?.verified_status || "unknown"
-          }`
+          }`,
         );
         console.error(
           "❌ Verification failed. Status:",
           res?.document?.verified_status,
           "Full response:",
-          res
+          res,
         );
         setAadhaarVerified(false);
       }
@@ -330,7 +335,7 @@ function StartupApplication() {
         "❌ Missing data. maskedId:",
         maskedId,
         "email:",
-        aadhaarEmail
+        aadhaarEmail,
       );
       return;
     }
@@ -388,10 +393,11 @@ function StartupApplication() {
       form.append("image", docEntry.file);
 
       // Call the external verification API directly (NOT backend proxy)
-      const verifyImageUrl = "https://doc-ver-service.onrender.com/api/v1/verify/verify-image";
+      const verifyImageUrl =
+        "https://doc-ver-service.onrender.com/api/v1/verify/verify-image";
 
       console.log(`📡 Sending to external API: ${verifyImageUrl}`);
-      
+
       const res = await fetch(verifyImageUrl, {
         method: "POST",
         body: form,
@@ -409,7 +415,7 @@ function StartupApplication() {
       // Update documentsData based on verification response
       // Check if verified field is true
       const isVerified = data?.verified === true;
-      
+
       setDocumentsData((prev) => ({
         ...prev,
         [docCategory]: {
@@ -425,11 +431,15 @@ function StartupApplication() {
       }));
 
       if (!isVerified) {
-        setDocumentsError("Product QR verification failed. Please try with a valid QR code.");
+        setDocumentsError(
+          "Product QR verification failed. Please try with a valid QR code.",
+        );
       }
     } catch (err) {
       console.error("❌ QR verify error:", err);
-      setDocumentsError(`QR verification failed: ${err.message}. Please try again.`);
+      setDocumentsError(
+        `QR verification failed: ${err.message}. Please try again.`,
+      );
       setQrResult({ success: false, error: err.message });
     } finally {
       setQrLoading(false);
@@ -448,7 +458,7 @@ function StartupApplication() {
   const areAllDocumentsReady = () => {
     // First check if Aadhaar verification is required and not complete
     const requiresAadhaar = (requirementsState.items || []).some(
-      (req) => req.doc_category === "founder_id" && req.required !== false
+      (req) => req.doc_category === "founder_id" && req.required !== false,
     );
     if (requiresAadhaar && !aadhaarFullyVerified) {
       return false;
@@ -456,7 +466,7 @@ function StartupApplication() {
 
     // Check if Product QR is required and verify it's been verified
     const requiresProductQR = (requirementsState.items || []).some(
-      (req) => req.doc_category === "product_qr" && req.required !== false
+      (req) => req.doc_category === "product_qr" && req.required !== false,
     );
     if (requiresProductQR && !documentsData["product_qr"]?.verified_qr) {
       return false;
@@ -473,23 +483,21 @@ function StartupApplication() {
   const validateRequiredDocumentsSelected = () => {
     // First check if Aadhaar verification is required and not complete
     const requiresAadhaar = (requirementsState.items || []).some(
-      (req) => req.doc_category === "founder_id" && req.required !== false
+      (req) => req.doc_category === "founder_id" && req.required !== false,
     );
     if (requiresAadhaar && !aadhaarFullyVerified) {
       setDocumentsError(
-        "Please verify your Aadhaar with OTP before proceeding"
+        "Please verify your Aadhaar with OTP before proceeding",
       );
       return false;
     }
 
     // Check if Product QR is required and verify it's been verified
     const requiresProductQR = (requirementsState.items || []).some(
-      (req) => req.doc_category === "product_qr" && req.required !== false
+      (req) => req.doc_category === "product_qr" && req.required !== false,
     );
     if (requiresProductQR && !documentsData["product_qr"]?.verified_qr) {
-      setDocumentsError(
-        "Please verify your Product QR before proceeding"
-      );
+      setDocumentsError("Please verify your Product QR before proceeding");
       return false;
     }
 
@@ -497,14 +505,15 @@ function StartupApplication() {
       .filter((req) => req.required !== false) // required by default
       .filter((req) => !documentsData[req.doc_category]?.file)
       .map(
-        (req) => DOC_META[req.doc_category]?.label || labelize(req.doc_category)
+        (req) =>
+          DOC_META[req.doc_category]?.label || labelize(req.doc_category),
       );
 
     if (missing.length > 0) {
       setDocumentsError(
         `Please upload all required documents before submitting: ${missing.join(
-          ", "
-        )}`
+          ", ",
+        )}`,
       );
       return false;
     }
@@ -615,7 +624,7 @@ function StartupApplication() {
           const found = mine.startups.find(
             (s) =>
               (s?.email || "").toLowerCase() ===
-              (formData.email || "").toLowerCase()
+              (formData.email || "").toLowerCase(),
           );
           if (found) {
             startupId = found._id || found.id || startupId;
@@ -635,19 +644,17 @@ function StartupApplication() {
         // Try to find existing application for this startup with same sector/type
         const existingAppsRes = await ApplicationAPI.getMyApplications();
         const existingApps = existingAppsRes?.applications || [];
-        const existing = existingApps.find(
-          (app) => {
-            const appStartupId = app.startup_id?._id || app.startup_id;
-            return (
-              String(appStartupId) === String(startupId) &&
-              app.sector === formData.sector &&
-              app.application_type === formData.application_type &&
-              !app.isVirtual // Don't reuse virtual applications
-            );
-          }
-        );
-        
-        if (existing && existing._id && !existing._id.startsWith('virtual_')) {
+        const existing = existingApps.find((app) => {
+          const appStartupId = app.startup_id?._id || app.startup_id;
+          return (
+            String(appStartupId) === String(startupId) &&
+            app.sector === formData.sector &&
+            app.application_type === formData.application_type &&
+            !app.isVirtual // Don't reuse virtual applications
+          );
+        });
+
+        if (existing && existing._id && !existing._id.startsWith("virtual_")) {
           applicationId = existing._id;
         } else {
           // Create new application
@@ -662,7 +669,11 @@ function StartupApplication() {
               phone_number: formData.phone_number,
             },
           });
-          applicationId = appRes?.application?._id || appRes?.application?.id || appRes?._id || appRes?.id;
+          applicationId =
+            appRes?.application?._id ||
+            appRes?.application?.id ||
+            appRes?._id ||
+            appRes?.id;
         }
       } catch (appErr) {
         console.error("Failed to create/find application:", appErr);
@@ -681,8 +692,10 @@ function StartupApplication() {
           // Special handling for product_qr: don't upload to backend, use local verified_qr data
           if ((req.doc_category || "").toLowerCase() === "product_qr") {
             const qrData = documentsData["product_qr"];
-            const isQRVerified = qrData?.verified_qr === true && qrData?.verification_response?.verified === true;
-            
+            const isQRVerified =
+              qrData?.verified_qr === true &&
+              qrData?.verification_response?.verified === true;
+
             uploadResponses.push({
               category: req.doc_category,
               fileName: docEntry.file.name,
@@ -694,7 +707,10 @@ function StartupApplication() {
                 verification_response: qrData?.verification_response || {},
               },
             });
-            console.log("📦 Product QR added to uploadResponses:", { category: req.doc_category, status: isQRVerified ? "verified" : "rejected" });
+            console.log("📦 Product QR added to uploadResponses:", {
+              category: req.doc_category,
+              status: isQRVerified ? "verified" : "rejected",
+            });
             continue; // skip backend upload for product_qr
           }
 
@@ -764,7 +780,7 @@ function StartupApplication() {
       // This is not required to show in the frontend; we log response for debugging.
       try {
         const founder = uploadResponses.find(
-          (r) => (r.category || "").toLowerCase() === "founder_id"
+          (r) => (r.category || "").toLowerCase() === "founder_id",
         );
         const aadhaar_last4 =
           founder?.raw?.ocr_text?.aadhaar_last4 ||
@@ -775,7 +791,7 @@ function StartupApplication() {
         // Build docs payload - for product_qr, check the verified_qr flag from documentsData
         const docsPayload = uploadResponses.map((r) => {
           let verified_status = r.status;
-          
+
           // Special handling for product_qr: check verified_qr flag and verification_response
           if ((r.category || "").toLowerCase() === "product_qr") {
             const qrData = documentsData["product_qr"];
@@ -785,14 +801,16 @@ function StartupApplication() {
               verified_status = "rejected";
             }
           }
-          
+
           return {
             category: r.category,
             verified_status,
             doc_id: r.id,
             filename: r.fileName,
             reason:
-              (r.raw && (r.raw.rejection_reason || r.raw?.verification_response?.error)) ||
+              (r.raw &&
+                (r.raw.rejection_reason ||
+                  r.raw?.verification_response?.error)) ||
               undefined,
           };
         });
@@ -810,7 +828,7 @@ function StartupApplication() {
             .catch((err) => console.warn("oaky failed:", err));
         } else {
           console.log(
-            "oaky: no aadhaar_last4 found in uploaded responses — skipping notify"
+            "oaky: no aadhaar_last4 found in uploaded responses — skipping notify",
           );
         }
       } catch (err) {
@@ -823,7 +841,7 @@ function StartupApplication() {
       console.error("Create startup / upload failed", error);
       // show a generic error message - we deliberately avoid throwing raw errors to UI
       setDocumentsError(
-        "Submission failed. Please try again or contact support."
+        "Submission failed. Please try again or contact support.",
       );
     } finally {
       setIsSubmitting(false);
@@ -1222,7 +1240,7 @@ function StartupApplication() {
                           handleDocFieldChange(
                             req.doc_category,
                             f.name,
-                            e.target.value
+                            e.target.value,
                           )
                         }
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-ayush-500 focus:border-ayush-500"
@@ -1244,7 +1262,7 @@ function StartupApplication() {
                       onChange={(e) => {
                         handleDocFileChange(
                           req.doc_category,
-                          e.target.files?.[0] || null
+                          e.target.files?.[0] || null,
                         );
                         if (req.doc_category === "founder_id") {
                           setVerificationError("");
@@ -1296,13 +1314,22 @@ function StartupApplication() {
 
                       {/* show quick result */}
                       {qrResult && (
-                        <div className={`mt-2 p-3 rounded border text-xs w-80 text-left ${qrResult?.verified === true ? "bg-green-50 border-green-300" : "bg-red-50 border-red-300"}`}>
-                          <div className={`font-semibold text-sm mb-2 ${qrResult?.verified === true ? "text-green-800" : "text-red-800"}`}>
-                            QR Status: {qrResult?.verified === true ? "✅ VERIFIED" : "❌ NOT VERIFIED"}
+                        <div
+                          className={`mt-2 p-3 rounded border text-xs w-80 text-left ${qrResult?.verified === true ? "bg-green-50 border-green-300" : "bg-red-50 border-red-300"}`}
+                        >
+                          <div
+                            className={`font-semibold text-sm mb-2 ${qrResult?.verified === true ? "text-green-800" : "text-red-800"}`}
+                          >
+                            QR Status:{" "}
+                            {qrResult?.verified === true
+                              ? "✅ VERIFIED"
+                              : "❌ NOT VERIFIED"}
                           </div>
                           {qrResult && Object.keys(qrResult).length > 0 && (
                             <details className="text-xs text-gray-700 mt-1">
-                              <summary className="cursor-pointer font-semibold">Response Details</summary>
+                              <summary className="cursor-pointer font-semibold">
+                                Response Details
+                              </summary>
                               <pre className="mt-2 p-2 bg-gray-100 rounded overflow-auto max-h-40 text-xs">
                                 {JSON.stringify(qrResult, null, 2)}
                               </pre>
@@ -1432,18 +1459,20 @@ function StartupApplication() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Navigation */}
-      <nav className="bg-white shadow-lg sticky top-0 z-50">
+      <nav className="bg-white dark:bg-gray-900 shadow-lg sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
               <FaLeaf className="text-ayush-600 text-2xl" />
-              <span className="text-xl font-bold text-gray-900">AYUSH</span>
+              <span className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                AYUSH
+              </span>
             </div>
             <button
               onClick={handleBack}
-              className="text-gray-700 hover:text-ayush-600 transition-colors flex items-center"
+              className="text-gray-700 dark:text-gray-200 hover:text-ayush-600 transition-colors flex items-center"
             >
               <FaArrowLeft className="mr-2" /> Back to Dashboard
             </button>
@@ -1453,16 +1482,16 @@ function StartupApplication() {
 
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-lg shadow-lg p-8">
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg p-8 border border-transparent dark:border-gray-800">
           {/* Header */}
           <div className="text-center mb-8">
             <div className="mb-4">
               <FaRocket className="text-6xl text-ayush-600 mx-auto" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
               Startup Application
             </h1>
-            <p className="text-gray-600">
+            <p className="text-gray-600 dark:text-gray-300">
               Complete the form below to submit your AYUSH startup registration
               application.
             </p>
@@ -1471,14 +1500,14 @@ function StartupApplication() {
           {/* Progress Bar */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Step {currentStep} of 3
               </span>
-              <span className="text-sm text-gray-500">
+              <span className="text-sm text-gray-500 dark:text-gray-400">
                 {Math.round((currentStep / 3) * 100)}% Complete
               </span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
               <div
                 className="bg-ayush-600 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${(currentStep / 3) * 100}%` }}
@@ -1497,7 +1526,7 @@ function StartupApplication() {
               <button
                 type="button"
                 onClick={currentStep === 1 ? handleBack : handlePrevious}
-                className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                className="px-6 py-3 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               >
                 {currentStep === 1 ? "Cancel" : "Previous"}
               </button>
@@ -1536,14 +1565,14 @@ function StartupApplication() {
           </form>
 
           {/* Info Section */}
-          <div className="mt-8 p-6 bg-ayush-50 rounded-lg">
+          <div className="mt-8 p-6 bg-ayush-50 dark:bg-gray-800 rounded-lg">
             <div className="flex items-start">
               <FaInfoCircle className="text-ayush-600 text-xl mr-3 mt-1" />
               <div>
-                <h3 className="font-semibold text-gray-900 mb-2">
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
                   Application Process
                 </h3>
-                <ul className="text-sm text-gray-600 space-y-1">
+                <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
                   <li>
                     • Your application will be reviewed by AYUSH officials
                   </li>

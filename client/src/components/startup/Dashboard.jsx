@@ -126,23 +126,23 @@ function Dashboard() {
         {/* Welcome Section */}
         <div className="ui-card p-8 mb-8 fade-in-up">
           <div className="text-center">
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">
               Startup Owner Dashboard
             </h1>
-            <p className="text-lg text-gray-600 mb-6">
+            <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
               Manage your AYUSH startup registration and track your application
               progress
             </p>
 
             {userProfile && (
-              <div className="bg-ayush-50 rounded-lg p-6 mb-6">
+              <div className="bg-ayush-50 dark:bg-gray-800 rounded-lg p-6 mb-6">
                 <div className="flex items-center justify-center mb-4">
                   <FaUser className="text-4xl text-ayush-600 mr-4" />
                   <div className="text-left">
-                    <h3 className="text-xl font-semibold text-gray-900">
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                       {userProfile.name}
                     </h3>
-                    <p className="text-gray-600">{userProfile.email}</p>
+                    <p className="text-gray-600 dark:text-gray-300">{userProfile.email}</p>
                     <p className="text-sm text-ayush-600 font-medium">
                       {userProfile.role}
                     </p>
@@ -165,10 +165,10 @@ function Dashboard() {
                   <FaUser className="text-6xl text-ayush-600 mx-auto" />
                 )}
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
                 {profileComplete ? "Profile Complete" : "Complete Your Profile"}
               </h3>
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 dark:text-gray-300 mb-6">
                 {profileComplete
                   ? "Your profile has been successfully completed and saved."
                   : "Complete your profile by providing your name, email, and role information."}
@@ -196,10 +196,10 @@ function Dashboard() {
               <div className="mb-6">
                 <FaRocket className="text-6xl text-ayush-600 mx-auto" />
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
                 Apply for Startup Registration
               </h3>
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 dark:text-gray-300 mb-6">
                 Submit your startup application with all required information
                 and documents.
               </p>
@@ -218,7 +218,7 @@ function Dashboard() {
                 {profileComplete && <FaArrowRight className="inline ml-2" />}
               </button>
               {!profileComplete && (
-                <p className="text-sm text-gray-500 mt-2">
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
                   Complete your profile first to access this feature
                 </p>
               )}
@@ -228,26 +228,26 @@ function Dashboard() {
 
         {/* Status Overview */}
         <div className="ui-card p-8">
-          <h3 className="text-2xl font-bold text-gray-900 mb-6">
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">
             Application Status
           </h3>
           <div className="grid md:grid-cols-3 gap-6">
-            <div className="text-center p-6 bg-gray-50 rounded-lg">
+            <div className="text-center p-6 bg-gray-50 dark:bg-gray-800 rounded-lg">
               <FaClock className="text-4xl text-yellow-500 mx-auto mb-4" />
-              <h4 className="text-lg font-semibold text-gray-900 mb-2">
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
                 Profile Status
               </h4>
-              <p className="text-gray-600">
+              <p className="text-gray-600 dark:text-gray-300">
                 {profileComplete ? "Completed" : "Pending"}
               </p>
             </div>
 
-            <div className="text-center p-6 bg-gray-50 rounded-lg">
+            <div className="text-center p-6 bg-gray-50 dark:bg-gray-800 rounded-lg">
               <FaFileAlt className="text-4xl text-blue-500 mx-auto mb-4" />
-              <h4 className="text-lg font-semibold text-gray-900 mb-2">
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
                 Application Status
               </h4>
-              <p className="text-gray-600">
+              <p className="text-gray-600 dark:text-gray-300">
                 {startup?.status
                   ? startup.status.replace("_", " ").toUpperCase()
                   : profileComplete
@@ -255,7 +255,7 @@ function Dashboard() {
                     : "Profile Required"}
               </p>
               {startup?.status_updated_at && (
-                <p className="mt-2 text-xs text-gray-500">
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                   Last decision:{" "}
                   {new Date(startup.status_updated_at).toLocaleDateString()}
                 </p>
@@ -273,7 +273,7 @@ function Dashboard() {
                     Download Certificate
                   </a>
                   {startup?.certificate_id && (
-                    <p className="mt-2 text-[11px] text-gray-500">
+                    <p className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
                       Certificate ID: {startup.certificate_id}
                     </p>
                   )}
@@ -281,12 +281,12 @@ function Dashboard() {
               )}
             </div>
 
-            <div className="text-center p-6 bg-gray-50 rounded-lg">
+            <div className="text-center p-6 bg-gray-50 dark:bg-gray-800 rounded-lg">
               <FaChartLine className="text-4xl text-green-500 mx-auto mb-4" />
-              <h4 className="text-lg font-semibold text-gray-900 mb-2">
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
                 Progress
               </h4>
-              <p className="text-gray-600">
+              <p className="text-gray-600 dark:text-gray-300">
                 {profileComplete ? "50% Complete" : "25% Complete"}
               </p>
             </div>
@@ -295,27 +295,27 @@ function Dashboard() {
 
         {/* Quick Actions */}
         <div className="mt-8 ui-card p-8">
-          <h3 className="text-2xl font-bold text-gray-900 mb-6">
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">
             Quick Actions
           </h3>
           <div className="grid md:grid-cols-5 gap-4">
             <Link
               to="/startup-profile"
-              className="p-4 bg-gradient-to-br from-purple-50 to-blue-50 hover:from-purple-100 hover:to-blue-100 rounded-lg text-center transition-colors border border-purple-200"
+              className="p-4 bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 hover:from-purple-100 hover:to-blue-100 dark:hover:from-gray-800 dark:hover:to-gray-700 rounded-lg text-center transition-colors border border-purple-200 dark:border-gray-700"
             >
               <FaChartLine className="text-2xl text-purple-600 mx-auto mb-2" />
-              <span className="text-sm font-medium text-gray-900">
+              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                 📊 Metrics Dashboard
               </span>
-              <p className="text-xs text-gray-600 mt-1">Track & Analyze</p>
+              <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">Track & Analyze</p>
             </Link>
 
             <Link
               to="/StartupOwner/complete-profile"
-              className="p-4 bg-ayush-50 hover:bg-ayush-100 rounded-lg text-center transition-colors"
+              className="p-4 bg-ayush-50 dark:bg-gray-800 hover:bg-ayush-100 dark:hover:bg-gray-700 rounded-lg text-center transition-colors"
             >
               <FaUser className="text-2xl text-ayush-600 mx-auto mb-2" />
-              <span className="text-sm font-medium text-gray-900">
+              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                 Startup Profile Editor
               </span>
             </Link>
@@ -325,31 +325,31 @@ function Dashboard() {
               className={`p-4 rounded-lg text-center transition-colors ${
                 profileComplete
                   ? "bg-ayush-50 hover:bg-ayush-100"
-                  : "bg-gray-100 cursor-not-allowed"
+                  : "bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
               }`}
             >
               <FaRocket className="text-2xl text-ayush-600 mx-auto mb-2" />
-              <span className="text-sm font-medium text-gray-900">
+              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                 New Application
               </span>
             </Link>
 
             <Link
               to="/StartupOwner/profile"
-              className="p-4 bg-ayush-50 hover:bg-ayush-100 rounded-lg text-center transition-colors"
+              className="p-4 bg-ayush-50 dark:bg-gray-800 hover:bg-ayush-100 dark:hover:bg-gray-700 rounded-lg text-center transition-colors"
             >
               <FaFileAlt className="text-2xl text-ayush-600 mx-auto mb-2" />
-              <span className="text-sm font-medium text-gray-900">
+              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                 Startup Profile & Documents
               </span>
             </Link>
 
             <Link
               to="/StartupOwner/applications"
-              className="p-4 bg-ayush-50 hover:bg-ayush-100 rounded-lg text-center transition-colors"
+              className="p-4 bg-ayush-50 dark:bg-gray-800 hover:bg-ayush-100 dark:hover:bg-gray-700 rounded-lg text-center transition-colors"
             >
               <FaChartLine className="text-2xl text-ayush-600 mx-auto mb-2" />
-              <span className="text-sm font-medium text-gray-900">
+              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                 Track Progress
               </span>
             </Link>
