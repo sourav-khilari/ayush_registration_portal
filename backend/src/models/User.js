@@ -23,7 +23,7 @@ const UserSchema = new mongoose.Schema(
     role_verified: {
       type: Boolean,
       default: function () {
-        return this.role !== "gov_official";
+        return this.role !== "gov_official" && this.role !== "investor";
       },
     },
     verification_docs: [

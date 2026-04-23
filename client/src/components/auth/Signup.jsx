@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { AuthAPI } from "../../api";
 
 export default function Signup() {
   const { register } = useAuth();
@@ -9,15 +10,55 @@ export default function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("");
+  const [otp, setOtp] = useState("");
+  const [panCardFile, setPanCardFile] = useState(null);
+  const [otpSent, setOtpSent] = useState(false);
+  const [sendingOtp, setSendingOtp] = useState(false);
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+
+  async function handleSendOtp() {
+    setError("");
+    setMessage("");
+    setSendingOtp(true);
+    try {
+      if (!email) throw new Error("Please enter your email first");
+      await AuthAPI.sendSignupOtp({ email });
+      setOtpSent(true);
+      setMessage("OTP has been sent to your email.");
+    } catch (err) {
+      setError(err.message || "Failed to send OTP");
+    } finally {
+      setSendingOtp(false);
+    }
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
+    setMessage("");
     setLoading(true);
     try {
-      const payload = role ? { name, email, password, role } : { name, email, password };
+      if (!otpSent) {
+        throw new Error("Please verify your email by requesting OTP first");
+      }
+      if (!otp) {
+        throw new Error("Please enter the OTP sent to your email");
+      }
+      if (role === "investor" && !panCardFile) {
+        throw new Error("PAN Card is required for investor registration");
+      }
+
+      const payload = new FormData();
+      payload.append("name", name);
+      payload.append("email", email);
+      payload.append("password", password);
+      payload.append("otp", otp);
+      if (role) payload.append("role", role);
+      if (role === "investor" && panCardFile) {
+        payload.append("pan_card_file", panCardFile);
+      }
       await register(payload);
       navigate('/login');
     } catch (err) {
@@ -48,6 +89,7 @@ export default function Signup() {
             <h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-gray-100">Create account</h1>
             <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">Register to start your AYUSH journey</p>
             {error && <div className="mb-4 text-red-600 text-sm">{error}</div>}
+            {message && <div className="mb-4 text-green-600 text-sm">{message}</div>}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">Name</label>
@@ -56,6 +98,14 @@ export default function Signup() {
               <div>
                 <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">Email</label>
                 <input className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ayush-500" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                <button
+                  type="button"
+                  disabled={sendingOtp || !email}
+                  onClick={handleSendOtp}
+                  className="mt-2 text-sm px-3 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 rounded disabled:opacity-60"
+                >
+                  {sendingOtp ? "Sending OTP..." : otpSent ? "Resend OTP" : "Send OTP"}
+                </button>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">Password</label>
@@ -71,6 +121,29 @@ export default function Signup() {
                   <option value="admin">Admin</option>
                   <option value="user">User</option>
                 </select>
+              </div>
+              {role === "investor" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">PAN Card (PDF/JPG/PNG)</label>
+                  <input
+                    className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2"
+                    type="file"
+                    accept=".pdf,image/png,image/jpeg,image/jpg"
+                    onChange={(e) => setPanCardFile(e.target.files?.[0] || null)}
+                    required
+                  />
+                </div>
+              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">Email OTP</label>
+                <input
+                  className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ayush-500"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  placeholder="Enter 6-digit OTP"
+                  maxLength={6}
+                  required
+                />
               </div>
               <button disabled={loading} className="w-full bg-ayush-600 hover:bg-ayush-700 text-white font-semibold py-3 rounded-lg disabled:opacity-60 shadow">
                 {loading ? "Creating account..." : "Sign up"}

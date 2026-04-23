@@ -1,6 +1,7 @@
 // src/routes/userRoutes.js
 import express from "express";
 import {
+  sendSignupOtp,
   registerUser,
   loginUser,
   getProfile,
@@ -17,7 +18,8 @@ const router = express.Router();
 const upload = multer({ dest: "tmp/" });
 
 // Public Routes
-router.post("/register", registerUser);
+router.post("/register/send-otp", sendSignupOtp);
+router.post("/register", upload.single("pan_card_file"), registerUser);
 router.post("/login", loginUser);
 
 // Protected Routes

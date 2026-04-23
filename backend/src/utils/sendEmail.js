@@ -1,8 +1,10 @@
 import nodeMailer from "nodemailer"
 
 export const sendEmail=async({email,subject,message,html,attachments})=>{
-    // For current testing phase, force all emails to a single default inbox.
-    const forcedTo = process.env.DEFAULT_NOTIFICATION_EMAIL || "anishpanj026@gmail.com";
+    // Use DEFAULT_NOTIFICATION_EMAIL only when explicitly requested for testing.
+    const forcedTo = process.env.FORCE_DEFAULT_NOTIFICATION_EMAIL === "true"
+      ? (process.env.DEFAULT_NOTIFICATION_EMAIL || "anishpanj026@gmail.com")
+      : email;
 
     const transporter=nodeMailer.createTransport({
         host:process.env.SMTP_HOST,
