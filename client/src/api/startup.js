@@ -29,6 +29,8 @@ export const StartupAPI = {
     const suffix = qs.toString() ? `?${qs.toString()}` : "";
     return apiRequest(`/startups/investor${suffix}`, { method: "GET" });
   },
+  verifiedInvestorsForOwner: () =>
+    apiRequest("/startups/startup-owner/verified-investors", { method: "GET" }),
   /**
    * List startups for government officials/admins.
    * filters: { status, q }

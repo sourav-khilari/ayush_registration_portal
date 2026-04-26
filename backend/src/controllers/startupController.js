@@ -2,6 +2,8 @@
 import Startup from "../models/Startup.js";
 import { sendEmail } from "../utils/sendEmail.js";
 import Document from "../models/Document.js";
+import User from "../models/User.js";
+import StartupProfile from "../models/StartupProfile.js";
 import { generateStartupCertificatePdf } from "../utils/certificate.js";
 import PDFDocument from "pdfkit";
 
@@ -149,6 +151,21 @@ async function createStartup(req, res) {
       website,
       address,
     } = req.body;
+    const existingBlockingStartup = await Startup.findOne({
+      user_id: req.user._id,
+      status: { $ne: "rejected" },
+    })
+      .select("_id name status")
+      .lean();
+
+    if (existingBlockingStartup) {
+      return res.status(409).json({
+        message:
+          "You already have an active startup application. You can submit a new startup only after the previous one is rejected.",
+        existing_startup: existingBlockingStartup,
+      });
+    }
+
     const startup = await Startup.create({
       user_id: req.user._id,
       name,
@@ -448,12 +465,19 @@ async function updateStartupStatusByOfficial(req, res) {
 
     startup.status = status;
     startup.status_updated_at = new Date();
+    startup.status_updated_by = req.user?._id || null;
+    startup.status_updated_by_name = req.user?.name || "";
+    startup.status_updated_by_email = req.user?.email || "";
     await startup.save();
 
     // Generate certificate on approval (best-effort, idempotent)
     if (status === "approved" && !startup.certificate_url) {
       try {
-        const cert = await generateStartupCertificatePdf(startup);
+        const cert = await generateStartupCertificatePdf(startup, {
+          approverName: req.user?.name || startup.status_updated_by_name || "",
+          approverEmail: req.user?.email || startup.status_updated_by_email || "",
+          approverRole: req.user?.role || "",
+        });
         startup.certificate_id = cert.certificateId;
         startup.certificate_hash = cert.certificateHash;
         startup.certificate_url = cert.certificateUrl;
@@ -468,6 +492,7 @@ async function updateStartupStatusByOfficial(req, res) {
             message: `Dear ${startup.founder_name}, your startup "${startup.name}" has been approved. Your registration certificate is attached.`,
             html: `<p>Dear ${startup.founder_name},</p>
                   <p>Your startup <strong>${startup.name}</strong> has been <strong>APPROVED</strong>.</p>
+                  <p><strong>Approved by:</strong> ${req.user?.name || "Government Official"} (${req.user?.email || "N/A"})</p>
                   <p>Your AYUSH registration certificate is attached to this email.</p>
                   <p><strong>Certificate ID:</strong> ${cert.certificateId}<br/>
                      <strong>Verification Hash:</strong> ${cert.certificateHash}</p>
@@ -497,6 +522,7 @@ async function updateStartupStatusByOfficial(req, res) {
         html: `<p>Dear ${startup.founder_name},</p>
                <p>Your AYUSH startup <strong>${startup.name}</strong> status has been updated to 
                <strong style="text-transform:uppercase;">${status}</strong> by the government authority.</p>
+               <p><strong>Action by:</strong> ${req.user?.name || "Government Official"} (${req.user?.email || "N/A"})</p>
                <p>Date: ${new Date(startup.status_updated_at).toLocaleString()}</p>
                <p>If you have any questions, please log in to the portal to view details.</p>
                <p>Regards,<br/>AYUSH Portal</p>`,
@@ -541,10 +567,59 @@ async function listStartupsForOfficials(req, res) {
     const items = await Startup
       .find(filter)
       .sort({ createdAt: -1 })
-      .select("name founder_name email phone_number startup_type status createdAt")
+      .select(
+        "name founder_name email phone_number startup_type status createdAt revenue funding_raised expenses profit_loss burn_rate"
+      )
       .lean();
 
-    return res.json({ items });
+    const startupIds = items.map((s) => s._id);
+    const docCounts = startupIds.length
+      ? await Document.aggregate([
+          { $match: { startup_id: { $in: startupIds } } },
+          {
+            $group: {
+              _id: {
+                startup_id: "$startup_id",
+                status: {
+                  $cond: [
+                    { $eq: ["$verified_status", "verified"] },
+                    "verified",
+                    {
+                      $cond: [
+                        { $eq: ["$verified_status", "rejected"] },
+                        "rejected",
+                        "pending",
+                      ],
+                    },
+                  ],
+                },
+              },
+              count: { $sum: 1 },
+            },
+          },
+        ])
+      : [];
+
+    const summaryByStartup = {};
+    for (const row of docCounts) {
+      const sid = String(row?._id?.startup_id || "");
+      if (!sid) continue;
+      if (!summaryByStartup[sid]) {
+        summaryByStartup[sid] = { verified: 0, pending: 0, rejected: 0 };
+      }
+      const k = row?._id?.status;
+      if (k === "verified" || k === "pending" || k === "rejected") {
+        summaryByStartup[sid][k] = row.count;
+      }
+    }
+
+    const enriched = items.map((s) => ({
+      ...s,
+      document_status_summary:
+        summaryByStartup[String(s._id)] || { verified: 0, pending: 0, rejected: 0 },
+    }));
+
+    return res.json({ items: enriched });
   } catch (err) {
     return res.status(500).json({ message: "Failed to list startups", error: err.message });
   }
@@ -608,21 +683,46 @@ async function listStartupsForInvestors(req, res) {
       )
       .lean();
 
-    // Add a hero image URL (derived from uploaded documents) for investor cards.
+    // Investor startup "profile photo" should be the 1st image uploaded in StartupProfile (startup-profile page).
     const ids = items.map((s) => s._id).filter(Boolean);
     let heroByStartup = {};
     if (ids.length) {
-      const docs = await Document.find({
-        startup_id: { $in: ids },
+      const profileRows = await StartupProfile.find({
+        startupId: { $in: ids.map((x) => String(x)) },
       })
-        .sort({ createdAt: -1 })
+        .select("startupId galleryImages logoUrl updatedAt")
+        .lean();
+
+      for (const p of profileRows) {
+        const sid = String(p.startupId || "");
+        if (!sid || heroByStartup[sid]) continue;
+        const gallery0 =
+          Array.isArray(p.galleryImages) && p.galleryImages.length
+            ? String(p.galleryImages[0] || "")
+            : "";
+        const logo = p.logoUrl ? String(p.logoUrl) : "";
+        const url = gallery0 || logo || "";
+        if (url) heroByStartup[sid] = url;
+      }
+    }
+
+    // Fallback: if no StartupProfile image exists, use 1st uploaded document image (old behavior).
+    const missingHeroIds = ids.filter((id) => !heroByStartup[String(id)]);
+    if (missingHeroIds.length) {
+      const docs = await Document.find({
+        startup_id: { $in: missingHeroIds },
+      })
+        .sort({ createdAt: 1 })
         .select("startup_id fileUrl page_images createdAt")
         .lean();
 
       for (const d of docs) {
         const sid = String(d.startup_id || "");
         if (!sid || heroByStartup[sid]) continue;
-        const page0 = Array.isArray(d.page_images) && d.page_images.length ? d.page_images[0] : null;
+        const page0 =
+          Array.isArray(d.page_images) && d.page_images.length
+            ? d.page_images[0]
+            : null;
         const url = page0?.url || d.fileUrl || "";
         if (url) heroByStartup[sid] = url;
       }
@@ -641,6 +741,29 @@ async function listStartupsForInvestors(req, res) {
   }
 }
 
+async function listVerifiedInvestorsForStartupOwner(req, res) {
+  try {
+    if (req.user.role !== "startup_owner" && req.user.role !== "admin") {
+      return res.status(403).json({ message: "Forbidden: startup owner access required" });
+    }
+
+    const items = await User.find({
+      role: "investor",
+      role_verified: true,
+      is_active: { $ne: false },
+    })
+      .select("_id name email organization investment_sector profile_meta avatar_url createdAt")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.json({ items });
+  } catch (err) {
+    return res
+      .status(500)
+      .json({ message: "Failed to list verified investors", error: err.message });
+  }
+}
+
 export {
   createStartup,
   getMyStartups,
@@ -650,6 +773,7 @@ export {
   deleteStartup,
   listStartupsForOfficials,
   listStartupsForInvestors,
+  listVerifiedInvestorsForStartupOwner,
   updateStartupStatusByOfficial,
   getFinancialForecast,
   getFinancialAlerts,

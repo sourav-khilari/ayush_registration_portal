@@ -48,8 +48,15 @@ router.post(
   "/:id/verify",
   auth,
   (req, res, next) => {
-    // ✅ Temporarily skip role restrictions
-    // Allow all authenticated users to verify
+    const isAdmin = req.user?.role === "admin";
+    const isVerifiedGov =
+      req.user?.role === "gov_official" && req.user?.role_verified === true;
+    if (!isAdmin && !isVerifiedGov) {
+      return res.status(403).json({
+        success: false,
+        message: "Forbidden: only verified government officials or admins",
+      });
+    }
     next();
   },
   setDocumentVerificationHandler

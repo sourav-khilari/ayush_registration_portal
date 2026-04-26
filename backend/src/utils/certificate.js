@@ -18,8 +18,15 @@ function hmacHex(input) {
   return crypto.createHmac("sha256", secret).update(String(input)).digest("hex");
 }
 
-export async function generateStartupCertificatePdf(startup) {
+export async function generateStartupCertificatePdf(startup, options = {}) {
   if (!startup?._id) throw new Error("Missing startup id");
+  const approverName =
+    options?.approverName ||
+    startup?.status_updated_by_name ||
+    "Government Official";
+  const approverEmail =
+    options?.approverEmail || startup?.status_updated_by_email || "N/A";
+  const approverRole = options?.approverRole || "gov_official";
 
   const issuedAt = new Date();
   const certificateId = startup.certificate_id || crypto.randomUUID();
@@ -124,6 +131,9 @@ export async function generateStartupCertificatePdf(startup) {
       .fillColor(valueColor)
       .text(issuedAt.toLocaleString(), leftX + 160, y);
     y += lineGap;
+
+    row("Approved By", `${approverName} (${approverEmail})`);
+    row("Approver Role", String(approverRole).replaceAll("_", " "));
 
     doc.fontSize(10).fillColor(labelColor).text("Certificate ID", leftX, y);
     doc.fontSize(11).fillColor(valueColor).text(certificateId, leftX + 160, y);

@@ -24,6 +24,7 @@ import StartupFinancialMatrix from "./components/startup/StartupFinancialMatrix"
 import InvestorFinancialMatrix from "./components/investor/InvestorFinancialMatrix";
 import GovDashboard from "./components/gov/GovDashboard";
 import GovStartupDetail from "./components/gov/GovStartupDetail";
+import AdminDashboard from "./components/admin/AdminDashboard";
 import StartupPage from "./features/startup/StartupPage";
 import NotificationsPage from "./components/common/NotificationsPage";
 import ThemeToggle from "./components/common/ThemeToggle";
@@ -144,6 +145,14 @@ function App() {
               </PrivateRoute>
             }
           />
+          <Route
+            path="/startup-profile/:startupId"
+            element={
+              <PrivateRoute>
+                <StartupPage />
+              </PrivateRoute>
+            }
+          />
 
           {/* Regular User Routes */}
           <Route
@@ -213,6 +222,14 @@ function App() {
             element={
               <PrivateRoute>
                 <GovStartupDetail />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin/dashboard"
+            element={
+              <PrivateRoute>
+                <AdminDashboard />
               </PrivateRoute>
             }
           />

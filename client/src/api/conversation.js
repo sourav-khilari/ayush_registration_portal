@@ -14,6 +14,10 @@ export const ConversationAPI = {
   // Startup owner: list investor conversations for a startup
   listForStartup: (startupId) =>
     apiRequest(`/conversations/startup/${startupId}/list`, { method: "GET" }),
+  getOrCreateForStartupInvestor: (startupId, investorId) =>
+    apiRequest(`/conversations/startup/${startupId}/investor/${investorId}`, {
+      method: "GET",
+    }),
 
   // Get full conversation by id
   getById: (conversationId) =>

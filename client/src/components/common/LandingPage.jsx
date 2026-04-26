@@ -135,7 +135,9 @@ function LandingPage() {
                           ? "/StartupOwner/dashboard"
                           : user?.role === "investor"
                           ? "/investor/dashboard"
-                          : user?.role === "gov_official" || user?.role === "admin"
+                          : user?.role === "admin"
+                          ? "/admin/dashboard"
+                          : user?.role === "gov_official"
                           ? "/gov/dashboard"
                           : "/user/dashboard"
                       )

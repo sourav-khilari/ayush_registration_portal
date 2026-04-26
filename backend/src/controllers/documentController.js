@@ -456,7 +456,9 @@ async function listDocuments(req, res) {
   const { startup_id, application_id } = req.query;
   const role = req.user?.role;
   const isAdminOrGovOrInvestor =
-    role === "admin" || role === "gov_official" || role === "investor";
+    role === "admin" ||
+    (role === "gov_official" && req.user?.role_verified === true) ||
+    role === "investor";
 
   let filter;
 
@@ -536,7 +538,7 @@ async function getRequirements(req, res) {
 // ---------------------- Manual Verification handler ---------------------- //
 async function setDocumentVerificationImpl(req, res) {
   try {
-    const { docId } = req.params;
+    const docId = req.params.docId || req.params.id;
     const { verified_status, comment } = req.body;
 
     if (!docId) return res.status(400).json({ message: "docId required" });

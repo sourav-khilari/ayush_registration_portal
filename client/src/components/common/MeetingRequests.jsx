@@ -17,7 +17,8 @@ export default function MeetingRequests() {
 
   useEffect(() => {
     fetchRequests();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   const handleAccept = async (id, slotIndex) => {
     const res = await acceptRequest(id, slotIndex, token);

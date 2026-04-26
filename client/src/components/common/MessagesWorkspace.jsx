@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { io } from "socket.io-client";
 import {
   FaBell,
@@ -11,7 +11,7 @@ import {
   FaSearch,
   FaSmile,
 } from "react-icons/fa";
-import { ConversationAPI } from "../../api";
+import { ConversationAPI, StartupAPI } from "../../api";
 import { useAuth } from "../../context/AuthContext";
 import { sendRequest } from "../../api/meetApi";
 import { acceptRequest, rejectRequest } from "../../api/meetApi";
@@ -26,11 +26,15 @@ const QUICK_EMOJIS = [":)", ":D", "<3", ":+1:", ":rocket:", ":idea:"];
 
 export default function MessagesWorkspace() {
   const { user, token } = useAuth();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [conversations, setConversations] = useState([]);
   const [active, setActive] = useState(null);
   const [search, setSearch] = useState("");
   const [message, setMessage] = useState("");
+  const [myStartupId, setMyStartupId] = useState("");
+  const [verifiedInvestors, setVerifiedInvestors] = useState([]);
+  const [openingInvestorId, setOpeningInvestorId] = useState("");
   const [typingMap, setTypingMap] = useState({});
   const [onlineUsers, setOnlineUsers] = useState(new Set());
   const [uploading, setUploading] = useState(false);
@@ -55,6 +59,27 @@ export default function MessagesWorkspace() {
     return window.location.origin;
   }, []);
 
+  const backToDashboardPath = useMemo(() => {
+    const role = user?.role;
+    if (role === "startup_owner") return "/StartupOwner/dashboard";
+    if (role === "investor") return "/investor/dashboard";
+    if (role === "admin") return "/admin/dashboard";
+    if (role === "gov_official") return "/gov/dashboard";
+    return "/user/dashboard";
+  }, [user?.role]);
+
+  const investorsWithoutConversation = useMemo(() => {
+    if (user?.role !== "startup_owner") return verifiedInvestors;
+    const existingInvestorIds = new Set(
+      (conversations || [])
+        .map((c) => String(c?.otherParticipant?._id || ""))
+        .filter(Boolean),
+    );
+    return (verifiedInvestors || []).filter(
+      (inv) => !existingInvestorIds.has(String(inv?._id || "")),
+    );
+  }, [user?.role, verifiedInvestors, conversations]);
+
   async function loadConversations(query = "") {
     const res = await ConversationAPI.listMine(
       query ? { q: query } : undefined,
@@ -62,10 +87,28 @@ export default function MessagesWorkspace() {
     setConversations(Array.isArray(res?.items) ? res.items : []);
   }
 
+  async function loadStartupAndInvestors() {
+    if (user?.role !== "startup_owner") return;
+    try {
+      const [mineRes, invRes] = await Promise.all([
+        StartupAPI.mine(),
+        StartupAPI.verifiedInvestorsForOwner(),
+      ]);
+      const first = Array.isArray(mineRes?.startups) ? mineRes.startups[0] : null;
+      setMyStartupId(first?._id ? String(first._id) : "");
+      setVerifiedInvestors(Array.isArray(invRes?.items) ? invRes.items : []);
+    } catch (e) {
+      setMyStartupId("");
+      setVerifiedInvestors([]);
+      setError((prev) => prev || e?.message || "Failed to load investors");
+    }
+  }
+
   useEffect(() => {
     loadConversations(search).catch((e) =>
       setError(e.message || "Failed to load chats"),
     );
+    loadStartupAndInvestors().catch(() => void 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -168,6 +211,31 @@ export default function MessagesWorkspace() {
       await ConversationAPI.markSeen(convo._id).catch(() => void 0);
       await loadConversations(search).catch(() => void 0);
       setSearchParams({ conversationId: convo._id });
+    }
+  }
+
+  async function openInvestorChat(investorId) {
+    if (!investorId || !myStartupId) {
+      setError("No startup found for this startup owner account.");
+      return;
+    }
+    setOpeningInvestorId(investorId);
+    setError("");
+    try {
+      const res = await ConversationAPI.getOrCreateForStartupInvestor(
+        myStartupId,
+        investorId,
+      );
+      const convoId = res?.conversation?._id;
+      if (convoId) {
+        await loadConversations(search).catch(() => void 0);
+        setSearchParams({ conversationId: String(convoId) });
+        await openConversation(convoId);
+      }
+    } catch (e) {
+      setError(e?.message || "Failed to open investor chat");
+    } finally {
+      setOpeningInvestorId("");
     }
   }
 
@@ -313,9 +381,18 @@ export default function MessagesWorkspace() {
               Messages
             </span>
           </div>
-          <Link to="/" className="btn-ghost">
-            <FaHome className="mr-2" /> Home
-          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => navigate(backToDashboardPath)}
+              className="btn-secondary"
+            >
+              Back to Dashboard
+            </button>
+            <Link to="/" className="btn-ghost">
+              <FaHome className="mr-2" /> Home
+            </Link>
+          </div>
         </div>
       </nav>
 
@@ -332,9 +409,50 @@ export default function MessagesWorkspace() {
                 className="ui-input pl-9"
               />
             </div>
+
+            {user?.role === "startup_owner" &&
+              investorsWithoutConversation.length > 0 && (
+              <div className="mb-3 rounded-xl border border-gray-200 dark:border-gray-700 p-3 bg-gray-50/60 dark:bg-gray-900/40">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                    Start a new chat
+                  </p>
+                  <span className="text-xs text-gray-500">
+                    Verified investors: {investorsWithoutConversation.length}
+                  </span>
+                </div>
+                <div className="mt-2 space-y-2 max-h-[180px] overflow-y-auto">
+                  {investorsWithoutConversation.map((inv) => (
+                    <button
+                      key={inv._id}
+                      type="button"
+                      onClick={() => openInvestorChat(String(inv._id))}
+                      disabled={openingInvestorId === String(inv._id)}
+                      className="w-full text-left rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2 hover:bg-white dark:hover:bg-gray-800 disabled:opacity-60"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 line-clamp-1">
+                          {inv.name || inv.email}
+                        </span>
+                        <span className="text-[10px] text-gray-500">
+                          {openingInvestorId === String(inv._id) ? "Opening..." : "Chat"}
+                        </span>
+                      </div>
+                      <div className="text-xs text-gray-500 line-clamp-1">
+                        {inv.email}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="overflow-y-auto space-y-2">
               {conversations.map((c) => {
                 const other = c.otherParticipant;
+                const rowTitle = other?.name || other?.email || c.startup?.name || "Chat";
+                const rowSubtitle = [c.startup?.name, onlineUsers.has(String(other?._id || "")) ? "online" : "offline"]
+                  .filter(Boolean)
+                  .join(" • ");
                 const selected = String(c._id) === String(active?._id);
                 const online = onlineUsers.has(String(other?._id || ""));
                 return (
@@ -349,7 +467,7 @@ export default function MessagesWorkspace() {
                   >
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 line-clamp-1">
-                        {c.startup?.name || "Startup"}
+                        {rowTitle}
                       </p>
                       {c.unreadCount > 0 && (
                         <span className="status-pill bg-red-600 text-white">
@@ -358,8 +476,7 @@ export default function MessagesWorkspace() {
                       )}
                     </div>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {other?.name || other?.email}{" "}
-                      {online ? "� online" : "� offline"}
+                      {rowSubtitle || `${online ? "online" : "offline"}`}
                     </p>
                     <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-1 mt-1">
                       {c.lastMessage?.text ||

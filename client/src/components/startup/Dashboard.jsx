@@ -33,6 +33,7 @@ function Dashboard() {
     }
   }, [user]);
 
+
   useEffect(() => {
     async function loadStartup() {
       try {
@@ -75,8 +76,16 @@ function Dashboard() {
   };
 
   const handleApplyForStartup = () => {
+    if (!canStartNewApplication) return;
     navigate("/StartupOwner/startup-application");
   };
+
+  const startupStatus = String(startup?.status || "").toLowerCase();
+  const hasBlockingStartup = ["pending", "approved", "under_review"].includes(
+    startupStatus,
+  );
+  const canStartNewApplication = profileComplete && !hasBlockingStartup;
+
 
   return (
     <div className="app-shell">
@@ -205,21 +214,25 @@ function Dashboard() {
               </p>
               <button
                 onClick={handleApplyForStartup}
-                disabled={!profileComplete}
+                disabled={!canStartNewApplication}
                 className={`w-full py-3 px-6 rounded-lg font-semibold transition-colors duration-200 ${
-                  profileComplete
+                  canStartNewApplication
                     ? "bg-ayush-600 hover:bg-ayush-700 text-white"
                     : "bg-gray-300 text-gray-500 cursor-not-allowed"
                 }`}
               >
-                {profileComplete
+                {canStartNewApplication
                   ? "Apply for Startup"
-                  : "Complete Profile First"}
-                {profileComplete && <FaArrowRight className="inline ml-2" />}
+                  : !profileComplete
+                    ? "Complete Profile First"
+                    : "Waiting for Decision"}
+                {canStartNewApplication && <FaArrowRight className="inline ml-2" />}
               </button>
-              {!profileComplete && (
+              {!canStartNewApplication && (
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                  Complete your profile first to access this feature
+                  {!profileComplete
+                    ? "Complete your profile first to access this feature."
+                    : "You can submit a new startup only after the previous one is rejected."}
                 </p>
               )}
             </div>
@@ -320,19 +333,24 @@ function Dashboard() {
               </span>
             </Link>
 
-            <Link
-              to="/StartupOwner/startup-application"
-              className={`p-4 rounded-lg text-center transition-colors ${
-                profileComplete
-                  ? "bg-ayush-50 hover:bg-ayush-100"
-                  : "bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
-              }`}
-            >
-              <FaRocket className="text-2xl text-ayush-600 mx-auto mb-2" />
-              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                New Application
-              </span>
-            </Link>
+            {canStartNewApplication ? (
+              <Link
+                to="/StartupOwner/startup-application"
+                className="p-4 rounded-lg text-center transition-colors bg-ayush-50 hover:bg-ayush-100"
+              >
+                <FaRocket className="text-2xl text-ayush-600 mx-auto mb-2" />
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  New Application
+                </span>
+              </Link>
+            ) : (
+              <div className="p-4 rounded-lg text-center transition-colors bg-gray-100 dark:bg-gray-800 cursor-not-allowed">
+                <FaRocket className="text-2xl text-gray-400 mx-auto mb-2" />
+                <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  New Application Disabled
+                </span>
+              </div>
+            )}
 
             <Link
               to="/StartupOwner/profile"
@@ -355,6 +373,7 @@ function Dashboard() {
             </Link>
           </div>
         </div>
+
       </div>
     </div>
   );

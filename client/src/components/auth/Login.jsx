@@ -21,7 +21,9 @@ export default function Login() {
         navigate("/StartupOwner/dashboard");
       } else if (role === "investor") {
         navigate("/investor/dashboard");
-      } else if (role === "gov_official" || role === "admin") {
+      } else if (role === "admin") {
+        navigate("/admin/dashboard");
+      } else if (role === "gov_official") {
         navigate("/gov/dashboard");
       } else {
         navigate("/user/dashboard");
@@ -41,8 +43,12 @@ export default function Login() {
           <div className="hidden md:flex flex-col justify-between p-10 bg-gradient-to-br from-ayush-600 to-green-600 text-white">
             <div>
               <div className="text-2xl font-extrabold">AYUSH</div>
-              <h2 className="mt-10 text-3xl font-bold leading-tight">Welcome back</h2>
-              <p className="mt-3 text-white/90">Sign in to continue your journey on the AYUSH portal.</p>
+              <h2 className="mt-10 text-3xl font-bold leading-tight">
+                Welcome back
+              </h2>
+              <p className="mt-3 text-white/90">
+                Sign in to continue your journey on the AYUSH portal.
+              </p>
             </div>
             <ul className="space-y-3 mt-10 text-white/90">
               <li>• Secure authentication</li>
@@ -52,24 +58,50 @@ export default function Login() {
             <div className="mt-8 text-xs text-white/80">© AYUSH Portal</div>
           </div>
           <div className="p-6 sm:p-10">
-            <h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-gray-100">Login</h1>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">Access your AYUSH account</p>
+            <h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-gray-100">
+              Login
+            </h1>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
+              Access your AYUSH account
+            </p>
             {error && <div className="mb-4 text-red-600 text-sm">{error}</div>}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">Email</label>
-                <input className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ayush-500" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">
+                  Email
+                </label>
+                <input
+                  className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ayush-500"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">Password</label>
-                <input className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ayush-500" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">
+                  Password
+                </label>
+                <input
+                  className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ayush-500"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
               </div>
-              <button disabled={loading} className="w-full bg-ayush-600 hover:bg-ayush-700 text-white font-semibold py-3 rounded-lg disabled:opacity-60 shadow">
+              <button
+                disabled={loading}
+                className="w-full bg-ayush-600 hover:bg-ayush-700 text-white font-semibold py-3 rounded-lg disabled:opacity-60 shadow"
+              >
                 {loading ? "Signing in..." : "Login"}
               </button>
             </form>
             <p className="mt-4 text-sm text-gray-600 dark:text-gray-300">
-              Don't have an account? <Link className="text-ayush-600" to="/signup">Sign up</Link>
+              Don't have an account?{" "}
+              <Link className="text-ayush-600" to="/signup">
+                Sign up
+              </Link>
             </p>
           </div>
         </div>
@@ -77,4 +109,3 @@ export default function Login() {
     </div>
   );
 }
-

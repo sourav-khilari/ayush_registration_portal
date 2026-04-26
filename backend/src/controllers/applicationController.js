@@ -11,6 +11,30 @@ async function createApplication(req, res) {
     if (!startup_id || !sector || !application_type)
       return res.status(400).json({ message: "Missing fields" });
 
+    const startup = await Startup.findById(startup_id).select("user_id");
+    if (!startup) {
+      return res.status(404).json({ message: "Startup not found" });
+    }
+
+    const isOwner = String(startup.user_id) === String(req.user._id);
+    const isAdmin = req.user.role === "admin";
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ message: "Not authorised to create this application" });
+    }
+
+    const activeStatuses = ["pending", "submitted", "under_review", "approved"];
+    const existingActive = await Application.findOne({
+      startup_id,
+      status: { $in: activeStatuses },
+    }).select("_id status");
+    if (existingActive) {
+      return res.status(409).json({
+        message:
+          "Only one active application is allowed. You can submit a new application after rejection.",
+        active_application: existingActive,
+      });
+    }
+
     const app = await Application.create({
       startup_id,
       sector,
@@ -92,6 +116,15 @@ async function getApplication(req, res) {
   try {
     const app = await Application.findById(req.params.id).populate("documents");
     if (!app) return res.status(404).json({ message: "Not found" });
+
+    const startup = await Startup.findById(app.startup_id).select("user_id");
+    const isOwner = startup && String(startup.user_id) === String(req.user._id);
+    const isAdmin = req.user.role === "admin";
+    const isGov = req.user.role === "gov_official" && req.user.role_verified === true;
+    if (!isOwner && !isAdmin && !isGov) {
+      return res.status(403).json({ message: "Not authorized to view this application" });
+    }
+
     return res.json(app);
   } catch (err) {
     console.error("getApplication error:", err);

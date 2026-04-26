@@ -141,6 +141,14 @@ export default function GovDashboard() {
               <div className="hidden sm:block text-gray-700 dark:text-gray-200">
                 {user ? `Welcome, ${user.name}` : "Welcome"}
               </div>
+              {isAdmin && (
+                <Link
+                  to="/admin/dashboard"
+                  className="text-sm text-ayush-700 dark:text-ayush-400 hover:underline"
+                >
+                  Admin Panel
+                </Link>
+              )}
               <button
                 onClick={logout}
                 className="text-sm text-red-600 hover:text-red-700"
@@ -323,6 +331,8 @@ export default function GovDashboard() {
                     <Th>Name</Th>
                     <Th>Founder</Th>
                     <Th>Type</Th>
+                    <Th>Financial Metrics</Th>
+                    <Th>Documents</Th>
                     <Th>Status</Th>
                     <Th>Submitted</Th>
                     <Th></Th>
@@ -340,6 +350,19 @@ export default function GovDashboard() {
                       <Td>{s.founder_name}</Td>
                       <Td className="capitalize">{s.startup_type || "—"}</Td>
                       <Td>
+                        <div className="text-xs text-gray-600 dark:text-gray-300">
+                          Revenue: {formatInr(s.revenue)}
+                        </div>
+                        <div className="text-xs text-gray-600 dark:text-gray-300">
+                          Funding: {formatInr(s.funding_raised)}
+                        </div>
+                      </Td>
+                      <Td>
+                        <div className="text-xs text-green-700">V: {s.document_status_summary?.verified ?? 0}</div>
+                        <div className="text-xs text-yellow-700">P: {s.document_status_summary?.pending ?? 0}</div>
+                        <div className="text-xs text-red-700">R: {s.document_status_summary?.rejected ?? 0}</div>
+                      </Td>
+                      <Td>
                         <StatusBadge value={s.status} />
                       </Td>
                       <Td>
@@ -355,6 +378,13 @@ export default function GovDashboard() {
                           >
                             <FaExternalLinkAlt className="mr-1" />
                             View & Docs
+                          </Link>
+                          <Link
+                            to={`/startup-profile?startupId=${encodeURIComponent(s._id)}&role=gov_official`}
+                            className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200"
+                          >
+                            <FaExternalLinkAlt className="mr-1" />
+                            Startup Profile
                           </Link>
                           {(s.status === "pending" ||
                             s.status === "under_review") && (
@@ -393,6 +423,12 @@ export default function GovDashboard() {
       </div>
     </div>
   );
+}
+
+function formatInr(value) {
+  const n = Number(value || 0);
+  if (!n) return "₹0";
+  return `₹${n.toLocaleString("en-IN")}`;
 }
 
 function Th({ children }) {

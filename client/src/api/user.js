@@ -12,4 +12,12 @@ export const UserAPI = {
   verifyGovOfficial: (userId) => {
     return apiRequest(`/users/${userId}/verify-gov`, { method: "POST" });
   },
+  rejectGovOfficial: (userId) => {
+    return apiRequest(`/users/${userId}/reject-gov`, { method: "POST" });
+  },
+  listAllUsersAdmin: () => apiRequest("/users/admin/all-users", { method: "GET" }),
+  deleteUserAdmin: (userId) =>
+    apiRequest(`/users/admin/users/${userId}`, { method: "DELETE" }),
+  systemActivityAdmin: () =>
+    apiRequest("/users/admin/system-activity", { method: "GET" }),
 };

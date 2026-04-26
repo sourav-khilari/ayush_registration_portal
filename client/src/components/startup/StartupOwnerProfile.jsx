@@ -27,7 +27,7 @@ import {
 function StartupOwnerProfile() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user } = useAuth()
+  useAuth()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [startups, setStartups] = useState([])
@@ -202,6 +202,10 @@ function StartupOwnerProfile() {
       default: return 'bg-gray-100 text-gray-800'
     }
   }
+
+  const startupStatus = String(startup?.status || "").toLowerCase()
+  const hasBlockingStartup = ['pending', 'approved', 'under_review'].includes(startupStatus)
+  const canSubmitNewApplication = !hasBlockingStartup
 
   if (loading) {
     return (
@@ -689,11 +693,26 @@ function StartupOwnerProfile() {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Quick Actions</h3>
               <div className="space-y-3">
                 <button 
-                  onClick={() => navigate('/StartupOwner/startup-application')}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                  onClick={() => {
+                    if (!canSubmitNewApplication) return
+                    navigate('/StartupOwner/startup-application')
+                  }}
+                  disabled={!canSubmitNewApplication}
+                  className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-colors ${
+                    canSubmitNewApplication
+                      ? "text-gray-700 hover:bg-gray-50"
+                      : "text-gray-400 bg-gray-100 cursor-not-allowed"
+                  }`}
                 >
-                  Submit New Application
+                  {canSubmitNewApplication
+                    ? "Submit New Application"
+                    : "Submit New Application (Disabled)"}
                 </button>
+                {!canSubmitNewApplication && (
+                  <p className="px-1 text-xs text-gray-500">
+                    New application is enabled only after current startup is rejected.
+                  </p>
+                )}
                 <button 
                   onClick={() => navigate('/StartupOwner/dashboard')}
                   className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
@@ -708,6 +727,13 @@ function StartupOwnerProfile() {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                 Connect with Investors
               </h3>
+              <button
+                type="button"
+                onClick={() => navigate("/messages")}
+                className="w-full btn-secondary mb-3"
+              >
+                Go to Chat Dashboard
+              </button>
               {!startup ? (
                 <p className="text-sm text-gray-500">Select a startup to view chats.</p>
               ) : chatLoading ? (

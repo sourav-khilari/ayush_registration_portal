@@ -14,11 +14,11 @@ const router = express.Router();
 
 router.post("/", auth, createApplication);
 router.post("/:id/submit", auth, submitApplication);
-router.get("/:id", auth, getApplication);
 
 // Routes for startup owners to view their applications
 router.get("/my/list", auth, getMyApplications);
 router.get("/my/:id", auth, getMyApplication);
+router.get("/:id", auth, getApplication);
 
 // Only verified govt officials or admins can list all applications
 router.get("/", auth, (req, res, next) => {

@@ -641,40 +641,42 @@ function StartupApplication() {
       // 1.5) Create or find Application record
       let applicationId = null;
       try {
-        // Try to find existing application for this startup with same sector/type
+        // Block new submission if any active application exists.
         const existingAppsRes = await ApplicationAPI.getMyApplications();
         const existingApps = existingAppsRes?.applications || [];
-        const existing = existingApps.find((app) => {
+        const activeStatuses = ["pending", "submitted", "under_review", "approved"];
+        const blocking = existingApps.find((app) => {
           const appStartupId = app.startup_id?._id || app.startup_id;
           return (
             String(appStartupId) === String(startupId) &&
-            app.sector === formData.sector &&
-            app.application_type === formData.application_type &&
-            !app.isVirtual // Don't reuse virtual applications
+            activeStatuses.includes(String(app.status || "").toLowerCase()) &&
+            !app.isVirtual
           );
         });
 
-        if (existing && existing._id && !existing._id.startsWith("virtual_")) {
-          applicationId = existing._id;
-        } else {
-          // Create new application
-          const appRes = await ApplicationAPI.create({
-            startup_id: startupId,
-            sector: formData.sector,
-            application_type: formData.application_type,
-            application_data: {
-              startup_name: formData.startup_name,
-              founder_name: formData.founder_name,
-              email: formData.email,
-              phone_number: formData.phone_number,
-            },
-          });
-          applicationId =
-            appRes?.application?._id ||
-            appRes?.application?.id ||
-            appRes?._id ||
-            appRes?.id;
+        if (blocking) {
+          throw new Error(
+            `You already have an active application (${blocking.status}). New application is allowed only after rejection.`
+          );
         }
+
+        // Create a fresh application after rejection.
+        const appRes = await ApplicationAPI.create({
+          startup_id: startupId,
+          sector: formData.sector,
+          application_type: formData.application_type,
+          application_data: {
+            startup_name: formData.startup_name,
+            founder_name: formData.founder_name,
+            email: formData.email,
+            phone_number: formData.phone_number,
+          },
+        });
+        applicationId =
+          appRes?.application?._id ||
+          appRes?.application?.id ||
+          appRes?._id ||
+          appRes?.id;
       } catch (appErr) {
         console.error("Failed to create/find application:", appErr);
         // Continue anyway - documents will still be linked to startup
@@ -839,10 +841,8 @@ function StartupApplication() {
       setCurrentStep(3); // stay on docs step but show summary below
     } catch (error) {
       console.error("Create startup / upload failed", error);
-      // show a generic error message - we deliberately avoid throwing raw errors to UI
-      setDocumentsError(
-        "Submission failed. Please try again or contact support.",
-      );
+      const msg = error?.message || "Submission failed. Please try again or contact support.";
+      setDocumentsError(msg);
     } finally {
       setIsSubmitting(false);
     }

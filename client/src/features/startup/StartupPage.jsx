@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { FaLeaf, FaArrowRight, FaExclamationTriangle } from 'react-icons/fa'
 import ProfileForm from './ProfileForm'
 import MetricsForm from './MetricsForm'
@@ -24,6 +24,11 @@ import { StartupAPI } from '../../api'
 
 export default function StartupPage() {
   const { startupId: routeStartupId } = useParams()
+  const [searchParams] = useSearchParams()
+  const queryStartupId = searchParams.get("startupId") || searchParams.get("id")
+  const roleParam = searchParams.get("role")
+  const requestedRole = roleParam || "startup_owner"
+  const isReadOnlyView = requestedRole !== "startup_owner"
 
   // State management
   const [loading, setLoading] = useState(true)
@@ -36,8 +41,9 @@ export default function StartupPage() {
     let mounted = true
 
     const resolveStartupId = async () => {
-      if (routeStartupId) {
-        setStartupId(routeStartupId)
+      const explicitStartupId = routeStartupId || queryStartupId
+      if (explicitStartupId) {
+        setStartupId(explicitStartupId)
         return
       }
 
@@ -67,7 +73,7 @@ export default function StartupPage() {
     return () => {
       mounted = false
     }
-  }, [routeStartupId])
+  }, [routeStartupId, queryStartupId])
 
   const fetchStartupProfile = useCallback(async (id = startupId) => {
     if (!id) return
@@ -76,7 +82,7 @@ export default function StartupPage() {
       setLoading(true)
       setError(null)
 
-      const response = await getStartupDashboard(id)
+      const response = await getStartupDashboard(id, requestedRole)
 
       if (response?.success) {
         setDashboardData(response.data)
@@ -93,7 +99,7 @@ export default function StartupPage() {
     } finally {
       setLoading(false)
     }
-  }, [startupId])
+  }, [startupId, requestedRole])
 
   // Fetch startup profile once startupId is available
   useEffect(() => {
@@ -185,7 +191,9 @@ export default function StartupPage() {
           <h1 className="text-4xl font-bold text-gray-900">Startup Dashboard</h1>
         </div>
         <p className="text-gray-600 text-lg">
-          Manage and preview your startup profile
+          {isReadOnlyView
+            ? "Read-only startup profile preview"
+            : "Manage and preview your startup profile"}
         </p>
       </div>
 
@@ -197,24 +205,32 @@ export default function StartupPage() {
           <div className="flex items-center gap-2 mb-6">
             <div className="w-1 h-6 bg-ayush-600 rounded"></div>
             <h2 className="text-2xl font-bold text-gray-900">
-              Startup Profile Form
+              {isReadOnlyView ? "Startup Profile" : "Startup Profile Form"}
             </h2>
           </div>
-          
+
           {/* ProfileForm Component */}
           {dashboardData ? (
             <div className="space-y-6">
-              <ProfileForm
-                startupId={startupId}
-                initialData={dashboardData?.profile}
-                onSaveSuccess={handleSaveSuccess}
-                onMediaUploaded={handleMediaUploaded}
-              />
+              {isReadOnlyView ? (
+                <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                  This profile is opened in read-only mode for official/investor review.
+                </div>
+              ) : (
+                <>
+                  <ProfileForm
+                    startupId={startupId}
+                    initialData={dashboardData?.profile}
+                    onSaveSuccess={handleSaveSuccess}
+                    onMediaUploaded={handleMediaUploaded}
+                  />
 
-              <MetricsForm
-                startupId={startupId}
-                onSaveSuccess={handleSaveSuccess}
-              />
+                  <MetricsForm
+                    startupId={startupId}
+                    onSaveSuccess={handleSaveSuccess}
+                  />
+                </>
+              )}
             </div>
           ) : (
             <div className="text-gray-500 text-center py-8">
@@ -308,6 +324,7 @@ export default function StartupPage() {
         </div>
 
         {/* Action Buttons Footer */}
+        {!isReadOnlyView && (
         <div className="flex justify-end gap-4 mt-12 pb-8">
           <button className="px-6 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
             Cancel
@@ -317,6 +334,7 @@ export default function StartupPage() {
             <FaArrowRight className="text-sm" />
           </button>
         </div>
+        )}
       </div>
     </div>
   )

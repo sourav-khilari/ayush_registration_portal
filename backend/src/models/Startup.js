@@ -40,6 +40,12 @@ const StartupSchema = new mongoose.Schema(
     ],
     // When a government official/admin last changed the status
     status_updated_at: { type: Date },
+    status_updated_by: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    status_updated_by_name: { type: String },
+    status_updated_by_email: { type: String },
     /** Monthly revenue for line chart: [{ period: "2025-01", value: Number }] */
     revenue_monthly: [
       { period: String, value: Number },

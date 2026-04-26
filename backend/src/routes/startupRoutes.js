@@ -10,6 +10,7 @@ router.get("/mine", auth, ctr.getMyStartups);
 
 // Investor-friendly listing with rich filters
 router.get("/investor", auth, ctr.listStartupsForInvestors);
+router.get("/startup-owner/verified-investors", auth, ctr.listVerifiedInvestorsForStartupOwner);
 
 // Separate API for bar graph (profit vs expense)
 router.get("/:id/charts/profit-expense", auth, ctr.getProfitExpenseChart);

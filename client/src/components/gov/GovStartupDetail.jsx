@@ -29,6 +29,17 @@ export default function GovStartupDetail() {
     return `${uploadBase}${doc.fileUrl.startsWith("/") ? "" : "/"}${doc.fileUrl}`;
   };
 
+  const documentSummary = documents.reduce(
+    (acc, d) => {
+      const s = String(d?.verified_status || "pending").toLowerCase();
+      if (s === "verified") acc.verified += 1;
+      else if (s === "rejected") acc.rejected += 1;
+      else acc.pending += 1;
+      return acc;
+    },
+    { verified: 0, pending: 0, rejected: 0 },
+  );
+
   useEffect(() => {
     if (user && user.role !== "gov_official" && user.role !== "admin") {
       navigate("/user/dashboard", { replace: true });
@@ -140,6 +151,11 @@ export default function GovStartupDetail() {
             <FaFileAlt className="mr-2 text-ayush-600" />
             Documents
           </h2>
+          <div className="grid sm:grid-cols-3 gap-3 mb-4">
+            <DocSummaryPill label="Verified" value={documentSummary.verified} tone="green" />
+            <DocSummaryPill label="Pending" value={documentSummary.pending} tone="yellow" />
+            <DocSummaryPill label="Rejected" value={documentSummary.rejected} tone="red" />
+          </div>
           {documents.length === 0 ? (
             <p className="text-gray-500 dark:text-gray-400 text-sm">No documents available for this startup.</p>
           ) : (
@@ -157,6 +173,9 @@ export default function GovStartupDetail() {
                           {doc.doc_category_declared.replace("_", " ")}
                         </div>
                       )}
+                      <div className="mt-1">
+                        <StatusChip value={doc.verified_status || "pending"} />
+                      </div>
                     </div>
                     {docUrl && (
                       <div className="flex gap-2">
@@ -184,6 +203,31 @@ export default function GovStartupDetail() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function StatusChip({ value }) {
+  const v = String(value || "pending").toLowerCase();
+  if (v === "verified") {
+    return <span className="px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700">Verified</span>;
+  }
+  if (v === "rejected") {
+    return <span className="px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-700">Rejected</span>;
+  }
+  return <span className="px-2 py-0.5 rounded-full text-xs bg-yellow-100 text-yellow-700">Pending</span>;
+}
+
+function DocSummaryPill({ label, value, tone }) {
+  const toneClass =
+    tone === "green"
+      ? "bg-green-50 text-green-700"
+      : tone === "red"
+        ? "bg-red-50 text-red-700"
+        : "bg-yellow-50 text-yellow-700";
+  return (
+    <div className={`rounded-lg px-3 py-2 text-sm font-semibold ${toneClass}`}>
+      {label}: {value}
     </div>
   );
 }

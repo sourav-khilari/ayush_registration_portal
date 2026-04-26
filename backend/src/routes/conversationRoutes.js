@@ -6,6 +6,7 @@ import fs from "fs";
 import {
   getMyConversationForStartupHandler,
   listConversationsForStartupHandler,
+  getOrCreateOwnerInvestorConversationHandler,
   listMyConversationsHandler,
   getConversationByIdHandler,
   postMessageToConversationHandler,
@@ -35,6 +36,11 @@ router.get("/startup/:startup_id/mine", auth, getMyConversationForStartupHandler
 
 // Startup owner: list conversations for a startup (pick investor)
 router.get("/startup/:startup_id/list", auth, listConversationsForStartupHandler);
+router.get(
+  "/startup/:startup_id/investor/:investor_id",
+  auth,
+  getOrCreateOwnerInvestorConversationHandler,
+);
 
 // Current user: list all conversations (notifications/inbox)
 router.get("/mine", auth, listMyConversationsHandler);

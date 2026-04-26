@@ -7,10 +7,10 @@ import axios from 'axios'
  * @param {string} startupId - Startup ID
  * @returns {Promise<object>} Dashboard data
  */
-export async function getStartupDashboard(startupId) {
+export async function getStartupDashboard(startupId, role = "startup_owner") {
   try {
     const [dashboardResponse, startup] = await Promise.all([
-      apiRequest(`/dashboard/${startupId}?role=startup_owner`, { method: 'GET' }),
+      apiRequest(`/dashboard/${startupId}?role=${encodeURIComponent(role)}`, { method: 'GET' }),
       apiRequest(`/startups/${startupId}`, { method: 'GET' }),
     ])
 

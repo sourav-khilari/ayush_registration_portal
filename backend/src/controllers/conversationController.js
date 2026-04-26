@@ -132,6 +132,45 @@ async function listConversationsForStartup(req, res) {
   return res.json({ success: true, items });
 }
 
+// Owner: get/create conversation with a verified investor for a startup
+async function getOrCreateOwnerInvestorConversation(req, res) {
+  const { startup_id, investor_id } = req.params;
+  const user = req.user;
+
+  const { ownerId, isOwner } = await assertStartupAndAccess(startup_id, user);
+  if (!isOwner) throw new AppError("Only startup owner can initiate investor chat", 403);
+
+  const investor = await User.findById(investor_id)
+    .select("_id role role_verified is_active")
+    .lean();
+  if (!investor || investor.role !== "investor" || investor.role_verified !== true) {
+    throw new AppError("Investor is not verified for chat", 400);
+  }
+  if (investor.is_active === false) {
+    throw new AppError("Investor account is inactive", 400);
+  }
+
+  const ids = [String(ownerId), String(investor._id)].sort();
+  const participants_key = ids.join("_");
+
+  let convo = await Conversation.findOne({ startup_id, participants_key }).lean();
+  if (!convo) {
+    try {
+      const created = await Conversation.create({
+        startup_id,
+        participants: [ownerId, investor._id],
+        messages: [],
+      });
+      convo = created.toObject();
+    } catch (e) {
+      convo = await Conversation.findOne({ startup_id, participants_key }).lean();
+      if (!convo) throw e;
+    }
+  }
+
+  return res.json({ success: true, conversation: convo });
+}
+
 // Current user: list all conversations (for notifications)
 async function listMyConversations(req, res) {
   const user = req.user;
@@ -315,6 +354,9 @@ export const getMyConversationForStartupHandler = asyncHandler(
 );
 export const listConversationsForStartupHandler = asyncHandler(
   listConversationsForStartup,
+);
+export const getOrCreateOwnerInvestorConversationHandler = asyncHandler(
+  getOrCreateOwnerInvestorConversation,
 );
 export const listMyConversationsHandler = asyncHandler(listMyConversations);
 export const getConversationByIdHandler = asyncHandler(getConversationById);

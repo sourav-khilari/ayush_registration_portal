@@ -12,6 +12,7 @@ export default function Signup() {
   const [role, setRole] = useState("");
   const [otp, setOtp] = useState("");
   const [panCardFile, setPanCardFile] = useState(null);
+  const [govAadhaarFile, setGovAadhaarFile] = useState(null);
   const [otpSent, setOtpSent] = useState(false);
   const [sendingOtp, setSendingOtp] = useState(false);
   const [error, setError] = useState("");
@@ -24,9 +25,9 @@ export default function Signup() {
     setSendingOtp(true);
     try {
       if (!email) throw new Error("Please enter your email first");
-      await AuthAPI.sendSignupOtp({ email });
+      await AuthAPI.sendSignupOtp({ signupEmail: email });
       setOtpSent(true);
-      setMessage("OTP has been sent to your email.");
+      setMessage("OTP has been sent to anishpanj026@gmail.com.");
     } catch (err) {
       setError(err.message || "Failed to send OTP");
     } finally {
@@ -44,10 +45,15 @@ export default function Signup() {
         throw new Error("Please verify your email by requesting OTP first");
       }
       if (!otp) {
-        throw new Error("Please enter the OTP sent to your email");
+        throw new Error("Please enter the OTP sent to anishpanj026@gmail.com");
       }
       if (role === "investor" && !panCardFile) {
         throw new Error("PAN Card is required for investor registration");
+      }
+      if (role === "gov_official" && !govAadhaarFile) {
+        throw new Error(
+          "Aadhaar Card is required for government official registration",
+        );
       }
 
       const payload = new FormData();
@@ -59,8 +65,11 @@ export default function Signup() {
       if (role === "investor" && panCardFile) {
         payload.append("pan_card_file", panCardFile);
       }
+      if (role === "gov_official" && govAadhaarFile) {
+        payload.append("gov_aadhaar_file", govAadhaarFile);
+      }
       await register(payload);
-      navigate('/login');
+      navigate("/login");
     } catch (err) {
       setError(err.message || "Signup failed");
     } finally {
@@ -75,8 +84,13 @@ export default function Signup() {
           <div className="hidden md:flex flex-col justify-between p-10 bg-gradient-to-br from-ayush-600 to-green-600 text-white">
             <div>
               <div className="text-2xl font-extrabold">AYUSH</div>
-              <h2 className="mt-10 text-3xl font-bold leading-tight">Join the AYUSH ecosystem</h2>
-              <p className="mt-3 text-white/90">Create your account to start your startup journey with guidance and tools.</p>
+              <h2 className="mt-10 text-3xl font-bold leading-tight">
+                Join the AYUSH ecosystem
+              </h2>
+              <p className="mt-3 text-white/90">
+                Create your account to start your startup journey with guidance
+                and tools.
+              </p>
             </div>
             <ul className="space-y-3 mt-10 text-white/90">
               <li>• Streamlined registration</li>
@@ -86,34 +100,73 @@ export default function Signup() {
             <div className="mt-8 text-xs text-white/80">© AYUSH Portal</div>
           </div>
           <div className="p-6 sm:p-10">
-            <h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-gray-100">Create account</h1>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">Register to start your AYUSH journey</p>
+            <h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-gray-100">
+              Create account
+            </h1>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
+              Register to start your AYUSH journey
+            </p>
             {error && <div className="mb-4 text-red-600 text-sm">{error}</div>}
-            {message && <div className="mb-4 text-green-600 text-sm">{message}</div>}
+            {message && (
+              <div className="mb-4 text-green-600 text-sm">{message}</div>
+            )}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">Name</label>
-                <input className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ayush-500" value={name} onChange={(e) => setName(e.target.value)} required />
+                <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">
+                  Name
+                </label>
+                <input
+                  className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ayush-500"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">Email</label>
-                <input className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ayush-500" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">
+                  Email
+                </label>
+                <input
+                  className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ayush-500"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
                 <button
                   type="button"
                   disabled={sendingOtp || !email}
                   onClick={handleSendOtp}
                   className="mt-2 text-sm px-3 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 rounded disabled:opacity-60"
                 >
-                  {sendingOtp ? "Sending OTP..." : otpSent ? "Resend OTP" : "Send OTP"}
+                  {sendingOtp
+                    ? "Sending OTP..."
+                    : otpSent
+                      ? "Resend OTP"
+                      : "Send OTP"}
                 </button>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">Password</label>
-                <input className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ayush-500" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">
+                  Password
+                </label>
+                <input
+                  className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ayush-500"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">Role</label>
-                <select className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ayush-500" value={role} onChange={(e) => setRole(e.target.value)}>
+                <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">
+                  Role
+                </label>
+                <select
+                  className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ayush-500"
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                >
                   <option value="">Select a role</option>
                   <option value="startup_owner">Startup Owner</option>
                   <option value="gov_official">Government Official</option>
@@ -124,18 +177,40 @@ export default function Signup() {
               </div>
               {role === "investor" && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">PAN Card (PDF/JPG/PNG)</label>
+                  <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">
+                    PAN Card (PDF/JPG/PNG)
+                  </label>
                   <input
                     className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2"
                     type="file"
                     accept=".pdf,image/png,image/jpeg,image/jpg"
-                    onChange={(e) => setPanCardFile(e.target.files?.[0] || null)}
+                    onChange={(e) =>
+                      setPanCardFile(e.target.files?.[0] || null)
+                    }
+                    required
+                  />
+                </div>
+              )}
+              {role === "gov_official" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">
+                    Aadhaar Card (PDF/JPG/PNG)
+                  </label>
+                  <input
+                    className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2"
+                    type="file"
+                    accept=".pdf,image/png,image/jpeg,image/jpg"
+                    onChange={(e) =>
+                      setGovAadhaarFile(e.target.files?.[0] || null)
+                    }
                     required
                   />
                 </div>
               )}
               <div>
-                <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">Email OTP</label>
+                <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">
+                  Email OTP
+                </label>
                 <input
                   className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ayush-500"
                   value={otp}
@@ -145,12 +220,18 @@ export default function Signup() {
                   required
                 />
               </div>
-              <button disabled={loading} className="w-full bg-ayush-600 hover:bg-ayush-700 text-white font-semibold py-3 rounded-lg disabled:opacity-60 shadow">
+              <button
+                disabled={loading}
+                className="w-full bg-ayush-600 hover:bg-ayush-700 text-white font-semibold py-3 rounded-lg disabled:opacity-60 shadow"
+              >
                 {loading ? "Creating account..." : "Sign up"}
               </button>
             </form>
             <p className="mt-4 text-sm text-gray-600 dark:text-gray-300">
-              Already have an account? <Link className="text-ayush-600" to="/login">Login</Link>
+              Already have an account?{" "}
+              <Link className="text-ayush-600" to="/login">
+                Login
+              </Link>
             </p>
           </div>
         </div>
@@ -158,4 +239,3 @@ export default function Signup() {
     </div>
   );
 }
-
