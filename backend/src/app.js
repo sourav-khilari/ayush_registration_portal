@@ -1,6 +1,8 @@
 import express from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import path from "path";
 import { fileURLToPath } from "url";
 import "dotenv/config";
@@ -30,10 +32,27 @@ async function createApp() {
   // -------------------
   // Middleware
   // -------------------
+  // Security headers
+  app.use(helmet());
+  // CORS (kept as before)
   app.use(cors());
-  app.use(express.json());
-  app.use(bodyParser.json());
-  app.use(bodyParser.urlencoded({ extended: true }));
+
+  // Limit request body size to avoid large payload abuse
+  app.use(express.json({ limit: "100kb" }));
+  app.use(bodyParser.json({ limit: "100kb" }));
+  app.use(bodyParser.urlencoded({ extended: true, limit: "100kb" }));
+
+  // Basic rate limiting for API routes to mitigate abusive clients
+  const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, 
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Too many requests, please try again later." },
+  });
+
+  // Apply rate limiter to API routes only
+  app.use("/api/", apiLimiter);
 
   // Serve uploaded files statically
   app.use(

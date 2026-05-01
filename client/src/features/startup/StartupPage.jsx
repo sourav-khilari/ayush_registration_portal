@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { useParams, useSearchParams } from 'react-router-dom'
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import { FaLeaf, FaArrowRight, FaExclamationTriangle } from 'react-icons/fa'
 import ProfileForm from './ProfileForm'
 import MetricsForm from './MetricsForm'
@@ -35,6 +35,7 @@ export default function StartupPage() {
   const [error, setError] = useState(null)
   const [dashboardData, setDashboardData] = useState(null)
   const [startupId, setStartupId] = useState(routeStartupId || null)
+  const navigate = useNavigate()
 
   // Resolve startupId dynamically (route param first, then user's first startup)
   useEffect(() => {
@@ -326,7 +327,10 @@ export default function StartupPage() {
         {/* Action Buttons Footer */}
         {!isReadOnlyView && (
         <div className="flex justify-end gap-4 mt-12 pb-8">
-          <button className="px-6 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
+          <button
+            className="px-6 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+            onClick={() => navigate('/StartupOwner/dashboard')}
+          >
             Cancel
           </button>
           <button className="px-6 py-3 bg-ayush-600 text-white rounded-lg font-semibold hover:bg-ayush-700 transition-colors flex items-center gap-2">
